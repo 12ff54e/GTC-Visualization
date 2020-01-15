@@ -1,0 +1,21 @@
+{
+  "name": "gtc-visualization",
+  "version": "1.0.0",
+  "description": "Online plotting tools for GTC.",
+  "main": "server.js",
+  "scripts": {
+    "test": "nodemon ./server.js"
+  },
+  "keywords": [
+    "Visualization"
+  ],
+  "author": "Q. Zhong",
+  "license": "MIT",
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1"
+  }
+}
