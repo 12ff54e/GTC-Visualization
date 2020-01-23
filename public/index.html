@@ -3,10 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <title>GTC-Visualization</title>
+    <link rel="stylesheet" href="stylesheets/tabs.css">
+    <link rel="stylesheet" href="stylesheets/dygraph.css">
+    <script src="javascripts/dygraph.min.js"></script>
 </head>
 
 <body>
+    <div id="tabs">
+        <input id="History" type="radio" name="plot-type" class="tab-l0-switch">
+        <label for="History" class="tab-l0-label">History</label>
+        <div id="hist-panel" class="tabs-l1">
+            <button class="tab-l1-btn" type="button" id="test">test</button>
+        </div>
+        <input id="Equilibrium" type="radio" name="plot-type" class="tab-l0-switch">
+        <label for="Equilibrium" class="tab-l0-label">Equilibrium</label>
+        <div id="eq-panel" class="tabs-l1">
+        </div>
+        <input id="Radial-Time" type="radio" name="plot-type" class="tab-l0-switch">
+        <label for="Radial-Time" class="tab-l0-label">Radial-Time</label>
+        <div id="rt-panel" class="tabs-l1">
 
+        </div>
+        <input id="Field-Mode" type="radio" name="plot-type" class="tab-l0-switch">
+        <label for="Field-Mode" class="tab-l0-label">Field Mode</label>
+        <div id="fm-panel" class="tabs-l1">
+
+        </div>
+        <input id="Snapshots" type="radio" name="plot-type" class="tab-l0-switch">
+        <label for="Snapshots" class="tab-l0-label">Snapshots</label>
+
+        <div id="snap-panel" class="tabs-l1">
+
+        </div>
+
+    </div>
+    <div id="figure">
+        <p>Here lies the figure</p>
+    </div>
 </body>
 <script src="javascripts/index.js"></script>
 
