@@ -9,6 +9,8 @@
     position: absolute;
     top: 2%;
     left: 40%;
+    /* display: grid;
+    grid-template-rows: 1fr; */
 }
 
 .tab-l0-label {
@@ -38,10 +40,6 @@
     display: none;
 }
 
-.tab-l1-switch {
-    display: none;
-}
-
 .tabs-l1 {
     display: block;
     float: left;
@@ -53,6 +51,10 @@
     z-index: 1;
     transition: all 0.35s;
 }
+
+/* .tabs-l1-btn {
+
+} */
 
 .tab-l0-switch:checked + .tab-l0-label {
     background-color: aquamarine;
