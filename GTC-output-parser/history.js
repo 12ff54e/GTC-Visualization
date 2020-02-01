@@ -120,11 +120,13 @@ class History {
                         mode: 'lines'
                     });
                     obj[i].addX();
+                    obj[i].plotLabel = `${i == 0 ? 'phi' : 'phip'} (theta=zeta=0)`;
                     obj[i].axesLabel = {
-                        x: 'Time Step',
-                        y: `${i == 0 ? 'phi' : 'phip'} (theta=zeta=0)`
+                        x: 'R_0/c_s',
+                        y: 'rho_0^2'
                     };
                 }
+                console.log(obj[0].layout);
                 break;
             case 1:
                 obj = Array.from({ length: 2 }, _ => new PlotlyData());
@@ -134,10 +136,10 @@ class History {
                             [[this.stepStart, this.stepEnd], 0, i + 2]),
                         mode: 'lines'
                     });
-                    obj[i].addX();
+                    obj[i].plotLabel = `$${i == 0 ? 'phi' : 'phip'} RMS (theta=zeta=0)$`;
                     obj[i].axesLabel = {
-                        x: 'Time Step',
-                        y: `${i == 0 ? 'phip' : 'phi'} RMS (theta=zeta=0)`
+                        x: 'R_0/c_s',
+                        y: 'rho_0^2'
                     };
                 }
                 break;

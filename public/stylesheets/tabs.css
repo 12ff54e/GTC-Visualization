@@ -3,14 +3,18 @@
     width: 40%;
 }
 
-#figure {
+#figure-wrapper {
     float: left;
     width: 60%;
     position: absolute;
     top: 2%;
     left: 40%;
-    /* display: grid;
-    grid-template-rows: 1fr; */
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+}
+
+#figure-wrapper > div {
+    background-color: gray;
 }
 
 .tab-l0-label {

@@ -36,11 +36,18 @@ class PlotlyData {
     }
 
     /**
-     * @param {{ x: String; y: String; }} label
+     * @param {{ x: string; y: string; }} label
      */
     set axesLabel(label) {
         this.layout.xaxis.title = label.x;
         this.layout.yaxis.title = label.y;
+    }
+
+    /**
+     * @param {string} label
+     */
+    set plotLabel(label) {
+        this.layout.title = label;
     }
 
     static _defaultLayout() {

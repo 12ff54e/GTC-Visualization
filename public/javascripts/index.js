@@ -41,7 +41,10 @@ for (let btn of buttons) {
     btn.onclick = async function () {
 
         let figObj = await fetch(`data/${btn.id}`);
-        let figure = await figObj.json();
-        Plotly.newPlot('figure', figure[0].data, figure[0].layout);
+        let figures = await figObj.json();
+        // console.log(figures[0].layout);
+        for (let i = 0; i < figures.length; i++) {
+            Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
+        }
     }
 }
