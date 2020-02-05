@@ -19,7 +19,10 @@ app.get('/plotType/:type', async (req, res) => {
     switch (req.params.type) {
         case 'History':
             await output.history();
-            res.send('history file read');
+            res.send(JSON.stringify({
+                info: 'history file read',
+                id: output.historyData.plotTypes
+            }));
             break;
         case 'Equilibrium':
             break;
@@ -33,13 +36,17 @@ app.get('/plotType/:type', async (req, res) => {
     }
 })
 
+app.get('/data/basicParameters', (req, res) => {
+    res.send(JSON.stringify(output.parameters));
+})
+
 app.get('/data/:type-:id', (req, res, next) => {
     let requestPlotId = req.params.id;
     console.log(requestPlotId);
     if (requestPlotId === 'test') {
         res.send(JSON.stringify([{
             data: [{x:[1,2,3,4],y:[1,4,9,16]}],
-            layout: {xaxis:{title:'x'},yaxis:{title:'square'}}
+            layout: {xaxis:{title:'x'},yaxis:{title:'y'}}
         }]))
     } else {
         next();
@@ -49,7 +56,8 @@ app.get('/data/:type-:id', (req, res, next) => {
     let requestPlotId = req.params.id;
     switch (requestPlotType) {
         case 'hist':
-            res.send(JSON.stringify(output.historyData.plotData(requestPlotId)));
+            res.send(JSON.stringify(
+                output.historyData.plotData(requestPlotId, output.parameters)));
             break;
         case 'eq':
             break;

@@ -1,14 +1,15 @@
 #tabs {
     float: left;
-    width: 40%;
+    width: 30%;
+    height: 100%;
 }
 
 #figure-wrapper {
     float: left;
-    width: 60%;
-    position: absolute;
+    /* width: 100%; */
+    /* position: absolute; */
     top: 2%;
-    left: 40%;
+    /* left: 30%; */
     display: grid;
     grid-template-rows: 1fr 1fr;
 }
@@ -29,36 +30,26 @@
     transition: all 0.35s;
 }
 
-.tab-l1-label {
-    width: 95%;
-    display: block;
-    text-indent: 1rem;
-
-    height: 1.5rem;
-    line-height: 1.5rem;
-
-    transition: all 0.15s;
-}
-
 .tab-l0-switch {
     display: none;
 }
 
 .tabs-l1 {
     display: block;
-    float: left;
+    /* float: left; */
     width: 22%;
     position: absolute;
     top: 0;
-    left: 18%;
+    left: 13%;
     opacity: 0;
     z-index: 1;
     transition: all 0.35s;
 }
 
-/* .tabs-l1-btn {
-
-} */
+.tabs-l1 > div {
+    display: block;
+    margin-top: 1rem;
+}
 
 .tab-l0-switch:checked + .tab-l0-label {
     background-color: aquamarine;

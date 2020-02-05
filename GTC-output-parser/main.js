@@ -17,10 +17,10 @@ class GTCOutput {
 
     async history() {
         if (this.parameters) {
-            this.historyData = await History.readHistoryFile(this.dir);
+            this.historyData = await History.readHistoryFile(this.dir, this.parameters);
         } else {
             await this.read_para();
-            this.historyData = await History.readHistoryFile(this.dir);
+            this.historyData = await History.readHistoryFile(this.dir, this.parameters);
         }
     }
 

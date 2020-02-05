@@ -2,13 +2,13 @@ const fs = require('fs').promises;
 const path = require('path');
 const PlotlyData = require('./PlotlyData.js')
 
-const particlePlotType =
+const particleTypes = ['ion', 'electron', 'EP', 'fast_electron']
+const particlePlotTypes =
     ['density', 'momentum', 'energy', 'pm_flux', 'e_flux'];
-const plotType = [
-    ['phi', 'phi_RMS', ...range(1, 9).map(i => `phi_mode${i}`)],
-    ['a_para', 'a_para_RMS', ...range(1, 9).map(i => `a_para_mode${i}`)],
-    ['fluid_ne', 'fluid_ne_RMS', ...range(1, 9).map(i => `fluid_ne_mode${i}`)],
-    ...['ion_', 'EP_', 'electron_'].map(t => particlePlotType.map(p => t + p)),
+const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
+const plotTypes = [
+    ...fieldTypes.map(f => [f, f + '_RMS', ...range(1, 9).map(i => `${f}_mode${i}`)]),
+    ...particleTypes.map(t => particlePlotTypes.map(p => t + '_' + p)),
 ];
 
 /**
@@ -16,13 +16,15 @@ const plotType = [
  * 
  */
 class History {
-    constructor(historyData) {
+    constructor(historyData, basicParams) {
 
         if (!Array.isArray(historyData) || historyData.path === undefined) {
             throw new Error('The constructor of History cannot be called directly.');
         }
 
-        this.path = historyData.path;
+        this.path = historyData.path; // file path
+
+
         // raw parameters
         this.speciesNumber = parseInt(historyData[1]);
         this.particleDiagnosticNumber = parseInt(historyData[2]);
@@ -37,7 +39,12 @@ class History {
         this.stepNumber = Math.floor(historyData.length / dataEntryPerStep);
         this.stepStart = 0;
         this.stepEnd = this.stepNumber;
-        this.frequencyNumber = Math.round((this.stepEnd - this.stepStart) / 2);
+
+        // find out the particle(s) in history.out
+        let { iload, nhybrid, fload, feload } = basicParams;
+        this.plotTypes = plotTypes.filter((_, i) =>
+            i < this.fieldNumber || [iload, nhybrid, fload, feload][i - this.fieldNumber] > 0
+        )
 
         // pre-allocate data containers
         // particle data has dimension of (stepNumber, speciesNumber, particleDiagnosticNumber)
@@ -70,11 +77,16 @@ class History {
                     + this.speciesNumber * this.particleDiagnosticNumber
                     + field * this.fieldDiagnosticNumber
                     + step * dataEntryPerStep;
-                // begin index of field mode data
-                let beginIndex2 = beginIndex1 + this.fieldDiagnosticNumber;
                 this.fieldTimeSeriesData[step][field] = historyData
-                    .slice(beginIndex1, beginIndex2)
+                    .slice(beginIndex1, beginIndex1 + this.fieldDiagnosticNumber)
                     .map(str => parseFloat(str));
+
+                // begin index of field mode data
+                let beginIndex2 = 7
+                    + this.speciesNumber * this.particleDiagnosticNumber
+                    + this.fieldNumber * this.fieldDiagnosticNumber
+                    + field * 2 * this.fieldModeNumber
+                    + step * dataEntryPerStep;
                 let tmp = historyData
                     .slice(beginIndex2, beginIndex2 + 2 * this.fieldModeNumber)
                     .map(str => parseFloat(str));
@@ -86,7 +98,7 @@ class History {
 
     }
 
-    static async readHistoryFile(dir) {
+    static async readHistoryFile(dir, basicParams) {
 
         let histDir = path.join(dir, 'history.out');
         let historyDataString = await fs.readFile(histDir, 'utf-8');
@@ -94,7 +106,7 @@ class History {
 
         historyData.path = histDir;
 
-        return new History(historyData);
+        return new History(historyData, basicParams);
     }
 
     /**
@@ -106,47 +118,96 @@ class History {
      * @param {Object} basicParams GTCOutput.parameters
      */
     plotData(type, basicParams) {
-        let id = plotType.flat().findIndex(t => type === t);
+        let id = this.plotTypes.flat().findIndex(t => type === t);
         let obj;
         let len = this.stepEnd - this.stepStart;
+        let timeStep = basicParams.ndiag * basicParams.tstep;
 
-        switch (id) {
-            case 0:
+        if (id < 30) {
+            let fieldType = Math.floor(id / 10);
+            let plotType = id % 10;
+            
+            // field
+            if (plotType < 2) {
+                // point value
                 obj = Array.from({ length: 2 }, _ => new PlotlyData());
                 for (let i = 0; i < 2; i++) {
                     obj[i].data.push({
                         y: part(this.fieldTimeSeriesData,
-                            [[this.stepStart, this.stepEnd], 0, i]),
-                        mode: 'lines'
+                            [[this.stepStart, this.stepEnd], fieldType, i + 2 * plotType]),
+                        mode: 'lines',
                     });
-                    obj[i].addX();
-                    obj[i].plotLabel = `${i == 0 ? 'phi' : 'phip'} (theta=zeta=0)`;
+                    obj[i].addX(timeStep);
+                    obj[i].plotLabel = plotType == 0
+                        ? (i == 0
+                            ? `${fieldTypes[fieldType]} (theta=zeta=0)`
+                            : `${fieldTypes[fieldType]}00 (iflux@diag)`)
+                        : (`${i == 0 ? 'ZF' : fieldTypes[fieldType]} RMS`)
                     obj[i].axesLabel = {
                         x: 'R_0/c_s',
-                        y: 'rho_0^2'
+                        y: ''
                     };
                 }
-                console.log(obj[0].layout);
-                break;
-            case 1:
-                obj = Array.from({ length: 2 }, _ => new PlotlyData());
-                for (let i = 0; i < 2; i++) {
-                    obj[i].data.push({
-                        y: part(this.fieldTimeSeriesData,
-                            [[this.stepStart, this.stepEnd], 0, i + 2]),
-                        mode: 'lines'
-                    });
-                    obj[i].plotLabel = `$${i == 0 ? 'phi' : 'phip'} RMS (theta=zeta=0)$`;
-                    obj[i].axesLabel = {
-                        x: 'R_0/c_s',
-                        y: 'rho_0^2'
-                    };
-                }
-                break;
-            case 2:
-                break;
-            case 3:
-                break;
+
+            } else {
+                // mode value
+                let modeIndex = plotType - 2;
+                obj = Array.from({ length: 4 }, _ => new PlotlyData());
+                let fieldMode = part(this.fieldModeData,
+                    [[this.stepStart, this.stepEnd], fieldType, modeIndex]);
+                let { re, im } = fieldMode.reduce((acc, curr) => {
+                    acc.re.push(curr.re);
+                    acc.im.push(curr.im);
+                    return acc;
+                }, { re: new Array(), im: new Array() });
+                // real and imaginary components
+                obj[0].data.push({ y: re, mode: 'lines', name: 'real' });
+                obj[0].data.push({ y: im, mode: 'lines', name: 'imaginary' });
+                obj[0].addX(timeStep);
+                obj[0].plotLabel =
+                    `n=${basicParams.nmodes[modeIndex]}, m=${basicParams.mmodes[modeIndex]}`;
+                obj[0].axesLabel = { x: 'R_0/c_s', y: '' }
+
+                // growth rate
+                obj[1].data.push({
+                    y: fieldMode.map(({ re, im }) => Math.sqrt(re * re + im * im)),
+                    mode: 'lines'
+                });
+                obj[1].addX(timeStep);
+                obj[1].axesLabel = { x: 'R_0/c_s', y: '' };
+                obj[1].layout.yaxis.type = 'log';
+                obj[1].layout.showlegend = false;
+
+                // frequency
+                obj[2].axesLabel = { x: 'R_0/c_s', y: '' };
+                obj[2].layout.showlegend = false;
+
+                // fft
+                obj[3].axesLabel = { x: 'mode number', y: '' };
+                obj[3].plotLabel = 'power spectral';
+            }
+        } else {
+            // particle
+            let particleType = Math.floor((id - this.fieldNumber * (2 + this.fieldModeNumber)) / 5);
+            let plotType = (id - this.fieldNumber * (2 + this.fieldModeNumber)) % 5;
+            console.log(id);
+            obj = Array.from({ length: 2 }, _ => new PlotlyData());
+            for (let i = 0; i < 2; i++) {
+                obj[i].data.push({
+                    y: part(this.particleData,
+                        [[this.stepStart, this.stepEnd], particleType, 2 * plotType + i])
+                });
+                obj[i].addX(timeStep);
+                obj[i].axesLabel = { x: 'R_0/c_s', y: '' };
+                switch (plotType) {
+                    case 0: obj[i].plotLabel = i == 0 ? 'delta-f' : 'delta-f^2'; break;
+                    case 1: obj[i].plotLabel = i == 0 ? 'parallel flow u' : 'delta u'; break;
+                    case 2: obj[i].plotLabel = i == 0 ? 'energy' : 'delta-e'; break;
+                    case 3: obj[i].plotLabel = i == 0 ? 'particle flow' : 'momentum flow'; break;
+                    case 4: obj[i].plotLabel = i == 0 ? 'energy flow' : 'total density';
+                };
+
+            }
         }
 
         return obj;

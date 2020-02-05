@@ -12,6 +12,7 @@
   "author": "Q. Zhong",
   "license": "MIT",
   "devDependencies": {
+    "jsfft": "0.0.4",
     "nodemon": "^2.0.2"
   },
   "dependencies": {

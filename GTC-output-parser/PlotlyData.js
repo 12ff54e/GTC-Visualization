@@ -8,7 +8,7 @@
  * @param {Number} num Data series number in figure
  */
 class PlotlyData {
-    constructor(num, len) {
+    constructor(num = undefined, len = undefined) {
         if (typeof num === 'number') {
             this.data = new Array(num);
             for (let i = 0; i < num; i++) {
@@ -25,12 +25,12 @@ class PlotlyData {
     }
 
     /**
-     * Add x coordinates (or precisely, index) [0 .. n-1] to a trace.
+     * Add x coordinates [dx, 2dx, ..., n*dx] to a trace.
      */
-    addX() {
+    addX(dx = 1) {
         for (let trace of this.data) {
             if (!trace.x) {
-                trace.x = [...Array(trace.y.length).keys()];
+                trace.x = [...Array(trace.y.length).keys()].map(i => (i + 1) * dx);
             }
         }
     }
@@ -53,8 +53,8 @@ class PlotlyData {
     static _defaultLayout() {
         return {
             title: 'Plot',
-            xaxis: {},
-            yaxis: {}
+            xaxis: {hoverformat: '.4e'},
+            yaxis: {hoverformat: '.4e'},
         }
     }
 }
