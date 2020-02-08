@@ -69,3 +69,9 @@ app.get('/data/:type-:id', (req, res, next) => {
             break;
     }
 })
+
+
+let tmp = new GTC_output(GTC_outputDir);
+Promise.resolve(tmp.snapshot(2000)).then(() => {
+    console.log(tmp.snapshotData.existingParticles);
+}).catch(err => console.error(err));

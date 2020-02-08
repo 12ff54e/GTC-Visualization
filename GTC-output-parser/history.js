@@ -98,6 +98,8 @@ class History {
 
     }
 
+    // TODO: iter over file content to save memory
+    // This update should also applied to other sub classes
     static async readHistoryFile(dir, basicParams) {
 
         let histDir = path.join(dir, 'history.out');
