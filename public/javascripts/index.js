@@ -1,28 +1,26 @@
 'use strict'
 
+let panels = document.getElementById('panel').children;
 // register plot type tabs
 let switches = document.getElementsByClassName('tab-l0-switch');
+let switchState = {};
 for (let swc of switches) {
+    switchState[swc.id] = 'untouched';
+    // TODO: use one function referred by switches, instead of creating copies
     swc.onchange = async function () {
         // link radio id to panel id
-        let panelName;
-        switch (swc.id) {
-            case 'History':
-                panelName = 'hist-panel';
-                break;
-            case 'Equilibrium':
-                panelName = 'eq-panel';
-                break;
-            case 'Snapshot':
-                panelName = 'snap-panel';
-                break;
-            case 'Radial-Time':
-                panelName = 'rt-panel'
-                break;
-            case 'Field-Mode':
-                panelName = 'fml-panel';
-        }
+        let panelName = `${swc.id}-panel`
 
+        // reset previous shown panels
+        for (let p of panels) {
+            p.style.zIndex = 1;
+            p.style.opacity = 0;
+        }
+        // and display the selected panel
+        let panel = document.getElementById(panelName);
+        panel.style.zIndex = 2;
+        panel.style.opacity = 1;
+        
         // inform the server about which .out file should be parsed
         let res = await fetch(`plotType/${swc.id}`);
         // wait for the response, then active buttons for plotting
@@ -30,19 +28,25 @@ for (let swc of switches) {
             let { info, id: btn_id_array } = await res.json();
             console.log(`server: ${info}`);
 
-            let panel = document.getElementById(panelName);
+
+            // add buttons
+            if (switchState[swc.id] === 'untouched') {
+                switchState[swc.id] = 'touched';
+            } else {
+                return;
+            }
             btn_id_array.forEach(type => {
                 let subDiv = document.createElement('div')
                 type.forEach(id => {
                     let btn = document.createElement('button');
-                    btn.setAttribute('id', panelName.substring(0, panelName.length - 5).concat(id));
+                    btn.setAttribute('id', `${swc.id}-${id}`);
                     btn.setAttribute('class', 'tab-l1-btn');
                     btn.innerText = id;
                     subDiv.appendChild(btn);
                 })
                 panel.appendChild(subDiv)
             });
-            // register callback functions
+            // register buttons' callback functions
             registerButtons();
 
         } else {
@@ -61,6 +65,7 @@ function registerButtons() {
             let figures = await figObj.json();
 
             // field mode figures need some local calculation
+            // TODO: reduce size of some callbacks by moving this condition out
             if (btn.id.includes('_mode')) {
                 // Request some basic parameters for calculating growth rate and frequency
                 let bpRes = await fetch(`data/basicParameters`);

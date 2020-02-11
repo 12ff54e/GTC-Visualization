@@ -1,21 +1,30 @@
 const express = require('express');
 require('dotenv').config();
 const path = require('path');
-const GTC_output = require('./GTC-output-parser/main.js');
+const GTCOutput = require('./GTC-output-parser/main.js');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const GTC_outputDir = 'C:\\Users\\zq\\OneDrive\\mgui_161111\\4He2\\maxwell\\m30'
+let GTC_outputDir = 'C:\\Users\\zq\\OneDrive\\mgui_161111\\4He2\\maxwell\\m30'
 
 let output;
 
 app.use(express.static('./public'));
+app.use(express.urlencoded({ extended: true }));
+app.set('view engine', 'pug');
 
 app.listen(port);
 
+// client post the requested gtc output dir
+app.post('/', (req, res) => {
+    GTC_outputDir = req.body.dir;
+    output = new GTCOutput(GTC_outputDir);
+    console.log(`path set to ${GTC_outputDir}`);
+    res.render('plot', { dir: GTC_outputDir});
+})
+
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
-    output = new GTC_output(GTC_outputDir);
     switch (req.params.type) {
         case 'History':
             await output.history();
@@ -27,10 +36,11 @@ app.get('/plotType/:type', async (req, res) => {
         case 'Equilibrium':
             break;
         case 'Snapshot':
+
             break;
-        case 'Radial-Time':
+        case 'RadialTime':
             break;
-        case 'Field-Mode':
+        case 'FieldMode':
             break;
 
     }
@@ -55,23 +65,17 @@ app.get('/data/:type-:id', (req, res, next) => {
     let requestPlotType = req.params.type;
     let requestPlotId = req.params.id;
     switch (requestPlotType) {
-        case 'hist':
+        case 'History':
             res.send(JSON.stringify(
                 output.historyData.plotData(requestPlotId, output.parameters)));
             break;
-        case 'eq':
+        case 'Equilibrium':
             break;
-        case 'snap':
+        case 'Snapshot':
             break;
-        case 'rt':
+        case 'RadialTime':
             break;
-        case 'fm':
+        case 'FieldMode':
             break;
     }
 })
-
-
-let tmp = new GTC_output(GTC_outputDir);
-Promise.resolve(tmp.snapshot(2000)).then(() => {
-    console.log(tmp.snapshotData.existingParticles);
-}).catch(err => console.error(err));

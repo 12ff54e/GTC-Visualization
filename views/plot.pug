@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        title GTC-Visualization
+        link(rel="stylesheet" href="stylesheets/tabs.css")
+        script(src="javascripts/plotly-latest.min.js")
+    body
+        p= `Current GTC output folder set to ${dir}`
+        - var types = ['History', 'Equilibrium', 'RadialTime', 'FieldMode', 'Snapshot']
+        div(id="tabs")
+            each panel in types
+                input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
+                label(for=panel, class="tab-l0-label")= panel
+
+        div(id="panel")
+            each panel in types
+                div(id=`${panel}-panel`, class="tabs-l1")
+
+        div(id='figure-wrapper')
+            each i in [1, 2, 3, 4]
+                div(id=`figure-${i}`)
+
+    script(src="javascripts/index.js")
+
