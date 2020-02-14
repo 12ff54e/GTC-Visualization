@@ -7,11 +7,16 @@ html(lang="en")
         script(src="javascripts/plotly-latest.min.js")
     body
         p= `Current GTC output folder set to ${dir}`
-        - var types = ['History', 'Equilibrium', 'RadialTime', 'FieldMode', 'Snapshot']
+        - var types = ['History', 'Snapshot', 'Equilibrium', 'RadialTime', 'FieldMode']
         div(id="tabs")
             each panel in types
-                input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
-                label(for=panel, class="tab-l0-label")= panel
+                div
+                    input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
+                    label(for=panel, class="tab-l0-label")= panel
+                    if panel === 'Snapshot'
+                        div(id="files")
+                            each file in snapFiles
+                                button(id=file)= file
 
         div(id="panel")
             each panel in types

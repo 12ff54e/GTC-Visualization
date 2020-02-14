@@ -1,13 +1,14 @@
 const fs = require('fs').promises;
 const path = require('path');
 const PlotlyData = require('./PlotlyData.js')
+const util = require('./util.js');
 
 const particleTypes = ['ion', 'electron', 'EP', 'fast_electron']
 const particlePlotTypes =
     ['density', 'momentum', 'energy', 'pm_flux', 'e_flux'];
 const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
 const plotTypes = [
-    ...fieldTypes.map(f => [f, f + '_RMS', ...range(1, 9).map(i => `${f}_mode${i}`)]),
+    ...fieldTypes.map(f => [f, f + '_RMS', ...util.range(1, 9).map(i => `${f}_mode${i}`)]),
     ...particleTypes.map(t => particlePlotTypes.map(p => t + '_' + p)),
 ];
 
@@ -120,7 +121,7 @@ class History {
      * @param {Object} basicParams GTCOutput.parameters
      */
     plotData(type, basicParams) {
-        let id = this.plotTypes.flat().findIndex(t => type === t);
+        let id = util.flat(this.plotTypes).findIndex(t => type === t);
         let obj;
         let len = this.stepEnd - this.stepStart;
         let timeStep = basicParams.ndiag * basicParams.tstep;
@@ -135,7 +136,7 @@ class History {
                 obj = Array.from({ length: 2 }, _ => new PlotlyData());
                 for (let i = 0; i < 2; i++) {
                     obj[i].data.push({
-                        y: part(this.fieldTimeSeriesData,
+                        y: util.part(this.fieldTimeSeriesData,
                             [[this.stepStart, this.stepEnd], fieldType, i + 2 * plotType]),
                         mode: 'lines',
                     });
@@ -155,7 +156,7 @@ class History {
                 // mode value
                 let modeIndex = plotType - 2;
                 obj = Array.from({ length: 4 }, _ => new PlotlyData());
-                let fieldMode = part(this.fieldModeData,
+                let fieldMode = util.part(this.fieldModeData,
                     [[this.stepStart, this.stepEnd], fieldType, modeIndex]);
                 let { re, im } = fieldMode.reduce((acc, curr) => {
                     acc.re.push(curr.re);
@@ -192,11 +193,10 @@ class History {
             // particle
             let particleType = Math.floor((id - this.fieldNumber * (2 + this.fieldModeNumber)) / 5);
             let plotType = (id - this.fieldNumber * (2 + this.fieldModeNumber)) % 5;
-            console.log(id);
             obj = Array.from({ length: 2 }, _ => new PlotlyData());
             for (let i = 0; i < 2; i++) {
                 obj[i].data.push({
-                    y: part(this.particleData,
+                    y: util.part(this.particleData,
                         [[this.stepStart, this.stepEnd], particleType, 2 * plotType + i])
                 });
                 obj[i].addX(timeStep);
@@ -240,67 +240,4 @@ function list2Complex(arr) {
         }
         return acc;
     }, new Array(arr.length / 2));
-}
-
-/**
- * This function return an integer sequence 
- *  range(n) => [0 .. n-1], or
- *  range(m, n) => [m .. n-1]
- * 
- * @param {Number} initOrLen when this function is given one parameter,
- *  this parameter will be array length
- * @param {Number} end 
- */
-function range(initOrLen, end) {
-    if (end === undefined) {
-        return [...Array(initOrLen).keys()];
-    } else {
-        return [...Array(end - initOrLen).keys()].map(i => i + initOrLen);
-    }
-}
-
-/**
- * Home-made flat method
- * 
- * @returns {Array} the flattened array
- */
-Array.prototype.flat = function () {
-    return this.reduce((acc, curr) => {
-        if (Array.isArray(curr)) {
-            return [...acc, ...curr.flat()];
-        } else {
-            return [...acc, curr];
-        }
-    }, []);
-}
-
-/**
- * Multi Dimension slice of array, similar to that in Mathematica.
- *  Recursive implementation.
- * 
- * @param {Array} arr the array to be sliced
- * @param {Array} ijk Specifies part of each dimension to be extracted,
- *  could be integers, tuple of Integers or 'All', with negative number
- *  indicating counting from the end. When a tuple of integers are specified,
- *  it acts like Array.prototype.slice() at that level of depth.
- */
-function part(arr, ijk) {
-    let index = ijk.shift();
-    if (index === undefined) {
-        // recursion terminated
-        return arr;
-    } else if (typeof index === 'number') {
-        // index
-        return part(arr[index >= 0 ? index : arr.length + index], ijk.slice());
-    } else if (Array.isArray(index)) {
-        // range
-        index = index.map(i => i >= 0 ? i : (i + arr.length));
-        if (index.length !== 2 || index[0] >= index[1]) {
-            throw new Error('Invalid range');
-        }
-        return arr.slice(...index).map(sub => part(sub, ijk.slice()));
-    } else if (index === 'All') {
-        // keep all entries
-        return arr.map(e => part(e, ijk.slice()));
-    }
 }

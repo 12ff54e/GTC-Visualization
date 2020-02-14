@@ -16,15 +16,17 @@ app.set('view engine', 'pug');
 app.listen(port);
 
 // client post the requested gtc output dir
-app.post('/', (req, res) => {
+app.post('/', async (req, res) => {
     GTC_outputDir = req.body.dir;
     output = new GTCOutput(GTC_outputDir);
     console.log(`path set to ${GTC_outputDir}`);
-    res.render('plot', { dir: GTC_outputDir});
+
+    await output.getSnapshotList()
+    res.render('plot', { dir: GTC_outputDir, snapFiles: output.snapshotFiles });
 })
 
 // router for user checking one tab, the server will read corresponding files
-app.get('/plotType/:type', async (req, res) => {
+app.get('/plotType/:type', async (req, res, next) => {
     switch (req.params.type) {
         case 'History':
             await output.history();
@@ -35,28 +37,34 @@ app.get('/plotType/:type', async (req, res) => {
             break;
         case 'Equilibrium':
             break;
-        case 'Snapshot':
-
-            break;
         case 'RadialTime':
             break;
         case 'FieldMode':
             break;
-
+        default:
+            next();
     }
+}, async (req, res) => {
+    let snapshotFile = req.params.type;
+    await output.snapshot(snapshotFile);
+    res.send(JSON.stringify({
+        info: `${snapshotFile} read`,
+        id: output.snapshotData.plotTypes
+    }))
 })
 
 app.get('/data/basicParameters', (req, res) => {
     res.send(JSON.stringify(output.parameters));
 })
 
+// TODO: use some compression scheme to speed up transmission
 app.get('/data/:type-:id', (req, res, next) => {
     let requestPlotId = req.params.id;
     console.log(requestPlotId);
     if (requestPlotId === 'test') {
         res.send(JSON.stringify([{
-            data: [{x:[1,2,3,4],y:[1,4,9,16]}],
-            layout: {xaxis:{title:'x'},yaxis:{title:'y'}}
+            data: [{ x: [1, 2, 3, 4], y: [1, 4, 9, 16] }],
+            layout: { xaxis: { title: 'x' }, yaxis: { title: 'y' } }
         }]))
     } else {
         next();
@@ -72,6 +80,8 @@ app.get('/data/:type-:id', (req, res, next) => {
         case 'Equilibrium':
             break;
         case 'Snapshot':
+            res.send(JSON.stringify(
+                output.snapshotData.plotData(requestPlotId, output.parameters)))
             break;
         case 'RadialTime':
             break;

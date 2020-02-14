@@ -25,12 +25,15 @@ class PlotlyData {
     }
 
     /**
-     * Add x coordinates [dx, 2dx, ..., n*dx] to a trace.
+     * Add x coordinates [min*dx, (min+1)*dx, ..., (min+n-1)*dx] to a trace.
+     * 
+     * @param {number} dx default value 1
+     * @param {number} min default value 1
      */
-    addX(dx = 1) {
+    addX(dx = 1, min = 1) {
         for (let trace of this.data) {
             if (!trace.x) {
-                trace.x = [...Array(trace.y.length).keys()].map(i => (i + 1) * dx);
+                trace.x = [...Array(trace.y.length).keys()].map(i => (i + min) * dx);
             }
         }
     }
@@ -53,47 +56,16 @@ class PlotlyData {
     static _defaultLayout() {
         return {
             title: 'Plot',
-            xaxis: {hoverformat: '.4e'},
-            yaxis: {hoverformat: '.4e'},
+            xaxis: {
+                hoverformat: '.4g',
+                tickformat: '.4g'
+            },
+            yaxis: {
+                hoverformat: '.4g',
+                tickformat: '.4g'
+            }
         }
     }
 }
 
 module.exports = PlotlyData;
-
-// function legendFormatter(data) {
-//     if (data === undefined) {
-//         // This happens when there's no selection and {legend: 'always'} is set.
-//         return '<br>' + data.series.map(function (series) { return series.dashHTML + ' ' + series.labelHTML }).join('<br>');
-//     }
-
-//     var html = this.getLabels()[0] + ': ' + data.xHTML;
-//     data.series.forEach(function (series) {
-//         if (!series.isVisible) return;
-//         var labeledData = series.labelHTML + ': ' + series.yHTML;
-//         if (series.isHighlighted) {
-//             labeledData = '<b>' + labeledData + '</b>';
-//         }
-//         html += '<br>' + series.dashHTML + ' ' + labeledData;
-//     });
-//     return html;
-// }
-
-// /**
-//  * Transpose first two level of the array
-//  * 
-//  * @returns {Array} the transposed array
-//  */
-// Array.prototype.transpose = function () {
-//     let subLen = this[0].length;
-//     let transposed = new Array(subLen);
-
-//     for (let i = 0; i < subLen; i++) {
-//         transposed[i] = new Array(this.length);
-//         for (let j = 0; j < this.length; j++) {
-//             transposed[i][j] = this[j][i];
-//         }
-//     }
-
-//     return transposed;
-// }

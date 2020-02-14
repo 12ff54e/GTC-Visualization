@@ -1,11 +1,12 @@
 const fs = require('fs').promises;
 const path = require('path');
-const PlotlyData = require('./PlotlyData.js')
+const PlotlyData = require('./PlotlyData.js');
+const util = require('./util.js');
 
 const particleNames = ['ion', 'electron', 'EP', 'fast_electron']
 const particlePlotTypes =
     ['density', 'flow', 'energy', 'PDF_energy', 'PDF_pitch'];
-const fieldNames = ['phi', 'a_para', 'fluid_ne'];
+const fieldNames = ['phi', 'apara', 'fluidne'];
 const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
 
 /**
@@ -17,11 +18,11 @@ class Snapshot {
      * @param {Object} basicParams GTCOutput.parameters
      */
     constructor(snapshotData, basicParams) {
-        if (snapshotData.dir === undefined) {
+        if (snapshotData.path === undefined) {
             throw new Error('The constructor of History cannot be called directly.');
         }
 
-        this.dir = snapshotData.dir;
+        this.path = snapshotData.path;
 
         let iter = snapshotData[Symbol.iterator]();
 
@@ -47,9 +48,9 @@ class Snapshot {
 
         // particle data, including profile of torques and pdf of energy and pitch angle
         this.particleData = new Object();
-        // first three panel of particlePlotTypes, dimension = (r)
+        // first three panel of particlePlotTypes, one dimension along radial direction
         this._slice_particle(iter, 0, 3, this.radialGridPtNum);
-        // next two panel of particlePlotTypes, dimension = (v)
+        // next two panel of particlePlotTypes, one dimension along velocity or pitch angle
         this._slice_particle(iter, 3, 5, this.velocityGridNumber);
 
         // field data, including poloidal plane and flux 
@@ -60,9 +61,9 @@ class Snapshot {
         this._slice_field(iter, 'fluxData', this.toroidalGridPtNum);
 
         // check if the snap*******.out file ends
-        let {value, done} = iter.next();
+        let { value, done } = iter.next();
         if (done || !value) {
-            console.log(`${this.dir} read`);
+            console.log(`${this.path} read`);
         } else {
             console.log(`${[...iter].length} entries left`);
         }
@@ -72,15 +73,15 @@ class Snapshot {
      * Asynchronously read snapshot file
      * 
      * @param {string} dir path
-     * @param {number} num step number of snapshot file
+     * @param {string} fileName step number of snapshot file
      */
-    static async readSnapshotFile(dir, num, basicParams) {
-        const fileName = 'snap' + num.toString().padStart(7, '0') + '.out';
-        const snapDir = path.join(dir, fileName);
-        const snapshotFile = await fs.readFile(snapDir, 'utf-8');
+    static async readSnapshotFile(dir, fileName, basicParams) {
+        // const fileName = 'snap' + num.toString().padStart(7, '0') + '.out';
+        const snapPath = path.join(dir, fileName);
+        const snapshotFile = await fs.readFile(snapPath, 'utf-8');
         const snapshotData = snapshotFile.split('\n');
 
-        snapshotData.dir = snapDir;
+        snapshotData.path = snapPath;
 
         return new Snapshot(snapshotData, basicParams);
     }
@@ -88,13 +89,144 @@ class Snapshot {
     /**
      * Generate plot data as per specifications of Plotly library.
      * 
-     * @param {string} id plot id
+     * @param {string} plotType
+     * 
+     * @returns {Array<PlotlyData>}
      */
-    plotType(id) {
+    plotData(plotType) {
         // cat is the category of the plot, could be particle name or field name
         // type is the type of the plot, one of strings in particlePlotType or fieldPlotType
-        let [cat, type] = id.split('_', 2);
+        let [cat, ...type] = plotType.split('_');
+        type = type.join('_');
+        let figureContainer = new Array();
+        let fig = new PlotlyData();
+
+        if (fieldNames.includes(cat)) {
+            // field
+            let index = fieldPlotTypes.indexOf(type);
+            switch (index) {
+                case 0: // field strength on flux surface
+                    fig.data.push({
+                        z: this.fieldData['fluxData'][cat],
+                        type: 'heatmap',
+                        colorbar: {
+                            tickformat: '.4e'
+                        }
+                    });
+                    fig.axesLabel = { x: 'mtheta', y: 'nzeta' };
+                    fig.plotLabel = `${cat} on flux surface`;
+                    figureContainer.push(fig);
+                    break;
+                case 1: // poloidal and parallel spectrum
+                    // This figure involves some interaction, so data will be generate on client side
+                    let figs = Array.from({ length: 2 }, _ => new PlotlyData());
+                    figs.forEach((fig, i) => {
+                        fig.data.push({
+                            type: 'scatter',
+                            mode: 'lines'
+                        })
+                        fig.plotLabel = (i == 0 ? 'poloidal' : 'parallel') + ' spectrum';
+                    })
+                    figs.push({ extraData: this.fieldData['fluxData'][cat] });
+                    figureContainer = figs;
+                    break;
+                case 2: // field strength on poloidal plane
+                    let thetaMesh = util.flat(Array.from({ length: this.radialGridPtNum },
+                        _ => util.range(this.poloidalGridPtNum + 1)));
+                    let psiMesh = util.flat(util.range(this.radialGridPtNum)
+                        .map(i => Array(this.poloidalGridPtNum + 1).fill(i)));
+                    let polData = this.fieldData['poloidalPlane'];
+                    // add carpet
+                    fig.data.push({
+                        a: thetaMesh,
+                        b: psiMesh,
+                        x: util.flat(polData['x']),
+                        y: util.flat(polData['y']),
+                        type: 'carpet',
+                        aaxis: {
+                            startline: false,
+                            endline: false,
+                            showticklabels: "none",
+                            smoothing: 1,
+                            showgrid: false
+                        },
+                        baxis: {
+                            startline: false,
+                            endline: false,
+                            showticklabels: "none",
+                            smoothing: 1,
+                            showgrid: false
+                        }
+                    })
+                    // add contour
+                    fig.data.push({
+                        a: thetaMesh,
+                        b: psiMesh,
+                        z: util.flat(polData[cat]),
+                        type: 'contourcarpet',
+                        contours: {
+                            showlines: false
+                        }
+                    })
+                    fig.plotLabel = `${cat} on poloidal plane`;
+                    figureContainer.push(fig);
+                    break;
+                case 3: case 4: // profile of field and rms
+                    let field = this.fieldData['poloidalPlane'][cat];
+                    // point value
+                    let fig0 = new PlotlyData();
+                    fig0.data.push({
+                        y: type === 'psi' ?
+                            field.map(pol => pol[0]) :
+                            field[(this.radialGridPtNum - 1) / 2],
+                        type: 'scatter',
+                        mode: 'lines'
+                    });
+                    fig0.addX(1, 0);
+                    fig0.axesLabel = { x: type === 'psi' ? 'mpsi' : 'mtheta', y: '' };
+                    fig0.plotLabel = 'point value'
+                    figureContainer.push(fig0);
+                    // RMS
+                    let fig1 = new PlotlyData();
+                    fig1.data.push({
+                        y: type === 'psi' ?
+                            field.map(pol => Math.sqrt(pol.reduce(
+                                (acc, curr) => acc + curr * curr, 0) / this.poloidalGridPtNum)) :
+                            field.reduce((acc, curr) => {
+                                acc.forEach((v, i) => { acc[i] = v + curr[i] * curr[i] },
+                                    Array(this.poloidalGridPtNum).fill(0));
+                                return acc;
+                            }).map(v => Math.sqrt(v / (this.radialGridPtNum - 1))),
+                        type: 'scatter',
+                        mode: 'lines'
+                    });
+                    fig1.addX(1, 0);
+                    fig1.axesLabel = { x: type === 'psi' ? 'mpsi' : 'mtheta', y: '' };
+                    fig1.plotLabel = 'RMS';
+                    figureContainer.push(fig1);
+                    break;
+            }
+        } else if (particleNames.includes(cat)) {
+            // particle
+            let figs = Array.from({ length: 2 }, _ => new PlotlyData());
+            figs.forEach((fig, i) => {
+                fig.data.push({
+                    y: this.particleData[cat][type][i],
+                    type: 'scatter',
+                    mode: 'lines'
+                });
+                fig.addX(1, 0);
+                fig.axesLabel = { x: type.startsWith('PDF') ? '' : 'mpsi', y: '' };
+                fig.plotLabel = (i == 0 ? 'full-f' : 'delta-f') + ' ' + type;
+            });
+            figureContainer = figs;
+        } else {
+            throw new Error('Incorrect figure type');
+        }
+
+        return figureContainer;
     }
+
 
     _slice_particle(iter, m, n, len) {
         for (let particle of this.existingParticles) {

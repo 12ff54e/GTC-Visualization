@@ -1,3 +1,5 @@
+const fs = require('fs').promises;
+const path = require('path');
 const History = require('./history.js');
 const Snapshot = require('./snapshot.js');
 const read_para = require('./read_para.js');
@@ -5,9 +7,11 @@ const read_para = require('./read_para.js');
 /**
  * GTC output data parser class
  * 
- * @param {String} dir - GTC output data directory path
  */
 class GTCOutput {
+    /**
+     * @param {String} dir - GTC output data directory path
+     */
     constructor(dir) {
         this.dir = dir;
     }
@@ -20,10 +24,26 @@ class GTCOutput {
     }
 
     /**
+     * get snapshot file name
+     * 
+     * it is also possible to get snapshot file name from gtc.out,
+     *  but one must consider the case when the gtc task still running
+     */
+    async getSnapshotList() {
+        let files = await fs.readdir(this.dir, 'utf8');
+        this.snapshotFiles = files
+            .map(name => name.toLowerCase())
+            .filter(file => file.startsWith('snap'));
+    }
+
+    /**
      * read history.out
      */
     async history() {
-        if (this.parameters) {
+        if (this.historyData) {
+            // if history file has been read
+            return;
+        } else if (this.parameters) {
             this.historyData = await History.readHistoryFile(this.dir, this.parameters);
         } else {
             await this.read_para();
@@ -34,14 +54,17 @@ class GTCOutput {
     /**
      * read snap*******.out
      * 
-     * @param {number} num step number of snapshot file
+     * @param {string} file name of snapshot file
      */
-    async snapshot(num) {
-        if (this.parameters) {
-            this.snapshotData = await Snapshot.readSnapshotFile(this.dir, num, this.parameters);
+    async snapshot(file) {
+        if (this.snapshotData && path.basename(this.snapshotData.path) === file) {
+            // if the specified snapshot file has been already read
+            return;
+        } else if (this.parameters) {
+            this.snapshotData = await Snapshot.readSnapshotFile(this.dir, file, this.parameters);
         } else {
             await this.read_para();
-            this.snapshotData = await Snapshot.readSnapshotFile(this.dir, num, this.parameters);
+            this.snapshotData = await Snapshot.readSnapshotFile(this.dir, file, this.parameters);
         }
     }
 }
