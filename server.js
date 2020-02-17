@@ -43,6 +43,11 @@ app.get('/plotType/:type', async (req, res, next) => {
             }))
             break;
         case 'RadialTime':
+            await output.radialTime();
+            res.send(JSON.stringify({
+                info: 'radialTime file read',
+                id: output.radialTimeData.plotTypes
+            }))
             break;
         case 'FieldMode':
             break;
@@ -89,9 +94,13 @@ app.get('/data/:type-:id', (req, res, next) => {
             break;
         case 'Snapshot':
             res.send(JSON.stringify(
-                output.snapshotData.plotData(requestPlotId, output.parameters)))
+                output.snapshotData.plotData(requestPlotId)
+            ))
             break;
         case 'RadialTime':
+            res.send(JSON.stringify(
+                output.radialTimeData.plotData(requestPlotId)
+            ))
             break;
         case 'FieldMode':
             break;

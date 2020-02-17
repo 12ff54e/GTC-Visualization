@@ -3,6 +3,7 @@ const path = require('path');
 const History = require('./history.js');
 const Snapshot = require('./snapshot.js');
 const Equilibrium = require('./equilibrium.js');
+const RadialTime = require('./radialTime.js');
 const read_para = require('./read_para.js');
 
 /**
@@ -75,6 +76,18 @@ class GTCOutput {
         } else {
             this.equilibriumData =
                 await Equilibrium.readEquilibriumFile(path.join(this.dir, 'equilibrium.out'));
+        }
+    }
+
+    async radialTime() {
+        if(this.radialTimeData) {
+            return;
+        } else if (this.parameters) {
+            this.radialTimeData =
+                await RadialTime.readRadialTimeFile(path.join(this.dir, 'data1d.out'), this.parameters);
+        } else {
+            await this.read_para();
+            await this.radialTime();
         }
     }
 }
