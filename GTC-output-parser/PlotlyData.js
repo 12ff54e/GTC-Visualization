@@ -38,6 +38,42 @@ class PlotlyData {
         }
     }
 
+    hideCarpetGridTicks() {
+        let axisStyle = {
+            showticklabels: "none",
+            smoothing: 1,
+        }
+
+        for (let trace of this.data) {
+            if (trace.type === 'carpet') {
+                trace.aaxis = {...axisStyle};
+                trace.baxis = {...axisStyle};
+                return;
+            }
+        }
+    }
+
+    /**
+     * hide grid lines in carpet
+     */
+    hideCarpetGrid() {
+        let axisStyle = {
+            startline: false,
+            endline: false,
+            showticklabels: "none",
+            smoothing: 1,
+            showgrid: false
+        }
+
+        for (let trace of this.data) {
+            if (trace.type === 'carpet') {
+                trace.aaxis = {...axisStyle};
+                trace.baxis = {...axisStyle};
+                return;
+            }
+        }
+    }
+
     /**
      * @param {{ x: string; y: string; }} label
      */

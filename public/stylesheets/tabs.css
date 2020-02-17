@@ -57,6 +57,7 @@ p {
 .tabs-l1>div {
     display: block;
     margin-bottom: 1rem;
+    text-align: center;
 }
 
 .tab-l0-label:hover {
@@ -84,8 +85,13 @@ div#files {
     cursor: grab;
     width: 100%;
     transition: all 0.35s;
+    visibility: hidden;
 }
 
 #files>button:hover {
     background-color: rgba(73, 73, 228, 0.267)
+}
+
+div header {
+    text-align: center;
 }

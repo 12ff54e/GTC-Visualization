@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const History = require('./history.js');
 const Snapshot = require('./snapshot.js');
+const Equilibrium = require('./equilibrium.js');
 const read_para = require('./read_para.js');
 
 /**
@@ -65,6 +66,15 @@ class GTCOutput {
         } else {
             await this.read_para();
             this.snapshotData = await Snapshot.readSnapshotFile(this.dir, file, this.parameters);
+        }
+    }
+
+    async equilibrium() {
+        if(this.equilibriumData) {
+            return;
+        } else {
+            this.equilibriumData =
+                await Equilibrium.readEquilibriumFile(path.join(this.dir, 'equilibrium.out'));
         }
     }
 }

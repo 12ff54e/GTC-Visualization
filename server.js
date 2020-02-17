@@ -36,6 +36,11 @@ app.get('/plotType/:type', async (req, res, next) => {
             }));
             break;
         case 'Equilibrium':
+            await output.equilibrium();
+            res.send(JSON.stringify({
+                info: 'equilibrium file read',
+                id: output.equilibriumData.plotTypes
+            }))
             break;
         case 'RadialTime':
             break;
@@ -78,6 +83,9 @@ app.get('/data/:type-:id', (req, res, next) => {
                 output.historyData.plotData(requestPlotId, output.parameters)));
             break;
         case 'Equilibrium':
+            res.send(JSON.stringify(
+                output.equilibriumData.plotData(requestPlotId)
+            ))
             break;
         case 'Snapshot':
             res.send(JSON.stringify(

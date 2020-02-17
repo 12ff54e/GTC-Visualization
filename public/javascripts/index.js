@@ -31,6 +31,7 @@ for (let swc of switches) {
     }
 }
 
+// snapshot file name buttons
 for (let btn of document.getElementById('files').children) {
     btn.onclick = function () {
         openPanel(btn.id)
@@ -45,6 +46,7 @@ function registerButtons() {
             // field mode figures need some local calculation
             btn.onclick = history_mode;
         } else if (id.includes('_spectrum')) {
+            // same as above
             btn.onclick = snapshot_spectrum;
         } else {
             btn.onclick = async () => {
@@ -70,6 +72,7 @@ async function openPanel(id) {
     let majorType = id.startsWith('snap') ? 'Snapshot' : id;
     let panelName = `${majorType}-panel`;
 
+    // modifies status bar
     if (majorType === 'Snapshot') {
         let info = document.body.children[0];
         info.innerText = `${info.innerText.split('\n')[0]}
@@ -84,12 +87,10 @@ async function openPanel(id) {
     let panel = document.getElementById(panelName)
     panel.style.opacity = 1;
     panel.style.zIndex = 2;
-    // panel.style.width = '100%';
-    // panel.style.height = '100%';
 
     // inform the server about which .out file should be parsed
     let res = await fetch(`plotType/${id}`);
-    // wait for the response, then active buttons for plotting
+    // wait for the response, then create buttons for plotting
     if (res.ok) {
         let { info, id: btn_id_array } = await res.json();
         console.log(`server: ${info}`);
@@ -99,6 +100,13 @@ async function openPanel(id) {
             switchState[majorType] = 'touched';
         } else {
             return;
+        }
+
+        // Equilibrium panel needs special care
+        if (id === 'Equilibrium') {
+            let { xDataTypes, yDataTypes, poloidalPlanePlotTypes, otherPlotTypes } = btn_id_array;
+            btn_id_array = [poloidalPlanePlotTypes, otherPlotTypes];
+            createEqPanel1D(xDataTypes, yDataTypes);
         }
         btn_id_array.forEach(type => {
             let subDiv = document.createElement('div')
@@ -258,4 +266,79 @@ function transpose(matrix) {
         result[i] = matrix.map(line => line[i])
     }
     return result;
+}
+
+function createEqPanel1D(xDataTypes, yDataTypes) {
+
+    const xDiv = document.getElementById('eq-x');
+    const yDiv = document.getElementById('eq-y');
+
+    const xTitle = document.createElement('header');
+    const yTitle = document.createElement('header');
+    xTitle.innerText = 'X';
+    yTitle.innerText = 'Y';
+    xDiv.appendChild(xTitle);
+    yDiv.appendChild(yTitle);
+
+    // add x group radio buttons
+    xDataTypes.forEach(xData => {
+        let input = document.createElement('input');
+        Object.assign(input, {
+            id: `x-${xData}`,
+            value: xData,
+            type: 'radio',
+            name: 'x',
+            className: 'eq-1d-x'
+        });
+
+        let label = document.createElement('label');
+        label.setAttribute('for', `x-${xData}`);
+        label.innerText = xData;
+
+        xDiv.appendChild(input);
+        xDiv.appendChild(label);
+    });
+
+    // add y group radio buttons
+    yDataTypes.forEach(yData => {
+        let input = document.createElement('input');
+        Object.assign(input, {
+            id: `y-${yData}`,
+            value: yData,
+            type: 'radio',
+            name: 'y',
+            className: 'eq-1d-y'
+        });
+
+        let label = document.createElement('label');
+        label.setAttribute('for', `y-${yData}`);
+        label.innerText = yData;
+
+        yDiv.appendChild(input);
+        yDiv.appendChild(label);
+    });
+
+    // register form submit behaviour
+    const form = document.getElementById('Equilibrium-panel').firstElementChild.firstElementChild;
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const data = new FormData(form);
+        const type = 'Equilibrium';
+
+        const xType = data.get('x');
+        const yType = data.get('y');
+
+        if (!xType || !yType) {
+            alert('Choose X and Y');
+            return;
+        }
+
+        let figObj = await fetch(`data/${type}-1D-${xType}-${yType}`);
+        let figures = await figObj.json();
+
+        for (let i = 0; i < figures.length; i++) {
+            Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
+        }
+    })
 }
