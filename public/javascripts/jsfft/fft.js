@@ -33,10 +33,19 @@ export class ComplexArray extends baseComplexArray {
   }
 }
 
+/**
+ * 
+ * @param {ComplexArray | Array | number} input 
+ */
 function ensureComplexArray(input) {
   return input instanceof ComplexArray && input || new ComplexArray(input);
 }
 
+/**
+ * 
+ * @param {ComplexArray} input 
+ * @param {boolean} inverse 
+ */
 function fft(input, inverse) {
   const n = input.length;
 
@@ -47,6 +56,11 @@ function fft(input, inverse) {
   }
 }
 
+/**
+ * 
+ * @param {ComplexArray} input 
+ * @param {boolean} inverse 
+ */
 function FFT_Recursive(input, inverse) {
   const n = input.length;
 
@@ -104,6 +118,11 @@ function FFT_Recursive(input, inverse) {
   return input;
 }
 
+/**
+ * 
+ * @param {ComplexArray} input 
+ * @param {boolean} inverse 
+ */
 function FFT_2_Iterative(input, inverse) {
   const n = input.length;
 
@@ -157,6 +176,10 @@ function BitReverseIndex(index, n) {
   return bitreversed_index;
 }
 
+/**
+ * 
+ * @param {ComplexArray} array 
+ */
 function BitReverseComplexArray(array) {
   const n = array.length;
   const flips = new Set();

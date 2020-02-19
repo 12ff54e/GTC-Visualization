@@ -35,7 +35,7 @@ class GTCOutput {
         let files = await fs.readdir(this.dir, 'utf8');
         this.snapshotFiles = files
             .map(name => name.toLowerCase())
-            .filter(file => file.startsWith('snap'));
+            .filter(name => name.startsWith('snap') && name.endsWith('.out'));
     }
 
     /**

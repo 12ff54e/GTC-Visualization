@@ -27,6 +27,10 @@ export default class ComplexArray {
     return `[${components.join(', ')}]`;
   }
 
+  /**
+   * 
+   * @param {(value:{real:number, imag:number}, i:number, n:number) => void} iterator 
+   */
   forEach(iterator) {
     const n = this.length;
     // For gc efficiency, re-use a single object in the iterator.
@@ -41,7 +45,10 @@ export default class ComplexArray {
     }
   }
 
-  // In-place mapper.
+  /**
+   * In-place mapper.
+   * @param {(value:{real:number, imag:number}, i:number, n:number)} mapper 
+   */
   map(mapper) {
     this.forEach((value, i, n) => {
       mapper(value, i, n);

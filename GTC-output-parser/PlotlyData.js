@@ -5,23 +5,33 @@
  * 
  * @param {Number} len The length of data to be plotted. Set this var
  *  when you want to assign data entries one by one.
- * @param {Number} num Data series number in figure
+ * @param {Array<string>} coordinates
  */
 class PlotlyData {
-    constructor(num = undefined, len = undefined) {
+    constructor(num = undefined, coordinates = []) {
         if (typeof num === 'number') {
             this.data = new Array(num);
             for (let i = 0; i < num; i++) {
-                if (typeof len === 'number') {
-                    this.data[i] = new Array(len + 1);
-                } else {
-                    this.data[i] = new Array();
-                }
+                this.data[i] = new Object();
+                coordinates.forEach(coord => {
+                    this.data[i][coord] = new Array();
+                })
             }
         } else {
             this.data = new Array();
         }
-        this.layout = PlotlyData._defaultLayout();
+
+        this.layout = {
+            title: 'Plot',
+            xaxis: {
+                hoverformat: '.4g',
+                tickformat: '.4g'
+            },
+            yaxis: {
+                hoverformat: '.4g',
+                tickformat: '.4g'
+            }
+        }
     }
 
     /**
@@ -38,6 +48,9 @@ class PlotlyData {
         }
     }
 
+    /**
+     * hide gird ticks in carpet
+     */
     hideCarpetGridTicks() {
         let axisStyle = {
             showticklabels: "none",
@@ -46,8 +59,8 @@ class PlotlyData {
 
         for (let trace of this.data) {
             if (trace.type === 'carpet') {
-                trace.aaxis = {...axisStyle};
-                trace.baxis = {...axisStyle};
+                trace.aaxis = { ...axisStyle };
+                trace.baxis = { ...axisStyle };
                 return;
             }
         }
@@ -67,11 +80,21 @@ class PlotlyData {
 
         for (let trace of this.data) {
             if (trace.type === 'carpet') {
-                trace.aaxis = {...axisStyle};
-                trace.baxis = {...axisStyle};
+                trace.aaxis = { ...axisStyle };
+                trace.baxis = { ...axisStyle };
                 return;
             }
         }
+    }
+
+    /**
+     * set x and y axes scale to ratio 1
+     */
+    axisEqual() {
+        Object.assign(this.layout.yaxis, {
+            scaleanchor: 'x',
+            scaleratio: 1,
+        });
     }
 
     /**
@@ -87,20 +110,6 @@ class PlotlyData {
      */
     set plotLabel(label) {
         this.layout.title = label;
-    }
-
-    static _defaultLayout() {
-        return {
-            title: 'Plot',
-            xaxis: {
-                hoverformat: '.4g',
-                tickformat: '.4g'
-            },
-            yaxis: {
-                hoverformat: '.4g',
-                tickformat: '.4g'
-            }
-        }
     }
 }
 

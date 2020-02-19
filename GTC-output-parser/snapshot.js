@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const PlotlyData = require('./PlotlyData.js');
 const util = require('./util.js');
+const { FFT } = require('jsfft')
 
 const particleNames = ['ion', 'electron', 'EP', 'fast_electron']
 const particlePlotTypes =
@@ -42,8 +43,8 @@ class Snapshot {
         )
 
         this.plotTypes = [
-            ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '_' + p)),
-            ...fieldNames.map(f => fieldPlotTypes.map(p => f + '_' + p))
+            ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
+            ...fieldNames.map(f => fieldPlotTypes.map(p => f + '-' + p))
         ];
 
         // particle data, including profile of torques and pdf of energy and pitch angle
@@ -96,8 +97,7 @@ class Snapshot {
     plotData(plotType) {
         // cat is the category of the plot, could be particle name or field name
         // type is the type of the plot, one of strings in particlePlotType or fieldPlotType
-        let [cat, ...type] = plotType.split('_');
-        type = type.join('_');
+        let [cat, type] = plotType.split('-');
         let figureContainer = new Array();
         let fig = new PlotlyData();
 
@@ -110,10 +110,11 @@ class Snapshot {
                         z: this.fieldData['fluxData'][cat],
                         type: 'heatmap',
                         colorbar: {
-                            tickformat: '.4e'
-                        }
+                            tickformat: '.4g'
+                        },
+                        transpose: true
                     });
-                    fig.axesLabel = { x: 'mtheta', y: 'nzeta' };
+                    fig.axesLabel = { x: 'nzeta', y: 'mtheta' };
                     fig.plotLabel = `${cat} on flux surface`;
                     figureContainer.push(fig);
                     break;
@@ -142,22 +143,9 @@ class Snapshot {
                         b: psiMesh,
                         x: util.flat(polData['x']),
                         y: util.flat(polData['y']),
-                        type: 'carpet',
-                        aaxis: {
-                            startline: false,
-                            endline: false,
-                            showticklabels: "none",
-                            smoothing: 1,
-                            showgrid: false
-                        },
-                        baxis: {
-                            startline: false,
-                            endline: false,
-                            showticklabels: "none",
-                            smoothing: 1,
-                            showgrid: false
-                        }
+                        type: 'carpet'
                     })
+                    fig.hideCarpetGrid();
                     // add contour
                     fig.data.push({
                         a: thetaMesh,
@@ -166,10 +154,32 @@ class Snapshot {
                         type: 'contourcarpet',
                         contours: {
                             showlines: false
+                        },
+                        colorbar: {
+                            tickformat: '.4g'
                         }
                     })
+                    fig.axisEqual();
                     fig.plotLabel = `${cat} on poloidal plane`;
                     figureContainer.push(fig);
+
+                    // add another figure representing how Fourier components varies radially
+                    // TODO: this figure data should be at client-side, since user
+                    //  could be willing to adjust Fourier component ranges.
+                    let modeNum = Math.floor(this.poloidalGridPtNum / 2);
+                    let fig2 = new PlotlyData(modeNum, ['y']);
+                    // fft of each flux surface
+                    polData[cat].forEach(circle => {
+                        Array.from(FFT(circle).magnitude().slice(0, modeNum))
+                            .forEach((amp, i) => {
+                                let trace = fig2.data[i];
+                                trace.y.push(amp);
+                                trace.showlegend = false;
+                                trace.hoverinfo = 'none';
+                            })
+                    });
+                    fig2.axesLabel = { x: 'mpsi', y: ''};
+                    figureContainer.push(fig2);
                     break;
                 case 3: case 4: // profile of field and rms
                     let field = this.fieldData['poloidalPlane'][cat];

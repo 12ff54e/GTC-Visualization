@@ -49,8 +49,6 @@ app.get('/plotType/:type', async (req, res, next) => {
                 id: output.radialTimeData.plotTypes
             }))
             break;
-        case 'FieldMode':
-            break;
         default:
             next();
     }
@@ -101,8 +99,6 @@ app.get('/data/:type-:id', (req, res, next) => {
             res.send(JSON.stringify(
                 output.radialTimeData.plotData(requestPlotId)
             ))
-            break;
-        case 'FieldMode':
             break;
     }
 })
