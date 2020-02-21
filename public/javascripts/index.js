@@ -42,7 +42,7 @@ function registerButtons() {
     let buttons = document.getElementsByClassName('tab-l1-btn');
     for (let btn of buttons) {
         let id = btn.id
-        if (id.startsWith('History') && id.includes('_mode')) {
+        if (id.startsWith('History') && id.includes('-mode')) {
             // field mode figures need some local calculation
             btn.onclick = history_mode;
         } else if (id.includes('_spectrum')) {

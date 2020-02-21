@@ -46,10 +46,11 @@ class GTCOutput {
             // if history file has been read
             return;
         } else if (this.parameters) {
-            this.historyData = await History.readHistoryFile(this.dir, this.parameters);
+            this.historyData =
+                await History.readDataFile(path.join(this.dir, 'history.out'), this.parameters);
         } else {
             await this.read_para();
-            this.historyData = await History.readHistoryFile(this.dir, this.parameters);
+            await this.history();
         }
     }
 
