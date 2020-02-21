@@ -27,37 +27,11 @@ app.post('/', async (req, res) => {
 
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res, next) => {
-    switch (req.params.type) {
-        case 'History':
-            await output.history();
-            res.send(JSON.stringify({
-                info: 'history file read',
-                id: output.historyData.plotTypes
-            }));
-            break;
-        case 'Equilibrium':
-            await output.equilibrium();
-            res.send(JSON.stringify({
-                info: 'equilibrium file read',
-                id: output.equilibriumData.plotTypes
-            }))
-            break;
-        case 'RadialTime':
-            await output.radialTime();
-            res.send(JSON.stringify({
-                info: 'radialTime file read',
-                id: output.radialTimeData.plotTypes
-            }))
-            break;
-        default:
-            next();
-    }
-}, async (req, res) => {
-    let snapshotFile = req.params.type;
-    await output.snapshot(snapshotFile);
+    let type = req.params.type;
+    await output.readData(type);
     res.send(JSON.stringify({
-        info: `${snapshotFile} read`,
-        id: output.snapshotData.plotTypes
+        info: `${type} file read`,
+        id: output.data[type].plotTypes
     }))
 })
 
@@ -66,39 +40,10 @@ app.get('/data/basicParameters', (req, res) => {
 })
 
 // TODO: use some compression scheme to speed up transmission
-app.get('/data/:type-:id', (req, res, next) => {
-    let requestPlotId = req.params.id;
-    console.log(requestPlotId);
-    if (requestPlotId === 'test') {
-        res.send(JSON.stringify([{
-            data: [{ x: [1, 2, 3, 4], y: [1, 4, 9, 16] }],
-            layout: { xaxis: { title: 'x' }, yaxis: { title: 'y' } }
-        }]))
-    } else {
-        next();
-    }
-}, (req, res, next) => {
+app.get('/data/:type-:id', (req, res) => {
     let requestPlotType = req.params.type;
     let requestPlotId = req.params.id;
-    switch (requestPlotType) {
-        case 'History':
-            res.send(JSON.stringify(
-                output.historyData.plotData(requestPlotId, output.parameters)));
-            break;
-        case 'Equilibrium':
-            res.send(JSON.stringify(
-                output.equilibriumData.plotData(requestPlotId)
-            ))
-            break;
-        case 'Snapshot':
-            res.send(JSON.stringify(
-                output.snapshotData.plotData(requestPlotId)
-            ))
-            break;
-        case 'RadialTime':
-            res.send(JSON.stringify(
-                output.radialTimeData.plotData(requestPlotId)
-            ))
-            break;
-    }
+    res.send(JSON.stringify(
+        output.data[requestPlotType].plotData(requestPlotId, output.parameters),
+    ))
 })
