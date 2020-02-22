@@ -91,9 +91,10 @@ class PlotlyData {
      * set x and y axes scale to ratio 1
      */
     axisEqual() {
-        Object.assign(this.layout.yaxis, {
-            scaleanchor: 'x',
+        Object.assign(this.layout.xaxis, {
+            scaleanchor: 'y',
             scaleratio: 1,
+            constrain: 'domain'
         });
     }
 

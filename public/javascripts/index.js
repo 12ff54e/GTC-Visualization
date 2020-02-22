@@ -104,9 +104,9 @@ async function openPanel(id) {
 
         // Equilibrium panel needs special care
         if (id === 'Equilibrium') {
-            let { xDataTypes, yDataTypes, poloidalPlanePlotTypes, otherPlotTypes } = btn_id_array;
-            btn_id_array = [poloidalPlanePlotTypes, otherPlotTypes];
-            createEqPanel1D(xDataTypes, yDataTypes);
+            let { x, y, poloidalPlane, others } = btn_id_array;
+            btn_id_array = [poloidalPlane, others];
+            createEqPanel1D(x, y);
         }
         btn_id_array.forEach(type => {
             let subDiv = document.createElement('div')
