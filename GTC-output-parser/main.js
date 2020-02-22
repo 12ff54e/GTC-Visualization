@@ -33,7 +33,7 @@ class GTCOutput {
      * it is also possible to get snapshot file name from gtc.out,
      *  but one must consider the case when the gtc task still running
      */
-    async getSnapshotList() {
+    async getSnapshotFileList() {
         let files = await fs.readdir(this.dir, 'utf8');
         this.snapshotFiles = files
             .map(name => name.toLowerCase())
@@ -47,18 +47,18 @@ class GTCOutput {
     async readData(type) {
         if (type.startsWith('snap')) {
             // check if the requested snapshot file is read
-            let snap = this.data['Snapshot'];
+            this.snapshotFileName = type;
+            type = 'Snapshot';
+            let snap = this.data[type];
             if (snap && path.basename(snap.path) === type) {
                 return;
             }
-            this.snapshotFileName = type;
-            type = 'Snapshot';
         } else if (this.data[type]) {
             // check if the requested file (except for snapshot) is read
             return;
         }
 
-        if (this.parameters) {
+        if (this.parameters || type === 'Equilibrium') {
             let { classConstructor, fileName } = GTCOutput.index[type];
             this.data[type] =
                 await classConstructor.readDataFile(

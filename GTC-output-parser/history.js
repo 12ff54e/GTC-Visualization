@@ -2,7 +2,6 @@ const PlotlyData = require('./PlotlyData.js');
 const PlotType = require('./PlotType.js');
 const { range } = require('./util.js');
 
-const particleNames = ['ion', 'electron', 'EP', 'fast_electron']
 const particlePlotTypes =
     ['density', 'momentum', 'energy', 'pm_flux', 'e_flux'];
 const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
@@ -18,7 +17,7 @@ class History extends PlotType {
      * @param {object} basicParams GTCOutput.parameters
      */
     constructor(data, basicParams) {
-        super(data);
+        super(data, basicParams);
         let iter = data.iter;
 
         // raw parameters
@@ -30,11 +29,6 @@ class History extends PlotType {
         this.fieldDiagnosticNumber = parseInt(iter.next().value);
         this.timeStep = parseFloat(iter.next().value);
 
-        // find out the particle(s) in history.out
-        let { iload, nhybrid, fload, feload } = basicParams;
-        this.existingParticles = particleNames.filter((_, i) =>
-            [iload, nhybrid, fload, feload][i] > 0
-        )
         this.plotTypes = [
             ...fieldTypes.map(f =>
                 [f, f + '-RMS', ...range(1, 9).map(i => `${f}-mode${i}`)]),

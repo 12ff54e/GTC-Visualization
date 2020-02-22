@@ -21,7 +21,7 @@ app.post('/', async (req, res) => {
     output = new GTCOutput(GTC_outputDir);
     console.log(`path set to ${GTC_outputDir}`);
 
-    await output.getSnapshotList()
+    await output.getSnapshotFileList()
     res.render('plot', { dir: GTC_outputDir, snapFiles: output.snapshotFiles });
 })
 
@@ -29,6 +29,7 @@ app.post('/', async (req, res) => {
 app.get('/plotType/:type', async (req, res, next) => {
     let type = req.params.type;
     await output.readData(type);
+    type = type.startsWith('snap') ? 'Snapshot' : type;
     res.send(JSON.stringify({
         info: `${type} file read`,
         id: output.data[type].plotTypes

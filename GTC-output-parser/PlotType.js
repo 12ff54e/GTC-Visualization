@@ -7,6 +7,15 @@ class PlotType {
      */
     constructor(data, basicParams) {
         this.path = data.path;
+
+        // find out existing particles in this run
+        if (basicParams) {
+            let { iload, nhybrid, fload, feload } = basicParams;
+            this.existingParticles =
+                ['ion', 'electron', 'EP', 'fast_electron'].filter((_, i) => {
+                    return [iload, nhybrid, fload, feload][i] > 0
+                });
+        }
     }
 
     /**
@@ -27,7 +36,7 @@ class PlotType {
      * @param {{iter:Iterator<string>, path:string}} data 
      */
     static checkEnd(data) {
-        let {iter, path} = data;
+        let { iter, path } = data;
         let { value, done } = iter.next();
         if (done || !value) {
             console.log(`${path} read`);

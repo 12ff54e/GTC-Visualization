@@ -45,7 +45,7 @@ function registerButtons() {
         if (id.startsWith('History') && id.includes('-mode')) {
             // field mode figures need some local calculation
             btn.onclick = history_mode;
-        } else if (id.includes('_spectrum')) {
+        } else if (id.startsWith('Snapshot') && id.includes('-spectrum')) {
             // same as above
             btn.onclick = snapshot_spectrum;
         } else {

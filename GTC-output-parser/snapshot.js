@@ -1,10 +1,8 @@
-const fs = require('fs').promises;
-const path = require('path');
 const PlotlyData = require('./PlotlyData.js');
+const PlotType = require('./PlotType.js');
 const util = require('./util.js');
 const { FFT } = require('jsfft')
 
-const particleNames = ['ion', 'electron', 'EP', 'fast_electron']
 const particlePlotTypes =
     ['density', 'flow', 'energy', 'PDF_energy', 'PDF_pitch'];
 const fieldNames = ['phi', 'apara', 'fluidne'];
@@ -13,19 +11,15 @@ const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
 /**
  * Snapshot class containing all data from snap*******.out
  */
-class Snapshot {
+class Snapshot extends PlotType{
     /**
-     * @param {Array<string>} snapshotData 
+     * @param {{iter:Iterator<string>, path: string}} data 
      * @param {Object} basicParams GTCOutput.parameters
      */
-    constructor(snapshotData, basicParams) {
-        if (snapshotData.path === undefined) {
-            throw new Error('The constructor of History cannot be called directly.');
-        }
+    constructor(data, basicParams) {
+        super(data, basicParams)
 
-        this.path = snapshotData.path;
-
-        let iter = snapshotData[Symbol.iterator]();
+        let iter = data.iter;
 
         // basic parameters
         this.speciesNum = parseInt(iter.next().value);
@@ -35,12 +29,6 @@ class Snapshot {
         this.poloidalGridPtNum = parseInt(iter.next().value) - 1;
         this.toroidalGridPtNum = parseInt(iter.next().value);
         this.maxEnergy = parseFloat(iter.next().value);
-
-        // find out the particle(s) in snap*******.out
-        let { iload, nhybrid, fload, feload } = basicParams;
-        this.existingParticles = particleNames.filter((_, i) =>
-            [iload, nhybrid, fload, feload][i] > 0
-        )
 
         this.plotTypes = [
             ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
@@ -62,29 +50,7 @@ class Snapshot {
         this._slice_field(iter, 'fluxData', this.toroidalGridPtNum);
 
         // check if the snap*******.out file ends
-        let { value, done } = iter.next();
-        if (done || !value) {
-            console.log(`${this.path} read`);
-        } else {
-            console.log(`${[...iter].length} entries left`);
-        }
-    }
-
-    /**
-     * Asynchronously read snapshot file
-     * 
-     * @param {string} dir path
-     * @param {string} fileName step number of snapshot file
-     */
-    static async readSnapshotFile(dir, fileName, basicParams) {
-        // const fileName = 'snap' + num.toString().padStart(7, '0') + '.out';
-        const snapPath = path.join(dir, fileName);
-        const snapshotFile = await fs.readFile(snapPath, 'utf-8');
-        const snapshotData = snapshotFile.split('\n');
-
-        snapshotData.path = snapPath;
-
-        return new Snapshot(snapshotData, basicParams);
+        PlotType.checkEnd(data);
     }
 
     /**
@@ -216,7 +182,7 @@ class Snapshot {
                     figureContainer.push(fig1);
                     break;
             }
-        } else if (particleNames.includes(cat)) {
+        } else if (this.existingParticles.includes(cat)) {
             // particle
             let figs = Array.from({ length: 2 }, _ => new PlotlyData());
             figs.forEach((fig, i) => {
