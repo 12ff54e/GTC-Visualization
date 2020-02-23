@@ -1,11 +1,9 @@
 const express = require('express');
 require('dotenv').config();
-const path = require('path');
 const GTCOutput = require('./GTC-output-parser/main.js');
 
 const app = express();
 const port = process.env.PORT || 3000;
-let GTC_outputDir = 'C:\\Users\\zq\\OneDrive\\mgui_161111\\4He2\\maxwell\\m30'
 
 let output;
 
@@ -22,7 +20,10 @@ app.post('/', async (req, res) => {
     console.log(`path set to ${GTC_outputDir}`);
 
     await output.getSnapshotFileList()
-    res.render('plot', { dir: GTC_outputDir, snapFiles: output.snapshotFiles });
+    res.render('plot', {
+        dir: GTC_outputDir,
+        types: Object.keys(GTCOutput.index),
+        snapFiles: output.snapshotFiles });
 })
 
 // router for user checking one tab, the server will read corresponding files

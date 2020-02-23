@@ -7,7 +7,6 @@ html(lang="en")
         script(src="javascripts/plotly-latest.min.js")
     body
         p= `Current GTC output folder set to ${dir}`
-        - var types = ['History', 'Snapshot', 'Equilibrium', 'RadialTime']
         div(id="tabs")
             each panel in types
                 div
