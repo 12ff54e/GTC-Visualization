@@ -44,6 +44,7 @@ app.get('/data/basicParameters', (req, res) => {
 app.get('/data/:type-:id', (req, res) => {
     let requestPlotType = req.params.type;
     let requestPlotId = req.params.id;
+    console.log(requestPlotId)
     res.send(JSON.stringify(
         output.data[requestPlotType].plotData(requestPlotId, output.parameters),
     ))
