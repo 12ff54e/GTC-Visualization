@@ -42,10 +42,10 @@ function registerButtons() {
     let buttons = document.getElementsByClassName('tab-l1-btn');
     for (let btn of buttons) {
         let id = btn.id
-        if (id.startsWith('History') && id.includes('_mode')) {
+        if (id.startsWith('History') && id.includes('-mode')) {
             // field mode figures need some local calculation
             btn.onclick = history_mode;
-        } else if (id.includes('_spectrum')) {
+        } else if (id.startsWith('Snapshot') && id.includes('-spectrum')) {
             // same as above
             btn.onclick = snapshot_spectrum;
         } else {
@@ -104,9 +104,9 @@ async function openPanel(id) {
 
         // Equilibrium panel needs special care
         if (id === 'Equilibrium') {
-            let { xDataTypes, yDataTypes, poloidalPlanePlotTypes, otherPlotTypes } = btn_id_array;
-            btn_id_array = [poloidalPlanePlotTypes, otherPlotTypes];
-            createEqPanel1D(xDataTypes, yDataTypes);
+            let { x, y, poloidalPlane, others } = btn_id_array;
+            btn_id_array = [poloidalPlane, others];
+            createEqPanel1D(x, y);
         }
         btn_id_array.forEach(type => {
             let subDiv = document.createElement('div')

@@ -12,36 +12,30 @@ const dataType_1D = ['psi', 'sqrt_torpsi', 'minor', 'major',
     'psi_tor', 'psi_rg', 'sin_err', 'cos_err'];
 const dataType_2D = ['x', 'z', 'b', 'J', 'i', 'zeta2phi', 'del'];
 
-// For figure generation
-const xDataTypes = ['psi', 'minor', 'torpsi', 'rg'];
-const yDataTypes = ['psi',
-    'Te', 'dlnTe_dpsi', 'ne', 'dlnne_dpsi',
-    'Ti', 'dlnTi_dpsi', 'ni', 'dlnni_dpsi',
-    'Tf', 'dlnTf_dpsi', 'nf', 'dlnnf_dpsi',
-    'zeff', 'tor_rot', 'E_r', 'q', 'dlnq_dpsi',
-    'g', 'p', 'minor', 'tor_psi', 'rg',
-    'psi_tor', 'psi_rg', 'sin_err', 'cos_err'];
-const poloidalPlanePlotTypes = ['splineMesh', 'bField', 'Jacobian', 'iCurrent', 'zeta2phi', 'delB'];
-const otherPlotTypes = ['b(theta)', 'J(theta)']
-
 /**
  * Equilibrium class contains all data from equilibrium.out
  */
 class Equilibrium extends PlotType {
     /**
-     * @param {{iter: Iterator<string>, path: string}} eqData 
+     * @param {{iter: Iterator<string>, path: string}} data 
      * @param {object} basicParams GTCOutput.parameters
      */
-    constructor(eqData) {
-        super(eqData);
-        let iter = eqData.iter;
-
+    constructor(data) {
+        super(data);
+        let iter = data.iter;
 
         this.plotTypes = {
-            xDataTypes: xDataTypes,
-            yDataTypes: yDataTypes,
-            poloidalPlanePlotTypes: poloidalPlanePlotTypes,
-            otherPlotTypes: otherPlotTypes
+            x: ['psi', 'minor', 'torpsi', 'rg'],
+            y: ['psi',
+                'Te', 'dlnTe_dpsi', 'ne', 'dlnne_dpsi',
+                'Ti', 'dlnTi_dpsi', 'ni', 'dlnni_dpsi',
+                'Tf', 'dlnTf_dpsi', 'nf', 'dlnnf_dpsi',
+                'zeff', 'tor_rot', 'E_r', 'q', 'dlnq_dpsi',
+                'g', 'p', 'minor', 'tor_psi', 'rg',
+                'psi_tor', 'psi_rg', 'sin_err', 'cos_err'],
+            poloidalPlane: ['splineMesh', 'bField', 'Jacobian',
+                'iCurrent', 'zeta2phi', 'delB'],
+            others: ['b(theta)', 'J(theta)']
         }
 
         this.radialPlotNum = parseInt(iter.next().value) + 1;
@@ -70,13 +64,7 @@ class Equilibrium extends PlotType {
             }
         }
 
-        let { value, done } = iter.next();
-        // last line could be empty
-        if (done || !value) {
-            console.log(`${this.path} read`);
-        } else {
-            throw new Error(`${[...iter].length + 1} entries left`);
-        }
+        PlotType.checkEnd(data);
 
     }
 
@@ -107,8 +95,8 @@ class Equilibrium extends PlotType {
             })
             figure.axesLabel = { x: sub[0], y: '' };
             figure.plotLabel = sub[1];
-        } else if (poloidalPlanePlotTypes.includes(type)) {
-            let ind = poloidalPlanePlotTypes.indexOf(type);
+        } else if (this.plotTypes.poloidalPlane.includes(type)) {
+            let ind = this.plotTypes.poloidalPlane.indexOf(type);
             let psiMesh = flat(Array(this.poloidalGridPtNum)
                 .fill([...Array(this.radialGridPtNum2).keys()]));
             let thetaMesh = flat([...Array(this.poloidalGridPtNum).keys()]
@@ -119,7 +107,8 @@ class Equilibrium extends PlotType {
                 x: flat(this.poloidalPlaneData['x']),
                 y: flat(this.poloidalPlaneData['z']),
                 type: 'carpet'
-            })
+            });
+            figure.axisEqual();
 
             // mesh grid
             if (ind == 0) {
@@ -140,9 +129,8 @@ class Equilibrium extends PlotType {
             figure.hideCarpetGrid();
             figure.plotLabel = type
 
-        } else if (otherPlotTypes.includes(type)) {
-            let ind = otherPlotTypes.indexOf(type);
-            switch (ind) {
+        } else {
+            switch (this.plotTypes.others.indexOf(type)) {
                 case 0: // magnetic field along poloidal direction
                     figure.data.push({
                         y: this.poloidalPlaneData['b'].map(rs => rs[this.radialGridPtNum2 - 1])

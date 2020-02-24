@@ -1,7 +1,6 @@
 const PlotType = require('./PlotType.js');
 const PlotlyData = require('./PlotlyData.js');
 
-const particleNames = ['ion', 'electron', 'EP', 'fast_electron']
 const particlePlotTypes =
     ['particle_flux', 'energy_flux', 'momentum_flux'];
 const fieldNames = ['phi', 'a_para', 'fluid_ne'];
@@ -13,7 +12,7 @@ class RadialTime extends PlotType {
      * @param {{path: string, iter: Iterator<string>}} data 
      */
     constructor(data, basicParams) {
-        super(data);
+        super(data, basicParams);
         let iter = data.iter;
 
         this.stepNumber = parseInt(iter.next().value);
@@ -23,12 +22,6 @@ class RadialTime extends PlotType {
         this.particlePlotTypeNum = parseInt(iter.next().value);
         this.fieldNum = parseInt(iter.next().value);
         this.fieldPlotTypeNum = parseInt(iter.next().value);
-
-        // find out the particle(s) in data1d.out
-        let { iload, nhybrid, fload, feload } = basicParams;
-        this.existingParticles = particleNames.filter((_, i) =>
-            [iload, nhybrid, fload, feload][i] > 0
-        )
 
         this.plotTypes = [
             ...this.existingParticles.map(t => particlePlotTypes
@@ -40,7 +33,12 @@ class RadialTime extends PlotType {
         ];
 
         this.data = new Object();
+        // initialization
+        for (let field of fieldNames) {
+            this.data[field] = new Object();
+        }
         for (let i = 0; i < this.stepNumber; i++) {
+            // particle data
             for (let particle of this.existingParticles) {
                 if (i == 0) {
                     this.data[particle] = new Object();
@@ -55,11 +53,9 @@ class RadialTime extends PlotType {
                 }
             }
 
-            for (let field of fieldNames) {
-                if (i == 0) {
-                    this.data[field] = new Object();
-                }
-                for (let type of fieldPlotTypes) {
+            // field data
+            for (let type of fieldPlotTypes) {
+                for (let field of fieldNames) {
                     if (i == 0) {
                         this.data[field][type] = new Array();
                     }
@@ -70,25 +66,7 @@ class RadialTime extends PlotType {
             }
         }
 
-        // check if finished
-        let { value, done } = iter;
-        if (done || !value) {
-            console.log(`${this.path} read`);
-        } else {
-            throw new Error(`${[...iter].length + 1} entries left`);
-        }
-
-
-    }
-
-    /**
-     * 
-     * @param {string} filePath 
-     */
-    static async readRadialTimeFile(filePath, basicParams) {
-        let data = await super.readDataFile(filePath);
-
-        return new RadialTime(data, basicParams);
+        PlotType.checkEnd(data);
     }
 
     /**
@@ -105,10 +83,12 @@ class RadialTime extends PlotType {
             type: 'heatmap',
             colorbar: {
                 tickformat: '.4e'
-            }
+            },
+            transpose: true,
+            zhoverformat: '.4g'
         })
 
-        figure.axesLabel = {x:'mpsi', y:'time step'};
+        figure.axesLabel = { x: 'time step', y: 'mpsi' };
         figure.plotLabel = `${cat} ${type}`;
 
         return [figure];
