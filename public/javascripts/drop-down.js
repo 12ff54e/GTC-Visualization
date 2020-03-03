@@ -14,4 +14,16 @@ window.onload = _ => {
             }
         });
     }
+
+    for (let div of document.getElementsByClassName('mod')) {
+        div.addEventListener('click', function (event) {
+            for(let sub of this.children) {
+                if (sub.style.display == 'none') {
+                    sub.style.display = 'block';
+                } else {
+                    sub.style.display = 'none';
+                }
+            }
+        })
+    }
 }

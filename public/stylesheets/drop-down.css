@@ -1,18 +1,10 @@
-html, body {
-    height: 97%;
-}
-
 body {
     background-color: azure;
-    background-repeat: no-repeat;
-    background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
 }
 
-.files {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.562), transparent 40%);
-    padding-left: 2em;
+#folder_form {
+    width: 40%;
+    margin: 10% auto;
 }
 
 ul {
@@ -20,8 +12,7 @@ ul {
 }
 
 li {
-    font-size: 20px;
-    background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%);
+    /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
 }
 
 li:hover {
@@ -29,13 +20,12 @@ li:hover {
 }
 
 .collapsible {
-    background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%);
+    /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
     cursor: pointer;
     border: none;
-    text-align: left;
+    text-align: center;
     width: 2rem;
     outline: none;
-    font-size: 20px;
     transition: all 0.8s ease-out;
     padding: 1px 0;
 }
@@ -45,7 +35,7 @@ li:hover {
 }
 
 .content {
-    background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%);
+    /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
     padding: 0 18px;
     height: 0;
     overflow: hidden;
@@ -57,5 +47,16 @@ li > input {
 }
 
 input:checked+label {
-    background-color: red
+    background-color: black;
+    color: white;
+}
+
+.mod {
+    float: right;
+    color: rgb(216, 216, 216);
+    transition: all 0.3s ease-out;
+}
+
+.mod:hover {
+    color: black;
 }

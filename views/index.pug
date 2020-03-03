@@ -7,8 +7,8 @@ html(lang="en")
         link(rel="stylesheet", href="stylesheets/drop-down.css")
         title GTC-Visualization
     body
-        form(method="POST")
-            div
+        form(method="POST" id="folder_form")
+            div(id="folder_list")
                 include includes/files.html
             button(type="submit") Choose this folder
         
