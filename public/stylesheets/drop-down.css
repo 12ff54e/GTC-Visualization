@@ -1,0 +1,61 @@
+html, body {
+    height: 97%;
+}
+
+body {
+    background-color: azure;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+}
+
+.files {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.562), transparent 40%);
+    padding-left: 2em;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li {
+    font-size: 20px;
+    background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%);
+}
+
+li:hover {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.877), transparent 80%);
+}
+
+.collapsible {
+    background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%);
+    cursor: pointer;
+    border: none;
+    text-align: left;
+    width: 2rem;
+    outline: none;
+    font-size: 20px;
+    transition: all 0.8s ease-out;
+    padding: 1px 0;
+}
+
+.active, .collapsible:hover {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.877), transparent 80%);
+}
+
+.content {
+    background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%);
+    padding: 0 18px;
+    height: 0;
+    overflow: hidden;
+    transition: all 0.8s ease-out;
+}
+
+li > input {
+    display: none;
+}
+
+input:checked+label {
+    background-color: red
+}
