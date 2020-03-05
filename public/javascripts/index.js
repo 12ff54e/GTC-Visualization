@@ -138,8 +138,6 @@ function cleanPanel() {
     for (let p of panel.children) {
         p.style.opacity = 0;
         p.style.zIndex = 1;
-        // p.style.width = 0;
-        // p.style.height = 0;
     }
 }
 

@@ -8,10 +8,6 @@ p {
     height: 100%;
 }
 
-/* #tabs>div {
-    border: 1px solid rgb(197, 247, 230);
-} */
-
 #panel {
     position: absolute;
     top: 5rem;

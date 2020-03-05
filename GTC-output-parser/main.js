@@ -69,60 +69,6 @@ class GTCOutput {
             await this.readData(type);
         }
     }
-
-    /**
-     * read history.out
-     */
-    async history() {
-        if (this.historyData) {
-            // if history file has been read
-            return;
-        } else if (this.parameters) {
-            this.historyData =
-                await History.readDataFile(path.join(this.dir, 'history.out'), this.parameters);
-        } else {
-            await this.read_para();
-            await this.history();
-        }
-    }
-
-    /**
-     * read snap*******.out
-     * 
-     * @param {string} file name of snapshot file
-     */
-    async snapshot(file) {
-        if (this.snapshotData && path.basename(this.snapshotData.path) === file) {
-            // if the specified snapshot file has been already read
-            return;
-        } else if (this.parameters) {
-            this.snapshotData = await Snapshot.readSnapshotFile(this.dir, file, this.parameters);
-        } else {
-            await this.read_para();
-            this.snapshotData = await Snapshot.readSnapshotFile(this.dir, file, this.parameters);
-        }
-    }
-
-    async equilibrium() {
-        if (this.equilibriumData) {
-            return;
-        } else {
-            this.equilibriumData =
-                await Equilibrium.readEquilibriumFile(path.join(this.dir, 'equilibrium.out'));
-        }
-    }
-
-    async radialTime() {
-        if (this.radialTimeData) {
-            return;
-        } else if (this.parameters) {
-            this.radialTimeData =
-                await RadialTime.readRadialTimeFile(path.join(this.dir, 'data1d.out'), this.parameters);
-        } else {
-            await this.read_para();
-            await this.radialTime();
-        }
-    }
 }
 
 GTCOutput.index = {
@@ -143,5 +89,7 @@ GTCOutput.index = {
         fileName: 'data1d.out'
     }
 }
+
+
 
 module.exports = GTCOutput;

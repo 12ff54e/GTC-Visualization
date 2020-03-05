@@ -43,6 +43,7 @@ class History extends PlotType {
         this.fieldTimeSeriesData = new Object();
         this.fieldModeData = new Object();
 
+        // TODO: support unfinished gtc output
         // read particle and field data from historyData
         for (let step = 0; step < this.stepNumber; step++) {
             // particle data
