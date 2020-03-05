@@ -5,8 +5,8 @@ const fs = require('fs').promises;
 const regexp = /\s*(?<key>[\w_]+)\s*=\s*(?<value>[\d.E+-]+)/i;
 
 module.exports = async function (dir) {
-    let file1 = path.join(dir, 'gtc.out');
-    let file2 = path.join(dir, 'gtc.out0');
+    const file1 = path.join(dir, 'gtc.out');
+    const file2 = path.join(dir, 'gtc.out0');
     let outputData;
 
     // try to read 'gtc.out' first, then 'gtc.out0' if the former
@@ -24,30 +24,33 @@ module.exports = async function (dir) {
     }
 
     // filter out lines consist of '='
-    let validatedData = outputData
+    const validatedData = outputData
         .split('\n')
         .filter(line => !line.includes('==') && line.includes('='));
 
     // return all the parameters capsuled in a object
-    let params = new Object();
+    const params = new Object();
     validatedData
         .forEach(line => {
-            let g = line.match(regexp).groups;
-            let value;
-            if (g.value.includes('.')) {
-                value = parseFloat(g.value);
-            } else {
-                value = parseInt(g.value);
+            let regexMatch;
+            if (regexMatch = line.match(regexp)) {
+                const g = regexMatch.groups;
+                let value;
+                if (g.value.includes('.')) {
+                    value = parseFloat(g.value);
+                } else {
+                    value = parseInt(g.value);
+                }
+                // n modes and m modes are list of mode numbers
+                if (g.key === 'nmodes' || g.key === 'mmodes') {
+                    value = line
+                        .substring(8)
+                        .trim()
+                        .split(/\s+/)
+                        .map(str => parseInt(str));
+                }
+                params[g.key.toLowerCase()] = value;
             }
-            // n modes and m modes are list of mode numbers
-            if(g.key === 'nmodes' || g.key === 'mmodes') {
-                value = line
-                    .substring(8)
-                    .trim()
-                    .split(/\s+/)
-                    .map(str => parseInt(str));
-            }
-            params[g.key.toLowerCase()] = value;
         });
 
     return params;
