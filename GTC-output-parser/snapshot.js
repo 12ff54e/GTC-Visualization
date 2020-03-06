@@ -1,7 +1,6 @@
 const PlotlyData = require('./PlotlyData.js');
 const PlotType = require('./PlotType.js');
 const util = require('./util.js');
-const { FFT } = require('jsfft')
 
 const particlePlotTypes =
     ['density', 'flow', 'energy', 'PDF_energy', 'PDF_pitch'];
@@ -11,7 +10,7 @@ const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
 /**
  * Snapshot class containing all data from snap*******.out
  */
-class Snapshot extends PlotType{
+class Snapshot extends PlotType {
     /**
      * @param {{iter:Iterator<string>, path: string}} data 
      * @param {Object} basicParams GTCOutput.parameters
@@ -129,23 +128,14 @@ class Snapshot extends PlotType{
                     fig.plotLabel = `${cat} on poloidal plane`;
                     figureContainer.push(fig);
 
-                    // add another figure representing how Fourier components varies radially
-                    // TODO: this figure data should be at client-side, since user
-                    //  could be willing to adjust Fourier component ranges.
-                    let modeNum = Math.floor(this.poloidalGridPtNum / 2);
-                    let fig2 = new PlotlyData(modeNum, ['y']);
-                    // fft of each flux surface
-                    polData[cat].forEach(circle => {
-                        Array.from(FFT(circle).magnitude().slice(0, modeNum))
-                            .forEach((amp, i) => {
-                                let trace = fig2.data[i];
-                                trace.y.push(amp);
-                                trace.showlegend = false;
-                                trace.hoverinfo = 'none';
-                            })
-                    });
-                    fig2.axesLabel = { x: 'mpsi', y: ''};
+                    let fig2 = new PlotlyData();
+                    fig2.axesLabel = { x: 'mpsi', y: '' };
+                    fig2.plotLabel = `${cat} mode profile`
                     figureContainer.push(fig2);
+                    figureContainer.push({
+                        polNum: this.poloidalGridPtNum,
+                        radNum: this.radialGridPtNum
+                    })
                     break;
                 case 3: case 4: // profile of field and rms
                     let field = this.fieldData['poloidalPlane'][cat];
@@ -168,11 +158,13 @@ class Snapshot extends PlotType{
                         y: type === 'psi' ?
                             field.map(pol => Math.sqrt(pol.reduce(
                                 (acc, curr) => acc + curr * curr, 0) / this.poloidalGridPtNum)) :
-                            field.reduce((acc, curr) => {
-                                acc.forEach((v, i) => { acc[i] = v + curr[i] * curr[i] },
-                                    Array(this.poloidalGridPtNum).fill(0));
-                                return acc;
-                            }).map(v => Math.sqrt(v / (this.radialGridPtNum - 1))),
+                            field
+                                .reduce((acc, curr) => {
+                                    acc.forEach((v, i) => { acc[i] = v + curr[i] * curr[i] },
+                                        Array(this.poloidalGridPtNum).fill(0));
+                                    return acc;
+                                }, Array(this.poloidalGridPtNum).fill(0))
+                                .map(v => Math.sqrt(v / (this.radialGridPtNum - 1))),
                         type: 'scatter',
                         mode: 'lines'
                     });

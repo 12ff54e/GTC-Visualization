@@ -41,25 +41,28 @@ for (let btn of document.getElementById('files').children) {
 function registerButtons() {
     let buttons = document.getElementsByClassName('tab-l1-btn');
     for (let btn of buttons) {
-        let id = btn.id
-        if (id.startsWith('History') && id.includes('-mode')) {
-            // field mode figures need some local calculation
-            btn.onclick = history_mode;
-        } else if (id.startsWith('Snapshot') && id.includes('-spectrum')) {
-            // same as above
-            btn.onclick = snapshot_spectrum;
-        } else {
-            btn.onclick = async () => {
-                cleanPlot();
+        btn.onclick = getDataThenPlot;
+        // let id = btn.id
+        // if (id.startsWith('History') && id.includes('-mode')) {
+        //     // field mode figures need some local calculation
+        //     btn.onclick = history_mode;
+        // } else if (id.startsWith('Snapshot') && id.includes('-spectrum')) {
+        //     // same as above
+        //     btn.onclick = snapshot_spectrum;
+        // } else if (id.startsWith('Snapshot') && id.includes('-poloidal')) {
+        //     btn.onclick = snapshot_poloidal;
+        // } else {
+        //     btn.onclick = async () => {
+        //         cleanPlot();
 
-                let figObj = await fetch(`data/${id}`);
-                let figures = await figObj.json();
+        //         let figObj = await fetch(`data/${id}`);
+        //         let figures = await figObj.json();
 
-                for (let i = 0; i < figures.length; i++) {
-                    Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
-                }
-            }
-        }
+        //         for (let i = 0; i < figures.length; i++) {
+        //             Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
+        //         }
+        //     }
+        // }
     }
 }
 
@@ -141,11 +144,27 @@ function cleanPanel() {
     }
 }
 
-async function history_mode() {
+async function getDataThenPlot() {
     cleanPlot();
 
     let figObj = await fetch(`data/${this.id}`);
     let figures = await figObj.json();
+
+    // field mode figures need some local calculation
+    if (this.id.startsWith('History') && this.id.includes('-mode')) {
+        await history_mode(figures);
+    } else if (this.id.startsWith('Snapshot') && this.id.endsWith('-spectrum')) {
+        await snapshot_spectrum(figures);
+    } else if (this.id.startsWith('Snapshot') && this.id.endsWith('-poloidal')) {
+        await snapshot_poloidal(figures);
+    }
+
+    for (let i = 0; i < figures.length; i++) {
+        Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
+    }
+}
+
+async function history_mode(figures) {
 
     // Request some basic parameters for calculating growth rate and frequency
     let bpRes = await fetch(`data/basicParameters`);
@@ -206,19 +225,10 @@ async function history_mode() {
             mode: 'lines'
         })
     )
-
-
-    // invoke Plotly
-    for (let i = 0; i < figures.length; i++) {
-        Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
-    }
 }
 
-async function snapshot_spectrum() {
-    const fft = await import('./jsfft/fft.js');
-
-    let figObj = await fetch(`data/${this.id}`);
-    let figures = await figObj.json();
+async function snapshot_spectrum(figures) {
+    const { FFT } = await import('./jsfft/fft.js');
 
     let field = figures.pop().extraData;
     let torNum = field.length;
@@ -229,7 +239,7 @@ async function snapshot_spectrum() {
 
     let poloidalSpectrum = Array(mmode).fill(0);
     for (let section of field) {
-        let powerSpectrum = fft.FFT(section).magnitude();
+        let powerSpectrum = FFT(section).magnitude();
         poloidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < mmode; i++) {
             poloidalSpectrum[i] += powerSpectrum[i] + powerSpectrum[polNum - i]
@@ -239,7 +249,7 @@ async function snapshot_spectrum() {
 
     let toroidalSpectrum = Array(pmode).fill(0);
     for (let section of transpose(field)) {
-        let powerSpectrum = fft.FFT(section).magnitude();
+        let powerSpectrum = FFT(section).magnitude();
         toroidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < pmode; i++) {
             toroidalSpectrum[i] += powerSpectrum[i] + powerSpectrum[torNum - i]
@@ -253,8 +263,29 @@ async function snapshot_spectrum() {
     figures[1].data[0].x = [...Array(pmode).keys()];
     figures[1].data[0].y = toroidalSpectrum;
 
-    for (let i = 0; i < figures.length; i++) {
-        Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
+}
+
+async function snapshot_poloidal(figures) {
+    const { FFT } = await import('./jsfft/fft.js');
+
+    const { polNum, radNum } = figures.pop();
+    const flattenedField = figures[0].data[1].z;
+    const modeNum = polNum / 2;
+
+    for (let i = 0; i < modeNum; i++) {
+        figures[1].data.push({
+            y: [],
+            showlegend: false,
+            hoverinfo: 'none'
+        });
+    }
+    for (let r = 0; r < radNum; r++) {
+        const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
+        Array.from(FFT(circle).magnitude().slice(0, modeNum))
+            .forEach((amp, i) => {
+                let trace = figures[1].data[i];
+                trace.y.push(amp);
+            });
     }
 }
 
