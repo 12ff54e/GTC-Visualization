@@ -11,10 +11,6 @@ for (let swc of switches) {
             // expand snapshot file list
             let div = document.getElementById('files')
             div.style.height = `${div.childElementCount * 1.2 + 0.2}rem`;
-            div.style.opacity = 1;
-            for (let btn of div.children) {
-                btn.style.visibility = 'visible';
-            }
             cleanPanel();
         }
     } else {
@@ -22,10 +18,6 @@ for (let swc of switches) {
             // collapse snapshot file list
             let div = document.getElementById('files');
             div.style.height = '0rem';
-            div.style.opacity = 0;
-            for (let btn of div.children) {
-                btn.style.visibility = 'hidden';
-            }
             openPanel(swc.id);
         }
     }

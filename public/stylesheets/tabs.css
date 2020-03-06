@@ -72,8 +72,8 @@ div#files {
     background-color: rgb(199, 245, 235);
     margin: 0 auto;
     width: 90%;
-    opacity: 0;
     height: 0rem;
+    overflow: hidden;
     transition: all 0.35s;
 }
 
@@ -84,8 +84,6 @@ div#files {
     z-index: -1;
     cursor: grab;
     width: 100%;
-    transition: all 0.35s;
-    visibility: hidden;
 }
 
 #files>button:hover {
