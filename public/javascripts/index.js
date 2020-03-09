@@ -2,8 +2,8 @@
 //TODO: Add progress indications when receiving data and making plot
 
 // register plot type tabs
-let switches = document.getElementsByClassName('tab-l0-switch');
-let switchState = {};
+const switches = document.getElementsByClassName('tab-l0-switch');
+const switchState = {};
 for (let swc of switches) {
     switchState[swc.id] = 'untouched';
     if (swc.id === 'Snapshot') {
@@ -37,6 +37,14 @@ for (let btn of document.getElementById('files').children) {
         openPanel(btn.id)
     }
 }
+
+function StatusBar() {
+    this.orig = document.body.children[0].innerText;
+}
+StatusBar.prototype.toString = function () {
+    return Object.values(this).join('\n');
+}
+const statusBar = new StatusBar();
 
 function registerButtons() {
     let buttons = document.getElementsByClassName('tab-l1-btn');
@@ -76,13 +84,16 @@ async function openPanel(id) {
     let panelName = `${majorType}-panel`;
 
     // modifies status bar
+    const bar = document.body.children[0];
     if (majorType === 'Snapshot') {
-        let info = document.body.children[0];
-        info.innerText = `${info.innerText.split('\n')[0]}
-            Currently selection of Snapshot file: ${id}`;
+        // info.innerText = `${infoText.split('\n')[0]}
+        //     Currently selection of Snapshot file: ${id}`;
+        statusBar.snapshot = `Currently selection of Snapshot file: ${id}`;
+        bar.innerText = statusBar;
     } else {
-        let info = document.body.children[0];
-        info.innerText = info.innerText.split('\n')[0]
+        // info.innerText = infoText.split('\n')[0];
+        delete statusBar.snapshot;
+        bar.innerText = statusBar;
     }
 
     cleanPanel();
@@ -95,8 +106,15 @@ async function openPanel(id) {
     let res = await fetch(`plotType/${id}`);
     // wait for the response, then create buttons for plotting
     if (res.ok) {
-        let { info, id: btn_id_array } = await res.json();
+        let { info, warn, id: btn_id_array } = await res.json();
         console.log(`server: ${info}`);
+        if (warn) {
+            statusBar.warn = warn;
+            bar.innerText = statusBar;
+        } else {
+            delete statusBar.warn;
+            bar.innerText = statusBar;
+        }
 
         // add buttons
         if (switchState[majorType] === 'untouched') {

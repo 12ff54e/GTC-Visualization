@@ -22,7 +22,6 @@ class Equilibrium extends PlotType {
      */
     constructor(data) {
         super(data);
-        let iter = data.iter;
 
         this.plotTypes = {
             x: ['psi', 'minor', 'torpsi', 'rg'],
@@ -38,20 +37,23 @@ class Equilibrium extends PlotType {
             others: ['b(theta)', 'J(theta)']
         }
 
-        this.radialPlotNum = parseInt(iter.next().value) + 1;
-        this.radialGridPtNum1 = parseInt(iter.next().value);
+    }
+
+    * parseLine() {
+        this.radialPlotNum = parseInt(yield) + 1;
+        this.radialGridPtNum1 = parseInt(yield);
 
         this.radialData = new Object();
         for (let i = 0; i < this.radialPlotNum; i++) {
             let arr = this.radialData[dataType_1D[i]] = new Array();
             for (let r = 0; r < this.radialGridPtNum1; r++) {
-                arr.push(parseFloat(iter.next().value));
+                arr.push(parseFloat(yield));
             }
         }
 
-        this.poloidalPlanePlotNum = parseInt(iter.next().value) + 2;
-        this.radialGridPtNum2 = parseInt(iter.next().value);
-        this.poloidalGridPtNum = parseInt(iter.next().value);
+        this.poloidalPlanePlotNum = parseInt(yield) + 2;
+        this.radialGridPtNum2 = parseInt(yield);
+        this.poloidalGridPtNum = parseInt(yield);
 
         this.poloidalPlaneData = new Object();
         for (let i = 0; i < this.poloidalPlanePlotNum; i++) {
@@ -59,12 +61,10 @@ class Equilibrium extends PlotType {
             for (let t = 0; t < this.poloidalGridPtNum; t++) {
                 arr.push(new Array());
                 for (let r = 0; r < this.radialGridPtNum2; r++) {
-                    arr[t].push(parseFloat(iter.next().value));
+                    arr[t].push(parseFloat(yield));
                 }
             }
         }
-
-        PlotType.checkEnd(data);
 
     }
 

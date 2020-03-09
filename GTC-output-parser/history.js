@@ -18,19 +18,11 @@ class History extends PlotType {
      */
     constructor(data, basicParams) {
         super(data, basicParams);
-        let iter = data.iter;
+        this.isTimeSeriesData = true;
 
-        // raw parameters
-        this.stepNumber = parseInt(iter.next().value);
-        this.speciesNumber = parseInt(iter.next().value);
-        this.particleDiagnosticNumber = parseInt(iter.next().value);
-        this.fieldNumber = parseInt(iter.next().value);
-        this.fieldModeNumber = parseInt(iter.next().value);
-        this.fieldDiagnosticNumber = parseInt(iter.next().value);
-        this.timeStep = parseFloat(iter.next().value);
-
+        this.fieldTypes = fieldTypes;
         this.plotTypes = [
-            ...fieldTypes.map(f =>
+            ...this.fieldTypes.map(f =>
                 [f, f + '-RMS', ...range(1, 9).map(i => `${f}-mode${i}`)]),
             ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
         ];
@@ -43,50 +35,58 @@ class History extends PlotType {
         this.fieldTimeSeriesData = new Object();
         this.fieldModeData = new Object();
 
-        // TODO: support unfinished gtc output
-        // read particle and field data from historyData
-        for (let step = 0; step < this.stepNumber; step++) {
-            // particle data
-            for (let particle of this.existingParticles) {
-                if (step == 0) {
-                    this.particleData[particle] =
-                        Array.from({ length: this.particleDiagnosticNumber }, _ => []);
-                }
-                for (let i = 0; i < this.particleDiagnosticNumber; i++) {
-                    this.particleData[particle][i].push(parseFloat(iter.next().value))
-                }
-            }
-
-            // field time series data
-            for (let field of fieldTypes) {
-                if (step == 0) {
-                    this.fieldTimeSeriesData[field] =
-                        Array.from({ length: this.fieldDiagnosticNumber }, _ => [])
-                    this.fieldModeData[field] =
-                        Array.from({ length: this.fieldModeNumber }, _ => {
-                            return {
-                                real: [],
-                                imag: []
-                            }
-                        })
-                }
-                for (let i = 0; i < this.fieldDiagnosticNumber; i++) {
-                    this.fieldTimeSeriesData[field][i].push(parseFloat(iter.next().value));
-                }
-            }
-
-            // field mode data
-            for (let field of fieldTypes) {
-                for (let i = 0; i < this.fieldModeNumber; i++) {
-                    this.fieldModeData[field][i].real.push(parseFloat(iter.next().value));
-                    this.fieldModeData[field][i].imag.push(parseFloat(iter.next().value));
-                }
-            }
-
-        }
-        PlotType.checkEnd(data);
     }
 
+    * parseLine() {
+
+        // basic parameters
+        this.expectedStepNumber = parseInt(yield);
+        this.speciesNumber = parseInt(yield);
+        this.particleDiagnosticNumber = parseInt(yield);
+        this.fieldNumber = parseInt(yield);
+        this.fieldModeNumber = parseInt(yield);
+        this.fieldDiagnosticNumber = parseInt(yield);
+        this.timeStep = parseFloat(yield);
+        this.initBlockSize = 7;
+        this.entryPerStep = this.speciesNumber * this.particleDiagnosticNumber +
+            this.fieldNumber * (this.fieldDiagnosticNumber + 2 * this.fieldModeNumber);
+
+        // Initialize
+        this.existingParticles.forEach(particle => {
+            this.particleData[particle] =
+                Array.from({ length: this.particleDiagnosticNumber }, _ => []);
+        })
+        this.fieldTypes.forEach(field => {
+            this.fieldTimeSeriesData[field] =
+                Array.from({ length: this.fieldDiagnosticNumber }, _ => [])
+            this.fieldModeData[field] =
+                Array.from({ length: this.fieldModeNumber }, _ => {
+                    return {
+                        real: [],
+                        imag: []
+                    }
+                })
+        })
+
+        while (true) {
+            for (let particle of this.existingParticles) {
+                for (let i = 0; i < this.particleDiagnosticNumber; i++) {
+                    this.particleData[particle][i].push(parseFloat(yield));
+                }
+            }
+            for (let field of this.fieldTypes) {
+                for (let i = 0; i < this.fieldDiagnosticNumber; i++) {
+                    this.fieldTimeSeriesData[field][i].push(parseFloat(yield));
+                }
+            }
+            for (let field of this.fieldTypes) {
+                for (let i = 0; i < this.fieldModeNumber; i++) {
+                    this.fieldModeData[field][i].real.push(parseFloat(yield));
+                    this.fieldModeData[field][i].imag.push(parseFloat(yield));
+                }
+            }
+        }
+    }
 
     /**
      * Slice history data and return it encapsulated in an array.
@@ -110,7 +110,7 @@ class History extends PlotType {
                 for (let i = 0; i < 2; i++) {
                     let figure = new PlotlyData();
                     figure.data.push({
-                        y: this.fieldTimeSeriesData[cat][i + plotType],
+                        y: this.fieldTimeSeriesData[cat][i + plotType].slice(0, this.stepNumber),
                         mode: 'lines',
                     });
                     figure.addX(timeStep);
@@ -132,8 +132,16 @@ class History extends PlotType {
                 let figure = new PlotlyData();
                 let fieldMode = this.fieldModeData[cat][modeIndex];
                 // real and imaginary components
-                figure.data.push({ y: fieldMode.real, mode: 'lines', name: 'real' });
-                figure.data.push({ y: fieldMode.imag, mode: 'lines', name: 'imaginary' });
+                figure.data.push({
+                    y: fieldMode.real.slice(0, this.stepNumber),
+                    mode: 'lines',
+                    name: 'real'
+                });
+                figure.data.push({
+                    y: fieldMode.imag.slice(0, this.stepNumber),
+                    mode: 'lines',
+                    name: 'imaginary'
+                });
                 figure.addX(timeStep);
                 figure.plotLabel =
                     `n=${basicParams.nmodes[modeIndex]}, m=${basicParams.mmodes[modeIndex]}`;
@@ -143,7 +151,7 @@ class History extends PlotType {
                 // growth rate
                 figure = new PlotlyData();
                 figure.data.push({
-                    y: fieldMode.real.map((re, ind) => {
+                    y: fieldMode.real.slice(0, this.stepNumber).map((re, ind) => {
                         let im = fieldMode.imag[ind]
                         return Math.sqrt(re * re + im * im);
                     }),
@@ -174,7 +182,7 @@ class History extends PlotType {
             for (let i = 0; i < 2; i++) {
                 let figure = new PlotlyData();
                 figure.data.push({
-                    y: this.particleData[cat][i + 2 * plotType]
+                    y: this.particleData[cat][i + 2 * plotType].slice(0, this.stepNumber)
                 });
                 figure.addX(timeStep);
                 figure.axesLabel = { x: 'R_0/c_s', y: '' };

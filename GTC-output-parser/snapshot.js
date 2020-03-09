@@ -17,17 +17,7 @@ class Snapshot extends PlotType {
      */
     constructor(data, basicParams) {
         super(data, basicParams)
-
-        let iter = data.iter;
-
-        // basic parameters
-        this.speciesNum = parseInt(iter.next().value);
-        this.fieldNumber = parseInt(iter.next().value);
-        this.velocityGridNumber = parseInt(iter.next().value);
-        this.radialGridPtNum = parseInt(iter.next().value);
-        this.poloidalGridPtNum = parseInt(iter.next().value) - 1;
-        this.toroidalGridPtNum = parseInt(iter.next().value);
-        this.maxEnergy = parseFloat(iter.next().value);
+        this.isTimeSeriesData = false;
 
         this.plotTypes = [
             ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
@@ -36,20 +26,67 @@ class Snapshot extends PlotType {
 
         // particle data, including profile of torques and pdf of energy and pitch angle
         this.particleData = new Object();
-        // first three panel of particlePlotTypes, one dimension along radial direction
-        this._slice_particle(iter, 0, 3, this.radialGridPtNum);
-        // next two panel of particlePlotTypes, one dimension along velocity or pitch angle
-        this._slice_particle(iter, 3, 5, this.velocityGridNumber);
 
         // field data, including poloidal plane and flux 
         this.fieldData = new Object();
-        // poloidal plane data, with x and y coordinates, dimension = (fieldNum + 2 ,r, theta)
-        this._slice_field(iter, 'poloidalPlane', this.radialGridPtNum);
-        // flux data, dimension = (fieldNum, zeta, theta)
-        this._slice_field(iter, 'fluxData', this.toroidalGridPtNum);
+    }
 
-        // check if the snap*******.out file ends
-        PlotType.checkEnd(data);
+    * parseLine() {
+        this.speciesNumber = parseInt(yield);
+        this.fieldNumber = parseInt(yield);
+        this.velocityGridNumber = parseInt(yield);
+        this.radialGridPtNumber = parseInt(yield);
+        this.poloidalGridPtNumber = parseInt(yield) - 1;
+        this.toroidalGridPtNumber = parseInt(yield);
+        this.maxEnergy = parseFloat(yield);
+
+        // read data
+        for (let particle of this.existingParticles) {
+            this.particleData[particle] = new Object();
+            for (let type = 0; type < 3; type++) {
+                const pt = this.particleData[particle][particlePlotTypes[type]] =
+                    Array.from({ length: 2 }, _ => []);
+                for (let i = 0; i < pt.length; i++) {
+                    for (let r = 0; r < this.radialGridPtNumber; r++) {
+                        pt[i].push(parseFloat(yield));
+                    }
+                }
+            }
+        }
+
+        for (let particle of this.existingParticles) {
+            for (let type = 3; type < 5; type++) {
+                const pt = this.particleData[particle][particlePlotTypes[type]] =
+                    Array.from({ length: 2 }, _ => []);
+                for (let i = 0; i < pt.length; i++) {
+                    for (let v = 0; v < this.velocityGridNumber; v++) {
+                        pt[i].push(parseFloat(yield));
+                    }
+                }
+            }
+        }
+
+        this.fieldData['poloidalPlane'] = new Object();
+        for (let field of fieldNames.concat(['x', 'y'])) {
+            let tmp = this.fieldData['poloidalPlane'][field] =
+                Array.from({ length: this.radialGridPtNumber }, _ => []);
+            for (let r = 0; r < this.radialGridPtNumber; r++) {
+                for (let p = 0; p < this.poloidalGridPtNumber + 1; p++) {
+                    tmp[r].push(parseFloat(yield));
+                }
+            }
+        }
+
+        this.fieldData['fluxData'] = new Object();
+        for (let field of fieldNames) {
+            let tmp = this.fieldData['fluxData'][field] =
+                Array.from({ length: this.toroidalGridPtNumber }, _ => []);
+            for (let t = 0; t < this.toroidalGridPtNumber; t++) {
+                for (let p = 0; p < this.poloidalGridPtNumber + 1; p++) {
+                    tmp[t].push(parseFloat(yield));
+                }
+            }
+        }
     }
 
     /**
@@ -97,10 +134,10 @@ class Snapshot extends PlotType {
                     figureContainer = figs;
                     break;
                 case 2: // field strength on poloidal plane
-                    let thetaMesh = util.flat(Array.from({ length: this.radialGridPtNum },
-                        _ => util.range(this.poloidalGridPtNum + 1)));
-                    let psiMesh = util.flat(util.range(this.radialGridPtNum)
-                        .map(i => Array(this.poloidalGridPtNum + 1).fill(i)));
+                    let thetaMesh = util.flat(Array.from({ length: this.radialGridPtNumber },
+                        _ => util.range(this.poloidalGridPtNumber + 1)));
+                    let psiMesh = util.flat(util.range(this.radialGridPtNumber)
+                        .map(i => Array(this.poloidalGridPtNumber + 1).fill(i)));
                     let polData = this.fieldData['poloidalPlane'];
                     // add carpet
                     fig.data.push({
@@ -133,8 +170,8 @@ class Snapshot extends PlotType {
                     fig2.plotLabel = `${cat} mode profile`
                     figureContainer.push(fig2);
                     figureContainer.push({
-                        polNum: this.poloidalGridPtNum,
-                        radNum: this.radialGridPtNum
+                        polNum: this.poloidalGridPtNumber,
+                        radNum: this.radialGridPtNumber
                     })
                     break;
                 case 3: case 4: // profile of field and rms
@@ -144,7 +181,7 @@ class Snapshot extends PlotType {
                     fig0.data.push({
                         y: type === 'psi' ?
                             field.map(pol => pol[0]) :
-                            field[(this.radialGridPtNum - 1) / 2],
+                            field[(this.radialGridPtNumber - 1) / 2],
                         type: 'scatter',
                         mode: 'lines'
                     });
@@ -157,14 +194,14 @@ class Snapshot extends PlotType {
                     fig1.data.push({
                         y: type === 'psi' ?
                             field.map(pol => Math.sqrt(pol.reduce(
-                                (acc, curr) => acc + curr * curr, 0) / this.poloidalGridPtNum)) :
+                                (acc, curr) => acc + curr * curr, 0) / this.poloidalGridPtNumber)) :
                             field
                                 .reduce((acc, curr) => {
                                     acc.forEach((v, i) => { acc[i] = v + curr[i] * curr[i] },
-                                        Array(this.poloidalGridPtNum).fill(0));
+                                        Array(this.poloidalGridPtNumber).fill(0));
                                     return acc;
-                                }, Array(this.poloidalGridPtNum).fill(0))
-                                .map(v => Math.sqrt(v / (this.radialGridPtNum - 1))),
+                                }, Array(this.poloidalGridPtNumber).fill(0))
+                                .map(v => Math.sqrt(v / (this.radialGridPtNumber - 1))),
                         type: 'scatter',
                         mode: 'lines'
                     });
@@ -194,33 +231,6 @@ class Snapshot extends PlotType {
 
         return figureContainer;
     }
-
-
-    _slice_particle(iter, m, n, len) {
-        for (let particle of this.existingParticles) {
-            if (this.particleData[particle] === undefined) {
-                this.particleData[particle] = new Object();
-            }
-            for (let type = m; type < n; type++) {
-                this.particleData[particle][particlePlotTypes[type]] =
-                    Array.from({ length: 2 },
-                        _ => Array.from({ length: len },
-                            _ => parseFloat(iter.next().value)));
-            }
-        }
-    }
-
-    _slice_field(iter, type, len) {
-        this.fieldData[type] = new Object();
-        for (let field of fieldNames.concat(type === 'poloidalPlane' ? ['x', 'y'] : [])) {
-            let tmp = this.fieldData[type][field] = new Array();
-            for (let r = 0; r < len; r++) {
-                tmp.push(Array.from({ length: this.poloidalGridPtNum + 1 },
-                    _ => parseFloat(iter.next().value)));
-            }
-        }
-    }
-
 }
 
 module.exports = Snapshot;

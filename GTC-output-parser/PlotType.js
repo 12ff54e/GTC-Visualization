@@ -3,12 +3,12 @@
  */
 class PlotType {
     /**
-     * @param {{iter: Iterator<string>, path: string}} data 
+     * @param {string} filePath 
+     * @param {object} basicParams GTCOutput.parameters
      */
-    constructor(data, basicParams) {
-        this.path = data.path;
+    constructor(filePath, basicParams) {
+        this.path = filePath;
 
-        // find out existing particles in this run
         if (basicParams) {
             let { iload, nhybrid, fload, feload } = basicParams;
             this.existingParticles =
@@ -16,20 +16,59 @@ class PlotType {
                     return [iload, nhybrid, fload, feload][i] > 0
                 });
         }
+
+        this.isTimeSeriesData = false;
+        this.initBlockSize = 0;
+        this.entryPerStep = 1;
+        this.expectedStepNumber = 1;
+        this.isCompleted = true;
     }
 
     /**
-     * Read given file 
+     * Read given file. Subclass should implement their own parseLine 
+     *  static method as a generator.
+     * Subclass should set  isTimeSeriesData` property to indicate whether
+     *  data it read are times series. If so, set `initBlockSize`, `entryPerStep`
+     *  and `expectedStepNumber` property for completion check. 
+     * These value will be checked after final call of `parseLine().next()`.
+     * 
      * @param {string} filePath 
+     * @param {object} basicParams GTCOutput.parameters
      */
     static async readDataFile(filePath, basicParams) {
-        const fileContent = await require('fs').promises.readFile(filePath, { encoding: 'utf8' });
-        const data = fileContent.split('\n');
+        const { once } = require('events');
+        const { createReadStream } = require('fs');
+        const { createInterface } = require('readline');
 
-        return new this({
-            iter: data[Symbol.iterator](),
-            path: filePath
-        }, basicParams);
+        const rl = createInterface({
+            input: createReadStream(filePath),
+            ctrlDelay: Infinity
+        });
+
+        const data = new this(filePath, basicParams);
+
+        const parser = data.parseLine();
+        // parameter of first invoke of .next() will be omitted
+        parser.next();
+
+        let lineNum = 0;
+        rl.on('line', line => {
+            parser.next(line);
+            lineNum++;
+        });
+
+        await once(rl, 'close');
+
+        // formal way to check the length of time series data
+        if (data.isTimeSeriesData) {
+            data.stepNumber =
+                Math.floor((lineNum - data.initBlockSize)/ data.entryPerStep);
+            data.isCompleted = data.expectedStepNumber === data.stepNumber;
+        }
+
+        console.log(`${filePath} read`);
+
+        return data;
     }
 
     /**
