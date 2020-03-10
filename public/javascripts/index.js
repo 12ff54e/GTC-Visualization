@@ -1,11 +1,27 @@
 'use strict'
 //TODO: Add progress indications when receiving data and making plot
 
+// global vars
+// status bar on top
+class StatusBar {
+    constructor() {
+        this.orig = document.body.children[0].innerText;
+    }
+    toString() {
+        return Object.values(this).join('\n');
+    }
+}
+const statusBar = new StatusBar();
+
+// use for history mode interaction
+const history_mode_range = {
+    growthRate: undefined,
+    frequency: undefined
+};
+
 // register plot type tabs
-const switches = document.getElementsByClassName('tab-l0-switch');
-const switchState = {};
-for (let swc of switches) {
-    switchState[swc.id] = 'untouched';
+for (let swc of document.getElementsByClassName('tab-l0-switch')) {
+    swc.visited = false;
     if (swc.id === 'Snapshot') {
         swc.onchange = function () {
             // expand snapshot file list
@@ -26,61 +42,26 @@ for (let swc of switches) {
             for (let btn of div.children) {
                 btn.style.visibility = 'hidden';
             }
-            openPanel(swc.id);
+            openPanel.call(swc)
         }
     }
 }
 
 // snapshot file name buttons
 for (let btn of document.getElementById('files').children) {
-    btn.onclick = function () {
-        openPanel(btn.id)
-    }
+    btn.onclick = openPanel;
 }
-
-function StatusBar() {
-    this.orig = document.body.children[0].innerText;
-}
-StatusBar.prototype.toString = function () {
-    return Object.values(this).join('\n');
-}
-const statusBar = new StatusBar();
 
 function registerButtons() {
     let buttons = document.getElementsByClassName('tab-l1-btn');
     for (let btn of buttons) {
         btn.onclick = getDataThenPlot;
-        // let id = btn.id
-        // if (id.startsWith('History') && id.includes('-mode')) {
-        //     // field mode figures need some local calculation
-        //     btn.onclick = history_mode;
-        // } else if (id.startsWith('Snapshot') && id.includes('-spectrum')) {
-        //     // same as above
-        //     btn.onclick = snapshot_spectrum;
-        // } else if (id.startsWith('Snapshot') && id.includes('-poloidal')) {
-        //     btn.onclick = snapshot_poloidal;
-        // } else {
-        //     btn.onclick = async () => {
-        //         cleanPlot();
-
-        //         let figObj = await fetch(`data/${id}`);
-        //         let figures = await figObj.json();
-
-        //         for (let i = 0; i < figures.length; i++) {
-        //             Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
-        //         }
-        //     }
-        // }
     }
 }
 
-/**
- * 
- * @param {string} id 
- */
-async function openPanel(id) {
-    // link radio id to panel id    
-    let majorType = id.startsWith('snap') ? 'Snapshot' : id;
+async function openPanel() {
+    // link radio id to panel id  
+    let majorType = this.id.startsWith('snap') ? 'Snapshot' : this.id;
     let panelName = `${majorType}-panel`;
 
     // modifies status bar
@@ -88,7 +69,7 @@ async function openPanel(id) {
     if (majorType === 'Snapshot') {
         // info.innerText = `${infoText.split('\n')[0]}
         //     Currently selection of Snapshot file: ${id}`;
-        statusBar.snapshot = `Currently selection of Snapshot file: ${id}`;
+        statusBar.snapshot = `Currently selection of Snapshot file: ${this.id}`;
         bar.innerText = statusBar;
     } else {
         // info.innerText = infoText.split('\n')[0];
@@ -103,7 +84,7 @@ async function openPanel(id) {
     panel.style.zIndex = 2;
 
     // inform the server about which .out file should be parsed
-    let res = await fetch(`plotType/${id}`);
+    let res = await fetch(`plotType/${this.id}`);
     // wait for the response, then create buttons for plotting
     if (res.ok) {
         let { info, warn, id: btn_id_array } = await res.json();
@@ -117,14 +98,15 @@ async function openPanel(id) {
         }
 
         // add buttons
-        if (switchState[majorType] === 'untouched') {
-            switchState[majorType] = 'touched';
-        } else {
+        const node = this.tagName === 'button' ? this.parentNode : this;
+        if (node.visited) {
             return;
+        } else {
+            node.visited = true;
         }
 
         // Equilibrium panel needs special care
-        if (id === 'Equilibrium') {
+        if (this.id === 'Equilibrium') {
             let { x, y, poloidalPlane, others } = btn_id_array;
             btn_id_array = [poloidalPlane, others];
             createEqPanel1D(x, y);
@@ -143,6 +125,36 @@ async function openPanel(id) {
         // register buttons' callback functions
         registerButtons();
 
+        if (this.id === 'History') {
+            // Request some basic parameters for calculating growth rate and frequency
+            let bpRes = await fetch(`data/basicParameters`);
+            let { ndiag, tstep } = await bpRes.json();
+            // time step will be in use afterwards
+            window.GTCtimeStep = ndiag * tstep;
+
+            const div = document.createElement('div');
+            const btn = document.createElement('button');
+            btn.innerText = 'Recalculate\ngrowth rate and frequency\naccording to zoomed range'
+            btn.addEventListener('click', async function () {
+                const figures = [1, 2, 3, 4].map(i => document.getElementById(`figure-${i}`));
+                const len = figures[0].data[0].x.length;
+                await history_mode(
+                    figures,
+                    history_mode_range.growthRate &&
+                    history_mode_range.growthRate.map(i => i / len),
+                    history_mode_range.frequency &&
+                    history_mode_range.frequency.map(i => i / len),
+                );
+
+                figures.forEach(figure => {
+                    Plotly.react(figure, figure.data, figure.layout);
+                })
+            });
+
+            div.classList.add('dropdown');
+            div.append(btn);
+            panel.prepend(div);
+        }
     } else {
         alert(`ERROR, CODE: ${res.status}`);
     }
@@ -155,11 +167,14 @@ function cleanPlot() {
 }
 
 function cleanPanel() {
-    let panel = document.getElementById('panel');
+    const panel = document.getElementById('panel');
     for (let p of panel.children) {
         p.style.opacity = 0;
         p.style.zIndex = 1;
     }
+
+    const recal = panel.querySelector('#History-panel').firstElementChild;
+    if (recal) { recal.style.height = '0rem'; }
 }
 
 async function getDataThenPlot() {
@@ -168,9 +183,14 @@ async function getDataThenPlot() {
     let figObj = await fetch(`data/${this.id}`);
     let figures = await figObj.json();
 
-    // field mode figures need some local calculation
+    // some figures need some local calculation
+    const recal = document.getElementById('History-panel').firstElementChild;
+    recal.style.height = '0rem';
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await history_mode(figures);
+        history_mode_range.frequency = undefined;
+        history_mode_range.growthRate = undefined;
+        recal.style.height = '3.5rem';
     } else if (this.id.startsWith('Snapshot') && this.id.endsWith('-spectrum')) {
         await snapshot_spectrum(figures);
     } else if (this.id.startsWith('Snapshot') && this.id.endsWith('-poloidal')) {
@@ -180,14 +200,34 @@ async function getDataThenPlot() {
     for (let i = 0; i < figures.length; i++) {
         Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
     }
+
+    if (this.id.startsWith('History') && this.id.includes('-mode')) {
+        document.getElementById('figure-2').on('plotly_relayout',
+            function (eventData) {
+                if (eventData['xaxis.range']) {
+                    history_mode_range.growthRate = eventData['xaxis.range'].slice();
+                } else if (eventData['xaxis.range[0]']) {
+                    history_mode_range.growthRate = [
+                        eventData['xaxis.range[0]'],
+                        eventData['xaxis.range[1]']
+                    ];
+                }
+            });
+        document.getElementById('figure-3').on('plotly_relayout',
+            function (eventData) {
+                if (eventData['xaxis.range']) {
+                    history_mode_range.frequency = eventData['xaxis.range'].slice();
+                } else if (eventData['xaxis.range[0]']) {
+                    history_mode_range.frequency = [
+                        eventData['xaxis.range[0]'],
+                        eventData['xaxis.range[1]']
+                    ];
+                }
+            });
+    }
 }
 
-async function history_mode(figures) {
-
-    // Request some basic parameters for calculating growth rate and frequency
-    let bpRes = await fetch(`data/basicParameters`);
-    let { ndiag, tstep } = await bpRes.json();
-    let timeStep = ndiag * tstep;
+async function history_mode(figures, interval1, interval2) {
 
     // import calculator
     let spectrum = await import('./spectrum.js');
@@ -196,8 +236,8 @@ async function history_mode(figures) {
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
     // growth rate figure
-    let { gamma, measurePts } = spectrum.cal_gamma(growthFig.data[0].y, timeStep);
-    growthFig.data.push({
+    let { gamma, measurePts } = spectrum.cal_gamma(growthFig.data[0].y, GTCtimeStep, interval1);
+    growthFig.data[1] = ({
         x: [measurePts[0].x, measurePts[1].x],
         y: [measurePts[0].y, measurePts[1].y],
         type: 'scatter',
@@ -205,28 +245,31 @@ async function history_mode(figures) {
         markers: { color: 'rgb(255, 0, 0)', size: 8 }
     });
     growthFig.layout.title = `gamma=${gamma}`;
+    growthFig.layout.xaxis.rangeslider = {
+        bgcolor: 'rgb(200,200,210)'
+    };
 
     // frequency figure
     let y0 = componentsFig.data[0].y[0];
     let yReals = componentsFig.data[0].y
-        .map((y, i, arr) => y / (Math.exp(gamma * (i + 1) * timeStep) * y0));
+        .map((y, i) => y / (Math.exp(gamma * (i + 1) * GTCtimeStep) * y0));
     let yImages = componentsFig.data[1].y
-        .map((y, i) => y / (Math.exp(gamma * (i + 1) * timeStep) * y0));
+        .map((y, i) => y / (Math.exp(gamma * (i + 1) * GTCtimeStep) * y0));
     let omega;
-    ({ omega, measurePts } = spectrum.cal_omega_r(yReals, timeStep));
-    freqFig.data.push({
-        x: [...Array(yReals.length).keys()].map(i => (i + 1) * timeStep),
+    ({ omega, measurePts } = spectrum.cal_omega_r(yReals, GTCtimeStep, interval2));
+    freqFig.data[0] = ({
+        x: [...Array(yReals.length).keys()].map(i => (i + 1) * GTCtimeStep),
         y: yReals,
         type: 'scatter',
         mode: 'lines'
     });
-    freqFig.data.push({
-        x: [...Array(yReals.length).keys()].map(i => (i + 1) * timeStep),
+    freqFig.data[1] = ({
+        x: [...Array(yReals.length).keys()].map(i => (i + 1) * GTCtimeStep),
         y: yImages,
         type: 'scatter',
         mode: 'lines'
     });
-    freqFig.data.push({
+    freqFig.data[2] = ({
         x: [measurePts[0].x, measurePts[1].x],
         y: [measurePts[0].y, measurePts[1].y],
         type: 'scatter',
@@ -234,10 +277,13 @@ async function history_mode(figures) {
         markers: { color: 'rgb(255, 0, 0)', size: 8 }
     });
     freqFig.layout.title = `omega=${omega}`;
+    freqFig.layout.xaxis.rangeslider = {
+        bgcolor: 'rgb(200,200,210)'
+    };
 
     // spectral figure
-    let powerSpectrum = await spectrum.cal_spectrum(yReals, yImages, timeStep);
-    spectralFig.data.push(
+    let powerSpectrum = await spectrum.cal_spectrum(yReals, yImages, GTCtimeStep);
+    spectralFig.data[0] = (
         Object.assign(powerSpectrum, {
             type: 'scatter',
             mode: 'lines'

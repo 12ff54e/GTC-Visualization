@@ -91,3 +91,9 @@ div#files {
 div header {
     text-align: center;
 }
+
+.dropdown {
+    height: 0rem;
+    overflow: hidden;
+    transition: all 0.35s;
+}
