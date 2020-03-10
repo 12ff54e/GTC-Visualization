@@ -72,9 +72,6 @@ div#files {
     background-color: rgb(199, 245, 235);
     margin: 0 auto;
     width: 90%;
-    height: 0rem;
-    overflow: hidden;
-    transition: all 0.35s;
 }
 
 #files>button {
@@ -92,4 +89,10 @@ div#files {
 
 div header {
     text-align: center;
+}
+
+.dropdown {
+    height: 0rem;
+    overflow: hidden;
+    transition: all 0.35s;
 }

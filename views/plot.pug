@@ -13,7 +13,7 @@ html(lang="en")
                     input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
                     label(for=panel, class="tab-l0-label")= panel
                     if panel === 'Snapshot'
-                        div(id="files")
+                        div(id="files" class='dropdown')
                             each file in snapFiles
                                 button(id=file)= file
 
