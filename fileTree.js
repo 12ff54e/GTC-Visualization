@@ -44,7 +44,7 @@ class FileTree {
             const input = `<input id="${folderPath}" value="${folderPath}" type="radio" name="gtc_output">`;
             const label = `<label for="${folderPath}">${this.dirname}</label>`;
 
-            const modTime = `<div class="mod"><div style="display:none">${(new Date(this.mTimeMs).toISOString())}</div><div>${timeText(this.mTimeMs)}</div><div>`
+            const modTime = `<div class="mod"><div style="display:none">${localeISOLikeForm(this.mTimeMs)}</div><div>${timeText(this.mTimeMs)}</div><div>`
 
             id = `${input}${label}${modTime}`;
         } else {
@@ -196,11 +196,11 @@ function timeText(time) {
         text = 'Minutes ago';
     } else if (timeDiff < 3600) {
         text = 'Within last hour';
-    } else if (timeDiff < 46800) {
-        const num = ['One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+    } else if (timeDiff < 14400) {
+        const num = ['One', 'Two', 'Three'];
         text = `${num[Math.floor(timeDiff / 3600) - 1]} hour${timeDiff < 7200 ? '' : 's'} ago`;
     } else if (now.toDateString() === before.toDateString()) {
-        text = 'Today'
+        text = before.toTimeString().substring(0, 5);
     } else if (now.getFullYear() === before.getFullYear()) {
         text = before.toDateString().slice(0, -5);
     } else {
@@ -208,4 +208,12 @@ function timeText(time) {
     }
 
     return text;
+}
+
+function localeISOLikeForm(time) {
+    const date = new Date(time);
+    // shift time by time zone
+    const shifted = new Date(date - date.getTimezoneOffset() * 60000);
+
+    return shifted.toISOString().split(/[TZ]/, 2).join(' ');
 }
