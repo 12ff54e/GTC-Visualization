@@ -31,6 +31,7 @@ for (let swc of document.getElementsByClassName('tab-l0-switch')) {
             for (let btn of div.children) {
                 btn.style.visibility = 'visible';
             }
+            cleanPlot();
             cleanPanel();
         }
     } else {
@@ -67,12 +68,9 @@ async function openPanel() {
     // modifies status bar
     const bar = document.body.children[0];
     if (majorType === 'Snapshot') {
-        // info.innerText = `${infoText.split('\n')[0]}
-        //     Currently selection of Snapshot file: ${id}`;
         statusBar.snapshot = `Currently selection of Snapshot file: ${this.id}`;
         bar.innerText = statusBar;
     } else {
-        // info.innerText = infoText.split('\n')[0];
         delete statusBar.snapshot;
         bar.innerText = statusBar;
     }
@@ -126,11 +124,13 @@ async function openPanel() {
         registerButtons();
 
         if (this.id === 'History') {
-            // Request some basic parameters for calculating growth rate and frequency
-            let bpRes = await fetch(`data/basicParameters`);
-            let { ndiag, tstep } = await bpRes.json();
-            // time step will be in use afterwards
-            window.GTCtimeStep = ndiag * tstep;
+            if (!window.GTCtimeStep) {
+                // Request some basic parameters for calculating growth rate and frequency
+                let bpRes = await fetch(`data/basicParameters`);
+                let { ndiag, tstep } = await bpRes.json();
+                // time step will be in use afterwards
+                window.GTCtimeStep = ndiag * tstep;
+            }
 
             const div = document.createElement('div');
             const btn = document.createElement('button');
@@ -185,7 +185,9 @@ async function getDataThenPlot() {
 
     // some figures need some local calculation
     const recal = document.getElementById('History-panel').firstElementChild;
-    recal.style.height = '0rem';
+    if (this.id.startsWith('History')) {
+        recal.style.height = '0rem';
+    }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await history_mode(figures);
         history_mode_range.frequency = undefined;
@@ -198,7 +200,7 @@ async function getDataThenPlot() {
     }
 
     for (let i = 0; i < figures.length; i++) {
-        Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
+        Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout, { editable: true });
     }
 
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
@@ -427,11 +429,6 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
             return;
         }
 
-        let figObj = await fetch(`data/${type}-1D-${xType}-${yType}`);
-        let figures = await figObj.json();
-
-        for (let i = 0; i < figures.length; i++) {
-            Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout);
-        }
+        getDataThenPlot.call({ id: `${type}-1D-${xType}-${yType}` });
     })
 }
