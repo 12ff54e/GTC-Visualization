@@ -1,7 +1,7 @@
 'use strict'
 //TODO: Add progress indications when receiving data and making plot
+import Wasm from './wasm_loader.js'
 
-// global vars
 // status bar on top
 class StatusBar {
     constructor() {
@@ -11,47 +11,56 @@ class StatusBar {
         return Object.values(this).join('\n');
     }
 }
-const statusBar = new StatusBar();
+
+// global vars
+window.GTCGlobal = new Object();
 
 // use for history mode interaction
-const history_mode_range = {
+window.GTCGlobal.hist_mode_range = {
     growthRate: undefined,
     frequency: undefined
 };
 
-// register plot type tabs
-for (let swc of document.getElementsByClassName('tab-l0-switch')) {
-    swc.visited = false;
-    if (swc.id === 'Snapshot') {
-        swc.onchange = function () {
-            // expand snapshot file list
-            let div = document.getElementById('files')
-            div.style.height = `${div.childElementCount * 1.2 + 0.2}rem`;
-            div.style.opacity = 1;
-            for (let btn of div.children) {
-                btn.style.visibility = 'visible';
+// load wasm fft module
+
+window.addEventListener('load', async function () {
+    this.GTCGlobal.statusBar = new StatusBar();
+    this.GTCGlobal.Fourier = await Wasm.instantiate('/webassembly/fft.wasm');
+
+    // register plot type tabs
+    for (let swc of document.getElementsByClassName('tab-l0-switch')) {
+        swc.visited = false;
+        if (swc.id === 'Snapshot') {
+            swc.onchange = function () {
+                // expand snapshot file list
+                let div = document.getElementById('files')
+                div.style.height = `${div.childElementCount * 1.2 + 0.2}rem`;
+                div.style.opacity = 1;
+                for (let btn of div.children) {
+                    btn.style.visibility = 'visible';
+                }
+                cleanPlot();
+                cleanPanel();
             }
-            cleanPlot();
-            cleanPanel();
-        }
-    } else {
-        swc.onchange = function () {
-            // collapse snapshot file list
-            let div = document.getElementById('files');
-            div.style.height = '0rem';
-            div.style.opacity = 0;
-            for (let btn of div.children) {
-                btn.style.visibility = 'hidden';
+        } else {
+            swc.onchange = function () {
+                // collapse snapshot file list
+                let div = document.getElementById('files');
+                div.style.height = '0rem';
+                div.style.opacity = 0;
+                for (let btn of div.children) {
+                    btn.style.visibility = 'hidden';
+                }
+                openPanel.call(swc)
             }
-            openPanel.call(swc)
         }
     }
-}
 
-// snapshot file name buttons
-for (let btn of document.getElementById('files').children) {
-    btn.onclick = openPanel;
-}
+    // snapshot file name buttons
+    for (let btn of document.getElementById('files').children) {
+        btn.onclick = openPanel;
+    }
+})
 
 function registerButtons() {
     let buttons = document.getElementsByClassName('tab-l1-btn');
@@ -68,11 +77,11 @@ async function openPanel() {
     // modifies status bar
     const bar = document.body.children[0];
     if (majorType === 'Snapshot') {
-        statusBar.snapshot = `Currently selection of Snapshot file: ${this.id}`;
-        bar.innerText = statusBar;
+        window.GTCGlobal.statusBar.snapshot = `Currently selection of Snapshot file: ${this.id}`;
+        bar.innerText = window.GTCGlobal.statusBar;
     } else {
-        delete statusBar.snapshot;
-        bar.innerText = statusBar;
+        delete window.GTCGlobal.statusBar.snapshot;
+        bar.innerText = window.GTCGlobal.statusBar;
     }
 
     cleanPanel();
@@ -88,11 +97,11 @@ async function openPanel() {
         let { info, warn, id: btn_id_array } = await res.json();
         console.log(`server: ${info}`);
         if (warn) {
-            statusBar.warn = warn;
-            bar.innerText = statusBar;
+            window.GTCGlobal.statusBar.warn = warn;
+            bar.innerText = window.GTCGlobal.statusBar;
         } else {
-            delete statusBar.warn;
-            bar.innerText = statusBar;
+            delete window.GTCGlobal.statusBar.warn;
+            bar.innerText = window.GTCGlobal.statusBar;
         }
 
         // add buttons
@@ -124,12 +133,12 @@ async function openPanel() {
         registerButtons();
 
         if (this.id === 'History') {
-            if (!window.GTCtimeStep) {
+            if (!window.GTCGlobal.GTCtimeStep) {
                 // Request some basic parameters for calculating growth rate and frequency
                 let bpRes = await fetch(`data/basicParameters`);
                 let { ndiag, tstep } = await bpRes.json();
                 // time step will be in use afterwards
-                window.GTCtimeStep = ndiag * tstep;
+                window.GTCGlobal.timeStep = ndiag * tstep;
             }
 
             const div = document.createElement('div');
@@ -140,10 +149,10 @@ async function openPanel() {
                 const len = figures[0].data[0].x.length;
                 await history_mode(
                     figures,
-                    history_mode_range.growthRate &&
-                    history_mode_range.growthRate.map(i => i / len),
-                    history_mode_range.frequency &&
-                    history_mode_range.frequency.map(i => i / len),
+                    window.GTCGlobal.hist_mode_range.growthRate &&
+                    window.GTCGlobal.hist_mode_range.growthRate.map(i => i / len),
+                    window.GTCGlobal.hist_mode_range.frequency &&
+                    window.GTCGlobal.hist_mode_range.frequency.map(i => i / len),
                 );
 
                 figures.forEach(figure => {
@@ -190,8 +199,8 @@ async function getDataThenPlot() {
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await history_mode(figures);
-        history_mode_range.frequency = undefined;
-        history_mode_range.growthRate = undefined;
+        window.GTCGlobal.hist_mode_range.frequency = undefined;
+        window.GTCGlobal.hist_mode_range.growthRate = undefined;
         recal.style.height = '3.5rem';
     } else if (this.id.startsWith('Snapshot') && this.id.endsWith('-spectrum')) {
         await snapshot_spectrum(figures);
@@ -207,9 +216,9 @@ async function getDataThenPlot() {
         document.getElementById('figure-2').on('plotly_relayout',
             function (eventData) {
                 if (eventData['xaxis.range']) {
-                    history_mode_range.growthRate = eventData['xaxis.range'].slice();
+                    window.GTCGlobal.hist_mode_range.growthRate = eventData['xaxis.range'].slice();
                 } else if (eventData['xaxis.range[0]']) {
-                    history_mode_range.growthRate = [
+                    window.GTCGlobal.hist_mode_range.growthRate = [
                         eventData['xaxis.range[0]'],
                         eventData['xaxis.range[1]']
                     ];
@@ -218,9 +227,9 @@ async function getDataThenPlot() {
         document.getElementById('figure-3').on('plotly_relayout',
             function (eventData) {
                 if (eventData['xaxis.range']) {
-                    history_mode_range.frequency = eventData['xaxis.range'].slice();
+                    window.GTCGlobal.hist_mode_range.frequency = eventData['xaxis.range'].slice();
                 } else if (eventData['xaxis.range[0]']) {
-                    history_mode_range.frequency = [
+                    window.GTCGlobal.hist_mode_range.frequency = [
                         eventData['xaxis.range[0]'],
                         eventData['xaxis.range[1]']
                     ];
@@ -238,7 +247,7 @@ async function history_mode(figures, interval1, interval2) {
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
     // growth rate figure
-    let { gamma, measurePts } = spectrum.cal_gamma(growthFig.data[0].y, GTCtimeStep, interval1);
+    let { gamma, measurePts } = spectrum.cal_gamma(growthFig.data[0].y, window.GTCGlobal.timeStep, interval1);
     growthFig.data[1] = ({
         x: [measurePts[0].x, measurePts[1].x],
         y: [measurePts[0].y, measurePts[1].y],
@@ -254,19 +263,19 @@ async function history_mode(figures, interval1, interval2) {
     // frequency figure
     let y0 = componentsFig.data[0].y[0];
     let yReals = componentsFig.data[0].y
-        .map((y, i) => y / (Math.exp(gamma * (i + 1) * GTCtimeStep) * y0));
+        .map((y, i) => y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0));
     let yImages = componentsFig.data[1].y
-        .map((y, i) => y / (Math.exp(gamma * (i + 1) * GTCtimeStep) * y0));
+        .map((y, i) => y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0));
     let omega;
-    ({ omega, measurePts } = spectrum.cal_omega_r(yReals, GTCtimeStep, interval2));
+    ({ omega, measurePts } = spectrum.cal_omega_r(yReals, window.GTCGlobal.timeStep, interval2));
     freqFig.data[0] = ({
-        x: [...Array(yReals.length).keys()].map(i => (i + 1) * GTCtimeStep),
+        x: [...Array(yReals.length).keys()].map(i => (i + 1) * window.GTCGlobal.timeStep),
         y: yReals,
         type: 'scatter',
         mode: 'lines'
     });
     freqFig.data[1] = ({
-        x: [...Array(yReals.length).keys()].map(i => (i + 1) * GTCtimeStep),
+        x: [...Array(yReals.length).keys()].map(i => (i + 1) * window.GTCGlobal.timeStep),
         y: yImages,
         type: 'scatter',
         mode: 'lines'
@@ -284,7 +293,7 @@ async function history_mode(figures, interval1, interval2) {
     };
 
     // spectral figure
-    let powerSpectrum = await spectrum.cal_spectrum(yReals, yImages, GTCtimeStep);
+    let powerSpectrum = await spectrum.cal_spectrum(yReals, yImages, window.GTCGlobal.timeStep);
     spectralFig.data[0] = (
         Object.assign(powerSpectrum, {
             type: 'scatter',

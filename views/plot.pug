@@ -4,7 +4,8 @@ html(lang="en")
         meta(charset="UTF-8")
         title GTC-Visualization
         link(rel="stylesheet" href="stylesheets/tabs.css")
-        script(src="javascripts/plotly-latest.min.js")
+        script(src="javascripts/plotly-latest.min.js" defer)
+        script(type="module" src="javascripts/index.js" defer)
     body
         p= `Current GTC output folder set to ${dir}`
         div(id="tabs")
@@ -26,11 +27,10 @@ html(lang="en")
                                 div(id="eq-x")
                                 div(id="eq-y")
                                 button(type="submit") Plot Y vs X
-                        
+
 
         div(id='figure-wrapper')
             each i in [1, 2, 3, 4]
                 div(id=`figure-${i}`)
 
-    script(src="javascripts/index.js")
 

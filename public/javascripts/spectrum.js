@@ -81,17 +81,14 @@ export function cal_omega_r(ys, dt, interval = [0.43, 0.98]) {
  * @returns {Promise<{x: Array<Number>, y: Array<Number>}>} power spectrum
  */
 export async function cal_spectrum(reals, images, timeStep) {
-    const fft = await import('./jsfft/fft.js');
 
-    const data = new fft.ComplexArray(reals);
-    data.map((v, i, _) => { v.imag = images[i] });
+    const fft = window.GTCGlobal.Fourier.spectrum(reals, images);
 
-    const mag = data.FFT().magnitude();
     const len = reals.length;
     const halfLen = Math.floor(len / 2);
 
     return {
         x: [...Array(len).keys()].map(i => 2 * Math.PI / (len * timeStep) * (i - halfLen)),
-        y: Array.from(mag.slice(len - halfLen)).concat(Array.from(mag.slice(0, len - halfLen)))
+        y: Array.from(fft.slice(len - halfLen)).concat(Array.from(fft.slice(0, len - halfLen)))
     }
 }
