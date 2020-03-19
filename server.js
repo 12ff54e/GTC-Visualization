@@ -2,12 +2,14 @@ const express = require('express');
 require('dotenv').config();
 const GTCOutput = require('./GTC-output-parser/main.js');
 const path = require('path');
+const compression = require('compression');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 let output;
 
+app.use(compression());
 app.use(express.static('./public'));
 app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'pug');
@@ -62,7 +64,6 @@ app.get('/data/basicParameters', (req, res) => {
     res.json(output.parameters);
 })
 
-// TODO: use some compression scheme to speed up transmission
 app.get('/data/:type-:id', (req, res) => {
     let plotType = req.params.type;
     let plotId = req.params.id;

@@ -319,8 +319,6 @@ async function history_mode(figures, interval1, interval2) {
 }
 
 async function snapshot_spectrum(figures) {
-    const { FFT } = await import('./jsfft/fft.js');
-
     let field = figures.pop().extraData;
     let torNum = field.length;
     let polNum = field[0].length;
@@ -330,7 +328,7 @@ async function snapshot_spectrum(figures) {
 
     let poloidalSpectrum = Array(mmode).fill(0);
     for (let section of field) {
-        let powerSpectrum = FFT(section).magnitude();
+        let powerSpectrum = window.GTCGlobal.Fourier.spectrum(section);
         poloidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < mmode; i++) {
             poloidalSpectrum[i] += powerSpectrum[i] + powerSpectrum[polNum - i]
@@ -340,7 +338,7 @@ async function snapshot_spectrum(figures) {
 
     let toroidalSpectrum = Array(pmode).fill(0);
     for (let section of transpose(field)) {
-        let powerSpectrum = FFT(section).magnitude();
+        let powerSpectrum = window.GTCGlobal.Fourier.spectrum(section);
         toroidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < pmode; i++) {
             toroidalSpectrum[i] += powerSpectrum[i] + powerSpectrum[torNum - i]
@@ -357,8 +355,6 @@ async function snapshot_spectrum(figures) {
 }
 
 async function snapshot_poloidal(figures) {
-    const { FFT } = await import('./jsfft/fft.js');
-
     const { polNum, radNum } = figures.pop();
     const flattenedField = figures[0].data[1].z;
     const modeNum = polNum / 2;
@@ -372,7 +368,7 @@ async function snapshot_poloidal(figures) {
     }
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        Array.from(FFT(circle).magnitude().slice(0, modeNum))
+        Array.from(window.GTCGlobal.Fourier.spectrum(circle).slice(0, modeNum))
             .forEach((amp, i) => {
                 let trace = figures[1].data[i];
                 trace.y.push(amp);

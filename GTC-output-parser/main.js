@@ -13,7 +13,6 @@ class GTCOutput {
     constructor(dir) {
         this.dir = dir;
         this.data = {}
-        //TODO: should check existence of gtc.out here
     }
 
     /**
