@@ -20,7 +20,7 @@ class GTCOutput {
      * read gtc.out
      */
     async read_para() {
-        this.parameters = await read_para(this.dir);
+        if (!this.parameters) this.parameters = await read_para(this.dir);
     }
 
     /**
@@ -46,7 +46,7 @@ class GTCOutput {
             this.snapshotFileName = type;
             type = 'Snapshot';
             let snap = this.data[type];
-            if (snap && path.basename(snap.path) === type) {
+            if (snap && path.basename(snap.path) === this.snapshotFileName) {
                 return;
             }
         } else if (this.data[type]) {
@@ -54,15 +54,24 @@ class GTCOutput {
             return;
         }
 
-        if (this.parameters || type === 'Equilibrium') {
-            let { classConstructor, fileName } = GTCOutput.index[type];
-            this.data[type] =
-                await classConstructor.readDataFile(
-                    path.join(this.dir, fileName ? fileName : this.snapshotFileName),
-                    this.parameters);
-        } else {
+        if (type !== 'Equilibrium') {
             await this.read_para();
-            await this.readData(type);
+        }
+        if (type === 'Tracking') {
+            await this.readData('Equilibrium');
+        }
+        let { classConstructor, fileName } = GTCOutput.index[type];
+        this.data[type] =
+            await classConstructor.readDataFile(
+                path.join(this.dir, fileName ? fileName : this.snapshotFileName),
+                this.parameters);
+    }
+
+    getPlotData(type, id) {
+        if (type === 'Tracking') {
+            return this.data[type].plotData(id, this.data['Equilibrium']);
+        } else {
+            return this.data[type].plotData(id, this.parameters);
         }
     }
 }
@@ -83,6 +92,10 @@ GTCOutput.index = {
     'RadialTime': {
         classConstructor: require('./radialTime.js'),
         fileName: 'data1d.out'
+    },
+    'Tracking': {
+        classConstructor: require('./tracking.js'),
+        fileName: 'trackp_dir'
     }
 }
 

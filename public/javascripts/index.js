@@ -4,11 +4,40 @@ import Wasm from './wasm_loader.js'
 
 // status bar on top
 class StatusBar {
-    constructor() {
-        this.orig = document.body.children[0].innerText;
+    constructor(root) {
+        this.parent = root;
+        this.orig = root.innerText;
+        root.status = this;
     }
     toString() {
-        return Object.values(this).join('\n');
+        return `${this.orig}<br>` +
+            (this.information ? `<font color="green">${this.information}</font><br>` : '') +
+            (this.warning ? `<font color="yellow">${this.warning}$</font><br>` : '') +
+            (this.error ? `<font color="red">${this.error}$</font><br>` : '');
+    }
+    show() {
+        this.parent.innerHTML = this;
+    }
+    /**
+     * @param {string} i
+     */
+    set info(i) {
+        this.information = i;
+        this.show();
+    }
+    /**
+    * @param {string} w
+    */
+    set warn(w) {
+        this.warning = w;
+        this.show();
+    }
+    /**
+    * @param {string} e
+    */
+    set err(e) {
+        this.error = e;
+        this.show();
     }
 }
 
@@ -24,7 +53,7 @@ window.GTCGlobal.hist_mode_range = {
 // load wasm fft module
 
 window.addEventListener('load', async function () {
-    this.GTCGlobal.statusBar = new StatusBar();
+    new StatusBar(document.getElementById('status'));
     this.GTCGlobal.Fourier = await Wasm.instantiate('/webassembly/fft.wasm');
 
     // register plot type tabs
@@ -75,14 +104,7 @@ async function openPanel() {
     let panelName = `${majorType}-panel`;
 
     // modifies status bar
-    const bar = document.body.children[0];
-    if (majorType === 'Snapshot') {
-        window.GTCGlobal.statusBar.snapshot = `Currently selection of Snapshot file: ${this.id}`;
-        bar.innerText = window.GTCGlobal.statusBar;
-    } else {
-        delete window.GTCGlobal.statusBar.snapshot;
-        bar.innerText = window.GTCGlobal.statusBar;
-    }
+    const statusBar = document.getElementById('status').status;
 
     cleanPanel();
     cleanPlot();
@@ -95,14 +117,8 @@ async function openPanel() {
     // wait for the response, then create buttons for plotting
     if (res.ok) {
         let { info, warn, id: btn_id_array } = await res.json();
-        console.log(`server: ${info}`);
-        if (warn) {
-            window.GTCGlobal.statusBar.warn = warn;
-            bar.innerText = window.GTCGlobal.statusBar;
-        } else {
-            delete window.GTCGlobal.statusBar.warn;
-            bar.innerText = window.GTCGlobal.statusBar;
-        }
+        statusBar.info = info ? info : '';
+        statusBar.warn = warn ? warn : '';
 
         // add buttons
         const node = this.tagName === 'button' ? this.parentNode : this;

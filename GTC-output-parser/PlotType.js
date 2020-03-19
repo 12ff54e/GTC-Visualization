@@ -25,9 +25,9 @@ class PlotType {
     }
 
     /**
-     * Read given file. Subclass should implement their own parseLine 
-     *  static method as a generator.
-     * Subclass should set  isTimeSeriesData` property to indicate whether
+     * Read given file. Subclass should implement their own parseLine method
+     *  as a generator.
+     * Subclass should set `isTimeSeriesData` property to indicate whether
      *  data it read are times series. If so, set `initBlockSize`, `entryPerStep`
      *  and `expectedStepNumber` property for completion check. 
      * These value will be checked after final call of `parseLine().next()`.

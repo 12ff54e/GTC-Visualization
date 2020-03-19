@@ -7,7 +7,7 @@ html(lang="en")
         script(src="javascripts/plotly-latest.min.js" defer)
         script(type="module" src="javascripts/index.js" defer)
     body
-        p= `Current GTC output folder set to ${dir}`
+        p(id='status')= `Current GTC output folder set to ${dir}`
         div(id="tabs")
             each panel in types
                 div

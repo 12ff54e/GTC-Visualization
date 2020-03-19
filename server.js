@@ -35,35 +35,42 @@ app.post('/', async (req, res) => {
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
     try {
-    let type = req.params.type;
-    await output.readData(type);
-    type = type.startsWith('snap') ? 'Snapshot' : type;
-    const data = output.data[type];
+        let type = req.params.type;
+        await output.readData(type);
+        type = type.startsWith('snap') ? 'Snapshot' : type;
+        const data = output.data[type];
 
-    const status = {
-        info: `${type} file read`,
-        id: data.plotTypes
-    };
-    if (!data.isCompleted) {
-        status.warn = `${path.basename(data.path)} is not completed. It should have `+
-            `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`
-    }
-    res.send(JSON.stringify(status));
+        const status = {
+            info: `${type} file read`,
+            id: data.plotTypes
+        };
+        if (!data.isCompleted) {
+            status.warn = `${path.basename(data.path)} is not completed. It should have ` +
+                `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`
+        }
+        if (type === 'Snapshot') {
+            status.info = `Currently selection of Snapshot file: ${path.basename(data.path)}`;
+        }
+        res.send(JSON.stringify(status));
     } catch (err) {
         console.log(err);
     }
 })
 
 app.get('/data/basicParameters', (req, res) => {
-    res.send(JSON.stringify(output.parameters));
+    res.json(output.parameters);
 })
 
 // TODO: use some compression scheme to speed up transmission
 app.get('/data/:type-:id', (req, res) => {
-    let requestPlotType = req.params.type;
-    let requestPlotId = req.params.id;
-    console.log(requestPlotId)
-    res.send(JSON.stringify(
-        output.data[requestPlotType].plotData(requestPlotId, output.parameters),
-    ))
+    let plotType = req.params.type;
+    let plotId = req.params.id;
+    console.log(plotId);
+
+    try {
+        res.json(output.getPlotData(plotType, plotId));
+    } catch (e) {
+        console.log(e);
+        res.status(404).end();
+    }
 })
