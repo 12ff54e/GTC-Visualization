@@ -15,6 +15,7 @@ app.set('view engine', 'pug');
 app.listen(port);
 
 // client post the requested gtc output dir
+// TODO: Show tracking panel accordingly.
 app.post('/', async (req, res) => {
     try {
         GTC_outputDir = req.body.dir;
