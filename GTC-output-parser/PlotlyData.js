@@ -94,7 +94,7 @@ class PlotlyData {
         Object.assign(this.layout.xaxis, {
             scaleanchor: 'y',
             scaleratio: 1,
-            constrain: 'domain'
+            constrain: 'range'
         });
     }
 

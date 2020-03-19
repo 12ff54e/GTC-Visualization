@@ -31,7 +31,7 @@ class Tracking extends PlotType {
                 thisStep = step;
             }
             this.steps.push(thisStep);
-            process.stdout.write(`\b\b\b\b\b\b\b${(100 * thisStep / mstep).toFixed(2).padStart(6,' ')}%`);
+            process.stdout.write(`\b\b\b\b\b\b\b${(100 * thisStep / mstep).toFixed(2).padStart(6, ' ')}%`);
 
             // create container at first step
             if (!this.particleData) {
@@ -42,7 +42,7 @@ class Tracking extends PlotType {
             allParticles
                 .sort(({ tag: a }, { tag: b }) => compareTag(a, b))
                 .forEach((p, i) => {
-                    this.particleData[i].push(p.coordinate.concat(p.tag));
+                    this.particleData[i].push(p.coordinate);
                 })
 
         } while (true)
@@ -73,85 +73,70 @@ class Tracking extends PlotType {
     }
 
     plotData(id, eqData) {
-        if (!this.poloidalPlaneSpline) {
-            const radialPts = [...Array(eqData.radialGridPtNum2).keys()].
-                map(i => this.psiw * i / (eqData.radialGridPtNum2 - 1));
-            const poloidalPts = [...Array(eqData.poloidalGridPtNum).keys()].
-                map(i => 2 * Math.PI * i / (eqData.poloidalGridPtNum - 1));
-            this.splineX = new Spline.Spline2d(
-                radialPts, poloidalPts, eqData.poloidalPlaneData['x'], {
-                xBoundaryCondition: Spline.BC.natural,
-                yBoundaryCondition: Spline.BC.periodic
-            });
-            this.splineZ = new Spline.Spline2d(
-                radialPts, poloidalPts, eqData.poloidalPlaneData['z'], {
-                xBoundaryCondition: Spline.BC.natural,
-                yBoundaryCondition: Spline.BC.periodic
-            });
-        }
-
-        const figureContainer = Array.from({ length: 2 }, _ => new PlotlyData())
+        const figureContainer = Array.from({ length: 1 }, _ => new PlotlyData())
         if (id === 'random_pick') {
-            const idx = Math.floor(Math.random() * this.particleData.length);
-            const cylindricalCoord = Array.from({ length: 3 }, _ => []);
-            this.particleData[idx].forEach(coord => {
-                cylindricalCoord[0].push(this.splineX.at(coord[0], coord[1]));
-                cylindricalCoord[1].push(this.splineZ.at(coord[0], coord[1]));
-                cylindricalCoord[2].push(coord[2]);
-            })
+            const psiMesh = flat(Array(eqData.poloidalGridPtNum)
+                .fill([...Array(eqData.radialGridPtNum2).keys()]
+                    .map(r => this.psiw * r / (eqData.radialGridPtNum2 - 1))));
+            const thetaMesh = flat([...Array(eqData.poloidalGridPtNum).keys()]
+                .map(i => Array(eqData.radialGridPtNum2)
+                    .fill(2 * Math.PI * i / (eqData.poloidalGridPtNum - 1))));
             figureContainer[0].data.push({
-                x: cylindricalCoord[0],
-                y: cylindricalCoord[1],
-                type: 'scatter',
-                mode: 'markers'
-            });
-            figureContainer[0].data.push({
-                a: flat(Array(eqData.poloidalGridPtNum)
-                    .fill([...Array(eqData.radialGridPtNum2).keys()])),
-                b: flat([...Array(eqData.poloidalGridPtNum).keys()]
-                    .map(i => Array(eqData.radialGridPtNum2).fill(i))),
+                a: psiMesh,
+                b: thetaMesh,
                 x: flat(eqData.poloidalPlaneData['x']),
                 y: flat(eqData.poloidalPlaneData['z']),
                 type: 'carpet'
             });
             figureContainer[0].hideCarpetGridTicks();
+
+            const idx = Math.floor(Math.random() * this.particleData.length);
+            figureContainer[0].data.push({
+                a: this.particleData[idx].map(coord => coord[0]),
+                b: this.particleData[idx].map(coord => coord[1]),
+                type: 'scattercarpet',
+                line: {
+                    shape: 'spline',
+                    smoothing: 1
+                }
+            });
+            figureContainer[0].axisEqual();
             figureContainer[0].plotLabel = 'Poloidal Plane';
 
-            figureContainer[1].data = [{
-                x: cylindricalCoord[0].map((r, i) => r * Math.cos(cylindricalCoord[2][i])),
-                y: cylindricalCoord[0].map((r, i) => r * Math.sin(cylindricalCoord[2][i])),
-                z: cylindricalCoord[1],
-                type: 'scatter3d',
-                mode: 'markers',
-                marker: {
-                    size: 1,
-                    color: 'rgb(240, 20, 20)'
-                }
-            }]
-            figureContainer[1].plotLabel = '3D';
+            // figureContainer[1].data = [{
+            //     x: cylindricalCoord[0].map((r, i) => r * Math.cos(cylindricalCoord[2][i])),
+            //     y: cylindricalCoord[0].map((r, i) => r * Math.sin(cylindricalCoord[2][i])),
+            //     z: cylindricalCoord[1],
+            //     type: 'scatter3d',
+            //     mode: 'markers',
+            //     marker: {
+            //         size: 1,
+            //         color: 'rgb(240, 20, 20)'
+            //     }
+            // }]
+            // figureContainer[1].plotLabel = '3D';
 
-            const updatemenus = [{
-                buttons: [{
-                    args: ['mode', 'markers'],
-                    label: 'Disjoined',
-                    method: 'restyle'
-                }, {
-                    args: ['mode', 'lines+markers'],
-                    label: 'Joined',
-                    method: 'restyle'
-                }],
-                direction: 'left',
-                pad: { 'r': 10, 't': 10 },
-                showactive: true,
-                type: 'buttons',
-                x: 0.1,
-                xanchor: 'left',
-                y: 1.1,
-                yanchor: 'top'
-            }];
+            // const updatemenus = [{
+            //     buttons: [{
+            //         args: ['mode', 'markers'],
+            //         label: 'Disjoined',
+            //         method: 'restyle'
+            //     }, {
+            //         args: ['mode', 'lines+markers'],
+            //         label: 'Joined',
+            //         method: 'restyle'
+            //     }],
+            //     direction: 'left',
+            //     pad: { 'r': 10, 't': 10 },
+            //     showactive: true,
+            //     type: 'buttons',
+            //     x: 0.1,
+            //     xanchor: 'left',
+            //     y: 1.1,
+            //     yanchor: 'top'
+            // }];
 
-            figureContainer[0].layout.updatemenus = updatemenus;
-            figureContainer[1].layout.updatemenus = updatemenus;
+            // figureContainer[1].layout.updatemenus = updatemenus;
 
         }
         return figureContainer;
