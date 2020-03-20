@@ -21,11 +21,12 @@ html(lang="en")
             each panel in types
                 div(id=`${panel}-panel`, class="tabs-l1")
                     if panel === 'Equilibrium'
-                        div
-                            form
-                                div(id="eq-x")
-                                div(id="eq-y")
-                                button(type="submit") Plot Y vs X
+                        form
+                            header X
+                            div(id="eq-x")
+                            header Y
+                            div(id="eq-y")
+                            button(type="submit") Plot Y vs X
                         
 
         div(id='figure-wrapper')

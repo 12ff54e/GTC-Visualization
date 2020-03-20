@@ -36,10 +36,12 @@ li:hover {
 
 .content {
     /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
-    padding: 0 18px;
+    padding: 0  0 0 18px;
     height: 0;
     overflow: hidden;
     transition: all 0.8s ease-out;
+    margin-inline-start: 0.1rem;
+    margin-inline-end: 0.1rem
 }
 
 li > input {

@@ -265,13 +265,6 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     const xDiv = document.getElementById('eq-x');
     const yDiv = document.getElementById('eq-y');
 
-    const xTitle = document.createElement('header');
-    const yTitle = document.createElement('header');
-    xTitle.innerText = 'X';
-    yTitle.innerText = 'Y';
-    xDiv.appendChild(xTitle);
-    yDiv.appendChild(yTitle);
-
     // add x group radio buttons
     xDataTypes.forEach(xData => {
         let input = document.createElement('input');
@@ -311,7 +304,7 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     });
 
     // register form submit behaviour
-    const form = document.getElementById('Equilibrium-panel').firstElementChild.firstElementChild;
+    const form = document.getElementById('Equilibrium-panel').firstElementChild;
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
