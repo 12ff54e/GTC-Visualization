@@ -222,6 +222,9 @@ async function getDataThenPlot() {
         await snapshot_spectrum(figures);
     } else if (this.id.startsWith('Snapshot') && this.id.endsWith('-poloidal')) {
         await snapshot_poloidal(figures);
+    } else if (this.id.startsWith('Tracking')) {
+        await tracking_plot(figures);
+        return;
     }
 
     for (let i = 0; i < figures.length; i++) {
@@ -374,6 +377,24 @@ async function snapshot_poloidal(figures) {
                 trace.y.push(amp);
             });
     }
+}
+
+async function tracking_plot(figures) {
+    const zeta = figures.pop().extraData;
+
+    const figureDiv1 = document.getElementById('figure-1');
+    await Plotly.newPlot(figureDiv1, figures[0]);
+
+    // Plotly will do the spline for me
+    const [carpet, scatter] = figureDiv1.calcdata;
+
+    Object.assign(figures[1].data[0], {
+        x: scatter.map(({ x }, i) => x * Math.cos(zeta[i])),
+        y: scatter.map(({ x }, i) => x * Math.sin(zeta[i])),
+        z: scatter.map(({ y }) => y)
+    });
+
+    Plotly.newPlot('figure-2', figures[1]);
 }
 
 function transpose(matrix) {
