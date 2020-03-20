@@ -22,6 +22,19 @@ class GTCOutput {
         if (!this.parameters) this.parameters = await read_para(this.dir);
     }
 
+    async check_tracking() {
+        if (this.particleTrackingExist === undefined) {
+            try {
+                const dir = await fs.readdir(
+                    path.join(this.dir, this.constructor.index['Tracking'].fileName)
+                );
+                this.particleTrackingExist = dir.length !== 0;
+            } catch (err) {
+                this.particleTrackingExist = false;
+            }
+        }
+    }
+
     /**
      * get snapshot file name
      * 

@@ -17,17 +17,20 @@ app.set('view engine', 'pug');
 app.listen(port);
 
 // client post the requested gtc output dir
-// TODO: Show tracking panel accordingly.
 app.post('/', async (req, res) => {
     try {
         GTC_outputDir = req.body.dir;
         output = new GTCOutput(GTC_outputDir);
         console.log(`path set to ${GTC_outputDir}`);
 
-        await output.getSnapshotFileList()
+        await output.getSnapshotFileList();
+        await output.check_tracking();
+        const plotTypes = Object.keys(GTCOutput.index);
         res.render('plot', {
             dir: GTC_outputDir,
-            types: Object.keys(GTCOutput.index),
+            types: output.particleTrackingExist ?
+                plotTypes :
+                plotTypes.filter(e => e !== 'Tracking'),
             snapFiles: output.snapshotFiles
         });
     } catch (err) {
