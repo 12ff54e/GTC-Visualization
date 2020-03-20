@@ -44,7 +44,7 @@ class FileTree {
             const input = `<input id="${folderPath}" value="${folderPath}" type="radio" name="gtc_output">`;
             const label = `<label for="${folderPath}">${this.dirname}</label>`;
 
-            const modTime = `<div class="mod"><div style="display:none">${localeISOLikeForm(this.mTimeMs)}</div><div>${timeText(this.mTimeMs)}</div><div>`
+            const modTime = `<div class="mod"><div style="display:none">${localeISOLikeForm(this.mTimeMs)}</div><div>${timeText(this.mTimeMs)}</div></div>`
 
             id = `${input}${label}${modTime}`;
         } else {
@@ -53,8 +53,8 @@ class FileTree {
         if (this.content.length == 1 && this.mTimeMs) {
             return id
         } else {
-            const listHeader = `<button class="collapsible">+</button>${id}
-                <ul class="content">\n`;
+            const listHeader = `<button class="collapsible">+</button>${id}`+
+                '<ul class="content">\n';
             return listHeader
                 + this.content
                     .map(item => typeof item === 'string' ? '' : '<li>' + item.toHTML2())
@@ -212,7 +212,7 @@ function timeText(time) {
 
 function localeISOLikeForm(time) {
     const date = new Date(time);
-    // shift time by time zone
+    // manually shift time by time zone
     const shifted = new Date(date - date.getTimezoneOffset() * 60000);
 
     return shifted.toISOString().split(/[TZ]/, 2).join(' ');
