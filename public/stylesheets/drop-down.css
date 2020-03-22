@@ -1,5 +1,6 @@
 body {
     background-color: azure;
+    font-size: 1.2em;
 }
 
 #folder_form {
@@ -11,54 +12,65 @@ ul {
     list-style-type: none;
 }
 
-li {
-    /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
-}
-
-li:hover {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.877), transparent 80%);
-}
-
 .collapsible {
-    /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
     cursor: pointer;
     border: none;
     text-align: center;
-    width: 2rem;
+    width: 1.5rem;
     outline: none;
     transition: all 0.8s ease-out;
     padding: 1px 0;
-}
-
-.active, .collapsible:hover {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.877), transparent 80%);
+    border-radius: 8px;
+    margin-right: 0.4rem;
 }
 
 .content {
     /* background: linear-gradient(90deg, rgba(223, 223, 224, 0.836), transparent 60%); */
-    padding: 0  0 0 18px;
+    padding: 0 0 0 18px;
     height: 0;
     overflow: hidden;
     transition: all 0.8s ease-out;
-    margin-inline-start: 0.1rem;
-    margin-inline-end: 0.1rem
+    margin-block-start: 0rem;
+    margin-block-end: 0.1rem;
 }
 
 li > input {
     display: none;
 }
 
-input:checked+label {
-    background-color: black;
-    color: white;
+input + label {
+    display: inline-block;
+    width: 40%;
+    cursor: pointer;
+    transition: all 0.3s ease-out;
+}
+
+input:checked + label {
+    background: linear-gradient(
+        90deg,
+        rgba(223, 223, 224, 0.836),
+        transparent 90%
+    );
+    color: rgb(8, 138, 48);
+    font-size: larger;
 }
 
 .mod {
     float: right;
-    color: rgb(216, 216, 216);
+    color: rgb(179, 179, 179);
     transition: all 0.3s ease-out;
 }
 
 .mod:hover {
     color: black;
+}
+
+input:checked ~ .mod {
+    color: black;
+}
+
+form > button {
+    display: block;
+    margin: 0 auto;
+    border-radius: 10px;
 }
