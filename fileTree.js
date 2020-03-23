@@ -37,7 +37,7 @@ class FileTree {
     }
 
     // TODO: REFACTOR!!!
-    toHTML2() {
+    toHTML2(root = true) {
         let id;
         if (this.mTimeMs) {
             const folderPath = encodeURI(this.path);
@@ -48,16 +48,16 @@ class FileTree {
 
             id = `${input}${label}${modTime}`;
         } else {
-            id = this.dirname
+            id = `${this.dirname}`
         }
         if (this.content.length == 1 && this.mTimeMs) {
             return id
         } else {
-            const listHeader = `<button class="collapsible">+</button>${id}`+
+            const listHeader = `${root ? '<div>' : ''}<button class="collapsible">+</button>${id}${root ? '</div>' : '</li>'}` +
                 '<ul class="content">\n';
             return listHeader
                 + this.content
-                    .map(item => typeof item === 'string' ? '' : '<li>' + item.toHTML2())
+                    .map(item => typeof item === 'string' ? '' : '<li>' + item.toHTML2(false))
                     .join('')
                 + '</ul>';
         }
