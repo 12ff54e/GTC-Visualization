@@ -19,22 +19,9 @@ app.listen(port);
 
 app.get('/', async (req, res) => {
     const html = await getFolderStructure(path.normalize(host_dir));
-    await fs.writeFile(path.join(__dirname, 'views', 'includes', 'files.html'), html);
+    await fs.writeFile(path.join(__dirname, 'views', 'files.html'), html);
     res.render('index');
 })
-
-// client post the requested gtc output dir
-// app.post('/', async (req, res) => {
-//     GTC_outputDir = req.body.dir;
-//     output = new GTCOutput(GTC_outputDir);
-//     console.log(`path set to ${GTC_outputDir}`);
-
-//     await output.getSnapshotFileList()
-//     res.render('plot', {
-//         dir: GTC_outputDir,
-//         types: Object.keys(GTCOutput.index),
-//         snapFiles: output.snapshotFiles });
-// })
 
 app.post('/', async (req, res) => {
     GTC_outputDir = path.join(
