@@ -4,8 +4,13 @@ body {
 }
 
 #folder_form {
-    width: 40%;
+    width: 50%;
     margin: 10% auto;
+}
+
+div.ctrl {
+    display: flex;
+    justify-content: flex-end;
 }
 
 ul {
@@ -33,11 +38,16 @@ ul {
     margin-block-end: 0rem;
 }
 
+li {
+    display: flex;
+    justify-content: space-between;
+}
+
 li:hover {
     background: linear-gradient(90deg, rgba(214, 214, 214, 0.836), transparent);
 }
 
-li > input {
+input[name="gtc_output"] {
     display: none;
 }
 
@@ -59,9 +69,10 @@ input:checked + label {
 }
 
 .mod {
-    float: right;
     color: rgb(179, 179, 179);
     transition: all 0.3s ease-out;
+    height: 1.2rem;
+    overflow: hidden;
 }
 
 .mod:hover {

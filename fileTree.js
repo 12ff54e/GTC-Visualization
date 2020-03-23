@@ -46,14 +46,14 @@ class FileTree {
 
             const modTime = `<div class="mod"><div style="display:none">${localeISOLikeForm(this.mTimeMs)}</div><div>${timeText(this.mTimeMs)}</div></div>`
 
-            id = `${input}${label}${modTime}`;
+            id = (div='') => `${input}${label}${div}${modTime}`;
         } else {
-            id = `${this.dirname}`
+            id = (div='') => `${this.dirname}${div}`
         }
         if (this.content.length == 1 && this.mTimeMs) {
-            return id
+            return id();
         } else {
-            const listHeader = `${root ? '<div>' : ''}<button class="collapsible">+</button>${id}${root ? '</div>' : '</li>'}` +
+            const listHeader = `${root ? '<div>' : ''}<div><button class="collapsible">+</button>${id('</div>')}${root ? '</div>' : '</li>'}` +
                 '<ul class="content">\n';
             return listHeader
                 + this.content

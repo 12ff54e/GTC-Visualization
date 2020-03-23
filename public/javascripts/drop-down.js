@@ -1,8 +1,9 @@
 window.onload = _ => {
-    for (let btn of document.getElementsByClassName("collapsible")) {
+    const listButtons = document.getElementsByClassName("collapsible");
+    for (let btn of listButtons) {
         btn.addEventListener("click", function (event) {
             event.preventDefault();
-            const content = this.parentElement.nextElementSibling;
+            const content = this.parentElement.parentElement.nextElementSibling;
             content.classList.toggle("active_list");
             if (content.classList.contains('active_list')) {
                 setHeight(content, 1.4 * calcListHeight(content))
@@ -27,6 +28,17 @@ window.onload = _ => {
                 }
             }
         })
+    }
+
+    for (let btn of document.querySelector('.ctrl').children) {
+        btn.addEventListener('click', function (event) {
+            event.preventDefault();
+            for (let btn of listButtons) {
+                if (btn.innerHTML === (this.innerHTML.includes('Expand') ? '+' : '-')) {
+                    btn.click();
+                }
+            }
+        });
     }
 }
 
