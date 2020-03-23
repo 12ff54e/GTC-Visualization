@@ -64,10 +64,6 @@ window.addEventListener('load', async function () {
                 // expand snapshot file list
                 let div = document.getElementById('files')
                 div.style.height = `${div.childElementCount * 1.2 + 0.2}rem`;
-                div.style.opacity = 1;
-                for (let btn of div.children) {
-                    btn.style.visibility = 'visible';
-                }
                 cleanPlot();
                 cleanPanel();
             }
@@ -75,11 +71,7 @@ window.addEventListener('load', async function () {
             swc.onchange = function () {
                 // collapse snapshot file list
                 let div = document.getElementById('files');
-                div.style.height = '0rem';
-                div.style.opacity = 0;
-                for (let btn of div.children) {
-                    btn.style.visibility = 'hidden';
-                }
+                div.style.height = '';
                 openPanel.call(swc)
             }
         }
@@ -159,7 +151,8 @@ async function openPanel() {
 
             const div = document.createElement('div');
             const btn = document.createElement('button');
-            btn.innerText = 'Recalculate\ngrowth rate and frequency\naccording to zoomed range'
+            btn.innerText = 'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+            btn.classList.add('tab-l1-btn');
             btn.addEventListener('click', async function () {
                 const figures = [1, 2, 3, 4].map(i => document.getElementById(`figure-${i}`));
                 const len = figures[0].data[0].x.length;
@@ -410,13 +403,6 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     const xDiv = document.getElementById('eq-x');
     const yDiv = document.getElementById('eq-y');
 
-    const xTitle = document.createElement('header');
-    const yTitle = document.createElement('header');
-    xTitle.innerText = 'X';
-    yTitle.innerText = 'Y';
-    xDiv.appendChild(xTitle);
-    yDiv.appendChild(yTitle);
-
     // add x group radio buttons
     xDataTypes.forEach(xData => {
         let input = document.createElement('input');
@@ -456,7 +442,7 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     });
 
     // register form submit behaviour
-    const form = document.getElementById('Equilibrium-panel').firstElementChild.firstElementChild;
+    const form = document.getElementById('Equilibrium-panel').firstElementChild;
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 

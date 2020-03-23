@@ -1,0 +1,90 @@
+body {
+    background-color: azure;
+    font-size: 1.2em;
+}
+
+#folder_form {
+    width: 50%;
+    margin: 10% auto;
+}
+
+div.ctrl {
+    display: flex;
+    justify-content: flex-end;
+}
+
+ul {
+    list-style-type: none;
+}
+
+.collapsible {
+    cursor: pointer;
+    border: none;
+    text-align: center;
+    width: 1.5rem;
+    outline: none;
+    transition: all 0.8s ease-out;
+    padding: 1px 0;
+    border-radius: 8px;
+    margin-right: 0.4rem;
+}
+
+.content {
+    padding: 0 0 0 18px;
+    height: 0rem;
+    overflow: hidden;
+    transition: all 0.35s ease-out;
+    margin-block-start: 0rem;
+    margin-block-end: 0rem;
+}
+
+li {
+    display: flex;
+    justify-content: space-between;
+}
+
+li:hover {
+    background: linear-gradient(90deg, rgba(214, 214, 214, 0.836), transparent);
+}
+
+input[name="gtc_output"] {
+    display: none;
+}
+
+input + label {
+    display: inline-block;
+    width: 40%;
+    cursor: pointer;
+    transition: all 0.3s ease-out;
+}
+
+input:checked + label {
+    background: linear-gradient(
+        90deg,
+        rgba(182, 182, 182, 0.836),
+        transparent 90%
+    );
+    color: rgb(8, 138, 48);
+    font-size: larger;
+}
+
+.mod {
+    color: rgb(179, 179, 179);
+    transition: all 0.3s ease-out;
+    height: 1.2rem;
+    overflow: hidden;
+}
+
+.mod:hover {
+    color: black;
+}
+
+input:checked ~ .mod {
+    color: black;
+}
+
+form > button {
+    display: block;
+    margin: 0 auto;
+    border-radius: 10px;
+}

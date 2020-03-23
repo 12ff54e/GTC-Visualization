@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        script(src="javascripts/drop-down.js" defer)
+        link(rel="stylesheet", href="stylesheets/drop-down.css")
+        title GTC-Visualization
+    body
+        form(method="POST" id="folder_form")
+            div(id="folder_list")
+                div(class="ctrl")
+                    button Expand All
+                    button Collapse All
+                include files.html
+            button(type="submit") Choose this folder
+        

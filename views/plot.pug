@@ -14,7 +14,7 @@ html(lang="en")
                     input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
                     label(for=panel, class="tab-l0-label")= panel
                     if panel === 'Snapshot'
-                        div(id="files")
+                        div(id="files" class='dropdown')
                             each file in snapFiles
                                 button(id=file)= file
 
@@ -22,12 +22,13 @@ html(lang="en")
             each panel in types
                 div(id=`${panel}-panel`, class="tabs-l1")
                     if panel === 'Equilibrium'
-                        div
-                            form
-                                div(id="eq-x")
-                                div(id="eq-y")
-                                button(type="submit") Plot Y vs X
-
+                        form
+                            header X
+                            div(id="eq-x")
+                            header Y
+                            div(id="eq-y")
+                            button(type="submit") Plot Y vs X
+                        
 
         div(id='figure-wrapper')
             each i in [1, 2, 3, 4]
