@@ -21,12 +21,12 @@ ul {
     cursor: pointer;
     border: none;
     text-align: center;
-    width: 1.5rem;
+    width: 1.5em;
     outline: none;
     transition: all 0.8s ease-out;
     padding: 1px 0;
     border-radius: 8px;
-    margin-right: 0.4rem;
+    margin-right: 0.4em;
 }
 
 .content {
@@ -41,6 +41,7 @@ ul {
 li {
     display: flex;
     justify-content: space-between;
+    height: 1.2em;
 }
 
 li:hover {
@@ -65,13 +66,13 @@ input:checked + label {
         transparent 90%
     );
     color: rgb(8, 138, 48);
-    font-size: larger;
+    font-size: 1.1em;
 }
 
 .mod {
     color: rgb(179, 179, 179);
     transition: all 0.3s ease-out;
-    height: 1.2rem;
+    height: 1.2em;
     overflow: hidden;
 }
 

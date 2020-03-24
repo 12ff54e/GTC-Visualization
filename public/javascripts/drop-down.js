@@ -6,7 +6,7 @@ window.onload = _ => {
             const content = this.parentElement.parentElement.nextElementSibling;
             content.classList.toggle("active_list");
             if (content.classList.contains('active_list')) {
-                setHeight(content, 1.4 * calcListHeight(content))
+                setHeight(content, 0.1 + 1.2 * calcListHeight(content))
                 this.innerText = '-';
             } else {
                 setHeight(content.parentElement,
@@ -56,7 +56,7 @@ function calcListHeight(ul) {
 function setHeight(elem, height) {
     if (elem.localName === 'ul') {
         const prevHeight = elem.style.height.split(/[a-zA-Z]/, 1)[0];
-        elem.style.height = `${height + (prevHeight ? parseFloat(prevHeight) : 0)}rem`;
+        elem.style.height = `${height + (prevHeight ? parseFloat(prevHeight) : 0)}em`;
         setHeight(elem.parentElement, height);
     }
 }
