@@ -3,7 +3,7 @@ require('dotenv').config();
 const GTCOutput = require('./GTC-output-parser/main.js');
 const path = require('path');
 const compression = require('compression');
-const FileTree = require('./FileTree.js');
+const FileTree = require('./fileTree.js');
 const fs = require('fs').promises;
 
 const app = express();

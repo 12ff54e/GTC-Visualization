@@ -13,7 +13,7 @@ This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) ou
 4. run
     ```bash
     npm install --production
-    npm start server
+    npm start
     ```
 You can also, and I suggest to, use process manager or init system to keep app ALWAYS running.
 
