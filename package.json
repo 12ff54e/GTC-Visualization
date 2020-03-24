@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "nodemon ./server.js",
+    "start": "node ./server.js",
     "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js"
   },
   "keywords": [

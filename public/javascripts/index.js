@@ -12,8 +12,8 @@ class StatusBar {
     toString() {
         return `${this.orig}<br>` +
             (this.information ? `<font color="green">${this.information}</font><br>` : '') +
-            (this.warning ? `<font color="yellow">${this.warning}$</font><br>` : '') +
-            (this.error ? `<font color="red">${this.error}$</font><br>` : '');
+            (this.warning ? `<font color="yellow">${this.warning}</font><br>` : '') +
+            (this.error ? `<font color="red">${this.error}</font><br>` : '');
     }
     show() {
         this.parent.innerHTML = this;
@@ -81,6 +81,11 @@ window.addEventListener('load', async function () {
     for (let btn of document.getElementById('files').children) {
         btn.onclick = openPanel;
     }
+})
+
+window.addEventListener('error', () => {
+    document.getElementById('status').status.err = 'Oops, something wrong happened. ' +
+        'Please consult javascript console for more info.'
 })
 
 function registerButtons() {
