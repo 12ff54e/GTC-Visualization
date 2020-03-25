@@ -118,7 +118,9 @@ async function openPanel() {
         statusBar.warn = warn ? warn : '';
 
         // add buttons
-        const node = this.tagName === 'button' ? this.parentNode : this;
+        const node = this.localName === 'input' ?
+            this.parentNode :
+            this.parentNode.parentNode;
         if (node.visited) {
             return;
         } else {
@@ -160,7 +162,7 @@ async function openPanel() {
             btn.classList.add('tab-l1-btn');
             btn.addEventListener('click', async function () {
                 const figures = [1, 2, 3, 4].map(i => document.getElementById(`figure-${i}`));
-                const len = figures[0].data[0].x.length;
+                const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
                 await history_mode(
                     figures,
                     window.GTCGlobal.hist_mode_range.growthRate &&

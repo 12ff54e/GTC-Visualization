@@ -50,6 +50,8 @@ p {
 
 .tabs-l1 {
     position: absolute;
+    left: 2.5%;
+    width: 95%;
     z-index: 1;
     opacity: 0;
     transition: all 0.35s;
@@ -119,7 +121,7 @@ form {
 #eq-x,
 #eq-y {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     margin: 0.5rem 0.2rem 1rem 0.2rem;
 }
 
