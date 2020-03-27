@@ -13,7 +13,7 @@ const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
 class History extends PlotType {
     /**
      * 
-     * @param {{path: string, iter: Iterator<string>}} data 
+     * @param {string} data 
      * @param {object} basicParams GTCOutput.parameters
      */
     constructor(data, basicParams) {
@@ -101,6 +101,7 @@ class History extends PlotType {
         type = type ? type : 'point';
         let figureContainer = new Array();
         let timeStep = basicParams.ndiag * basicParams.tstep;
+        const tu = '$R_0/c_s$';
 
         if (fieldTypes.includes(cat)) {
             // field
@@ -120,7 +121,7 @@ class History extends PlotType {
                             : `${cat}00 (iflux@diag)`)
                         : (`${i == 0 ? 'ZF' : cat} RMS`)
                     figure.axesLabel = {
-                        x: 'R_0/c_s',
+                        x: tu,
                         y: ''
                     };
                     figureContainer.push(figure);
@@ -145,7 +146,7 @@ class History extends PlotType {
                 figure.addX(timeStep);
                 figure.plotLabel =
                     `n=${basicParams.nmodes[modeIndex]}, m=${basicParams.mmodes[modeIndex]}`;
-                figure.axesLabel = { x: 'R_0/c_s', y: '' };
+                figure.axesLabel = { x: tu, y: '' };
                 figureContainer.push(figure);
 
                 // growth rate
@@ -158,14 +159,14 @@ class History extends PlotType {
                     mode: 'lines'
                 });
                 figure.addX(timeStep);
-                figure.axesLabel = { x: 'R_0/c_s', y: '' };
+                figure.axesLabel = { x: tu, y: '' };
                 figure.layout.yaxis.type = 'log';
                 figure.layout.showlegend = false;
                 figureContainer.push(figure);
 
                 // frequency
                 figure = new PlotlyData();
-                figure.axesLabel = { x: 'R_0/c_s', y: '' };
+                figure.axesLabel = { x: tu, y: '' };
                 figure.layout.showlegend = false;
                 figureContainer.push(figure);
 
@@ -185,7 +186,7 @@ class History extends PlotType {
                     y: this.particleData[cat][i + 2 * plotType].slice(0, this.stepNumber)
                 });
                 figure.addX(timeStep);
-                figure.axesLabel = { x: 'R_0/c_s', y: '' };
+                figure.axesLabel = { x: tu, y: '' };
                 switch (plotType) {
                     case 0: figure.plotLabel = i == 0 ? 'delta-f' : 'delta-f^2'; break;
                     case 1: figure.plotLabel = i == 0 ? 'parallel flow u' : 'delta u'; break;
