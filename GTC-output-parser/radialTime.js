@@ -3,23 +3,22 @@ const PlotlyData = require('./PlotlyData.js');
 
 const particlePlotTypes =
     ['particle_flux', 'energy_flux', 'momentum_flux'];
-const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
 const fieldPlotTypes = ['zonal', 'rms'];
 
 class RadialTime extends PlotType {
     /**
      * 
-     * @param {{path: string, iter: Iterator<string>}} data 
+     * @param {string} filePath 
      */
-    constructor(data, basicParams) {
-        super(data, basicParams);
+    constructor(filePath, basicParams) {
+        super(filePath, basicParams);
         this.isTimeSeriesData = true;
 
         this.plotTypes = [
             ...this.existingParticles.map(t => particlePlotTypes
                 .slice(0, this.particlePlotTypeNumber)
                 .map(p => t + '-' + p)),
-            ...fieldTypes.map(f => fieldPlotTypes
+            ...PlotType.fieldID.map(f => fieldPlotTypes
                 .slice(0, this.fieldPlotTypeNumber)
                 .map(p => f + '-' + p))
         ];
@@ -47,7 +46,7 @@ class RadialTime extends PlotType {
                 this.data[particle][type] = new Array();
             }
         }
-        for (let field of fieldTypes) {
+        for (let field of PlotType.fieldID) {
             this.data[field] = new Object();
             for (let type of fieldPlotTypes) {
                 this.data[field][type] = new Array();
@@ -66,7 +65,7 @@ class RadialTime extends PlotType {
                 }
             }
             for (let type of fieldPlotTypes) {
-                for (let field of fieldTypes) {
+                for (let field of PlotType.fieldID) {
                     const rl = [];
                     this.data[field][type].push(rl);
                     for (let r = 0; r < this.radialGridPtNumber; r++) {
@@ -96,8 +95,9 @@ class RadialTime extends PlotType {
             zhoverformat: '.4g'
         })
 
-        figure.axesLabel = { x: 'time step', y: 'mpsi' };
-        figure.plotLabel = `${cat} ${type}`;
+        figure.axesLabel = { x: '$\\text{time step}$', y: '$\\text{mpsi}$' };
+        figure.plotLabel = `$${PlotType.fieldID.includes(cat) ? PlotType.fieldDisplayName[cat] : `\\mathrm{${cat}}`}\\;`
+            + `\\text{${type.replace('_',' ')}}$`;
 
         return [figure];
     }

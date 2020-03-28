@@ -4,7 +4,6 @@ const { range } = require('./util.js');
 
 const particlePlotTypes =
     ['density', 'momentum', 'energy', 'pm_flux', 'e_flux'];
-const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
 
 /**
  * History class containing all data from history.out
@@ -13,14 +12,14 @@ const fieldTypes = ['phi', 'a_para', 'fluid_ne'];
 class History extends PlotType {
     /**
      * 
-     * @param {string} data 
+     * @param {string} filePath 
      * @param {object} basicParams GTCOutput.parameters
      */
-    constructor(data, basicParams) {
-        super(data, basicParams);
+    constructor(filePath, basicParams) {
+        super(filePath, basicParams);
         this.isTimeSeriesData = true;
 
-        this.fieldTypes = fieldTypes;
+        this.fieldTypes = PlotType.fieldID;
         this.plotTypes = [
             ...this.fieldTypes.map(f =>
                 [f, f + '-RMS', ...range(1, 9).map(i => `${f}-mode${i}`)]),
@@ -103,7 +102,7 @@ class History extends PlotType {
         let timeStep = basicParams.ndiag * basicParams.tstep;
         const tu = '$R_0/c_s$';
 
-        if (fieldTypes.includes(cat)) {
+        if (PlotType.fieldID.includes(cat)) {
             // field
             if (!type.includes('mode')) {
                 // point value
@@ -117,9 +116,9 @@ class History extends PlotType {
                     figure.addX(timeStep);
                     figure.plotLabel = type === 'point'
                         ? (i == 0
-                            ? `${cat} (theta=zeta=0)`
-                            : `${cat}00 (iflux@diag)`)
-                        : (`${i == 0 ? 'ZF' : cat} RMS`)
+                            ? `$${PlotType.fieldDisplayName[cat]} (\\theta=\\zeta=0)$`
+                            : `$${PlotType.fieldDisplayName[cat]}_{00} (\\text{iflux@diag})$`)
+                        : (`$${i == 0 ? '\\text{ZF}' : PlotType.fieldDisplayName[cat]}\\text{ RMS}$`)
                     figure.axesLabel = {
                         x: tu,
                         y: ''
@@ -145,7 +144,7 @@ class History extends PlotType {
                 });
                 figure.addX(timeStep);
                 figure.plotLabel =
-                    `n=${basicParams.nmodes[modeIndex]}, m=${basicParams.mmodes[modeIndex]}`;
+                    `$n=${basicParams.nmodes[modeIndex]},\\;m=${basicParams.mmodes[modeIndex]}$`;
                 figure.axesLabel = { x: tu, y: '' };
                 figureContainer.push(figure);
 
@@ -172,8 +171,8 @@ class History extends PlotType {
 
                 // fft
                 figure = new PlotlyData();
-                figure.axesLabel = { x: 'mode number', y: '' };
-                figure.plotLabel = 'power spectral';
+                figure.axesLabel = { x: '$\\text{mode number}$', y: '' };
+                figure.plotLabel = '$\\text{Power spectral}$';
                 figureContainer.push(figure);
             }
         } else {
@@ -188,11 +187,11 @@ class History extends PlotType {
                 figure.addX(timeStep);
                 figure.axesLabel = { x: tu, y: '' };
                 switch (plotType) {
-                    case 0: figure.plotLabel = i == 0 ? 'delta-f' : 'delta-f^2'; break;
-                    case 1: figure.plotLabel = i == 0 ? 'parallel flow u' : 'delta u'; break;
-                    case 2: figure.plotLabel = i == 0 ? 'energy' : 'delta-e'; break;
-                    case 3: figure.plotLabel = i == 0 ? 'particle flow' : 'momentum flow'; break;
-                    case 4: figure.plotLabel = i == 0 ? 'energy flow' : 'total density';
+                    case 0: figure.plotLabel = i == 0 ? '$\\delta f$' : '$\\delta f^2$'; break;
+                    case 1: figure.plotLabel = i == 0 ? '$u_{\\parallel}$' : '$\\delta u_{\\parallel}$'; break;
+                    case 2: figure.plotLabel = i == 0 ? '$\\text{Energy}$' : '$\\delta E$'; break;
+                    case 3: figure.plotLabel = i == 0 ? '$\\text{Particle flow}$' : '$\\text{Momentum flow}$'; break;
+                    case 4: figure.plotLabel = i == 0 ? '$\\text{Energy flow}$' : '$\\text{Total density}$';
                 };
                 figureContainer.push(figure);
             }
