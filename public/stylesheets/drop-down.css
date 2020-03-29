@@ -83,8 +83,22 @@ input:checked ~ .mod {
     color: black;
 }
 
-form > button {
-    display: block;
-    margin: 0 auto;
+form > div#submit_area {
+    background: linear-gradient(
+        90deg,
+        rgba(240, 255, 255, 0.7),
+        rgb(200, 255, 255),
+        rgba(240, 255, 255, 0.5)
+    );
+    position: sticky;
+    bottom: 1px;
+    height: 5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+button[type="submit"] {
     border-radius: 10px;
+    font-size: 1.2rem;
 }
