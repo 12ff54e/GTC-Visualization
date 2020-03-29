@@ -4,7 +4,6 @@ const util = require('./util.js');
 
 const particlePlotTypes =
     ['density', 'flow', 'energy', 'PDF_energy', 'PDF_pitch'];
-const fieldNames = ['phi', 'apara', 'fluidne'];
 const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
 
 /**
@@ -12,16 +11,16 @@ const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
  */
 class Snapshot extends PlotType {
     /**
-     * @param {{iter:Iterator<string>, path: string}} data 
+     * @param {string} filePath 
      * @param {Object} basicParams GTCOutput.parameters
      */
-    constructor(data, basicParams) {
-        super(data, basicParams)
+    constructor(filePath, basicParams) {
+        super(filePath, basicParams)
         this.isTimeSeriesData = false;
 
         this.plotTypes = [
             ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
-            ...fieldNames.map(f => fieldPlotTypes.map(p => f + '-' + p))
+            ...PlotType.fieldID.map(f => fieldPlotTypes.map(p => f + '-' + p))
         ];
 
         // particle data, including profile of torques and pdf of energy and pitch angle
@@ -67,7 +66,7 @@ class Snapshot extends PlotType {
         }
 
         this.fieldData['poloidalPlane'] = new Object();
-        for (let field of fieldNames.concat(['x', 'y'])) {
+        for (let field of PlotType.fieldID.concat(['x', 'y'])) {
             let tmp = this.fieldData['poloidalPlane'][field] =
                 Array.from({ length: this.radialGridPtNumber }, _ => []);
             for (let r = 0; r < this.radialGridPtNumber; r++) {
@@ -78,7 +77,7 @@ class Snapshot extends PlotType {
         }
 
         this.fieldData['fluxData'] = new Object();
-        for (let field of fieldNames) {
+        for (let field of PlotType.fieldID) {
             let tmp = this.fieldData['fluxData'][field] =
                 Array.from({ length: this.toroidalGridPtNumber }, _ => []);
             for (let t = 0; t < this.toroidalGridPtNumber; t++) {
@@ -92,18 +91,18 @@ class Snapshot extends PlotType {
     /**
      * Generate plot data as per specifications of Plotly library.
      * 
-     * @param {string} plotType
+     * @param {string} id
      * 
      * @returns {Array<PlotlyData>}
      */
-    plotData(plotType) {
+    plotData(id) {
         // cat is the category of the plot, could be particle name or field name
         // type is the type of the plot, one of strings in particlePlotType or fieldPlotType
-        let [cat, type] = plotType.split('-');
+        let [cat, type] = id.split('-');
         let figureContainer = new Array();
         let fig = new PlotlyData();
 
-        if (fieldNames.includes(cat)) {
+        if (PlotType.fieldID.includes(cat)) {
             // field
             let index = fieldPlotTypes.indexOf(type);
             switch (index) {
@@ -117,7 +116,7 @@ class Snapshot extends PlotType {
                         transpose: true
                     });
                     fig.axesLabel = { x: 'nzeta', y: 'mtheta' };
-                    fig.plotLabel = `${cat} on flux surface`;
+                    fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on flux surface}$`;
                     figureContainer.push(fig);
                     break;
                 case 1: // poloidal and parallel spectrum
@@ -128,7 +127,7 @@ class Snapshot extends PlotType {
                             type: 'scatter',
                             mode: 'lines'
                         })
-                        fig.plotLabel = (i == 0 ? 'poloidal' : 'parallel') + ' spectrum';
+                        fig.plotLabel = `$\\text{${(i == 0 ? 'poloidal' : 'parallel')} spectrum}$`;
                     })
                     figs.push({ extraData: this.fieldData['fluxData'][cat] });
                     figureContainer = figs;
@@ -162,12 +161,13 @@ class Snapshot extends PlotType {
                         }
                     })
                     fig.axisEqual();
-                    fig.plotLabel = `${cat} on poloidal plane`;
+                    fig.axesLabel = {x: '$\\text{R}$', y:'$\\text{Z}$'}
+                    fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on poloidal plane}$`;
                     figureContainer.push(fig);
 
                     let fig2 = new PlotlyData();
-                    fig2.axesLabel = { x: 'mpsi', y: '' };
-                    fig2.plotLabel = `${cat} mode profile`
+                    fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
+                    fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`
                     figureContainer.push(fig2);
                     figureContainer.push({
                         polNum: this.poloidalGridPtNumber,
@@ -186,8 +186,8 @@ class Snapshot extends PlotType {
                         mode: 'lines'
                     });
                     fig0.addX(1, 0);
-                    fig0.axesLabel = { x: type === 'psi' ? 'mpsi' : 'mtheta', y: '' };
-                    fig0.plotLabel = 'point value'
+                    fig0.axesLabel = { x: `$\\text{${type === 'psi' ? 'mpsi' : 'mtheta'}}$`, y: '' };
+                    fig0.plotLabel = '$\\text{Point value}$'
                     figureContainer.push(fig0);
                     // RMS
                     let fig1 = new PlotlyData();
@@ -206,8 +206,8 @@ class Snapshot extends PlotType {
                         mode: 'lines'
                     });
                     fig1.addX(1, 0);
-                    fig1.axesLabel = { x: type === 'psi' ? 'mpsi' : 'mtheta', y: '' };
-                    fig1.plotLabel = 'RMS';
+                    fig1.axesLabel = { x: `$\\text{${type === 'psi' ? 'mpsi' : 'mtheta'}}$`, y: '' };
+                    fig1.plotLabel = '$\\text{RMS}$';
                     figureContainer.push(fig1);
                     break;
             }
@@ -221,8 +221,9 @@ class Snapshot extends PlotType {
                     mode: 'lines'
                 });
                 fig.addX(1, 0);
-                fig.axesLabel = { x: type.startsWith('PDF') ? '' : 'mpsi', y: '' };
-                fig.plotLabel = (i == 0 ? 'full-f' : 'delta-f') + ' ' + type;
+                fig.axesLabel = { x: type.startsWith('PDF') ? '' : '$\\text{mpsi}$', y: '' };
+                fig.plotLabel = `$${(i == 0 ? '\\text{full }f' : '\\delta f')}` +
+                    `\\text{ ${type.replace('_', ' of ')}}$`;
             });
             figureContainer = figs;
         } else {

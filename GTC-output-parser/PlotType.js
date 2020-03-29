@@ -69,20 +69,14 @@ class PlotType {
         console.log(`${filePath} read`);
 
         return data;
-    }
+    }        
+}
 
-    /**
-     * @param {{iter:Iterator<string>, path:string}} data 
-     */
-    static checkEnd(data) {
-        let { iter, path } = data;
-        let { value, done } = iter.next();
-        if (done || !value) {
-            console.log(`${path} read`);
-        } else {
-            throw new RangeError(`${path} has ${[...iter].length + 1} entries left`)
-        }
-    }
+PlotType.fieldID = ['phi', 'a_para', 'fluid_ne']
+PlotType.fieldDisplayName = {
+    'phi': '\\phi',
+    'a_para': '\\delta A_{\\parallel}',
+    'fluid_ne': '\\mathrm{fluid}\\,n_e'
 }
 
 module.exports = PlotType;

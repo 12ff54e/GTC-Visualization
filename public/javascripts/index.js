@@ -274,7 +274,7 @@ async function history_mode(figures, interval1, interval2) {
         line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
         markers: { color: 'rgb(255, 0, 0)', size: 8 }
     });
-    growthFig.layout.title = `gamma=${gamma}`;
+    growthFig.layout.title = `$\\gamma=${gamma.toPrecision(5)}$`;
     growthFig.layout.xaxis.rangeslider = {
         bgcolor: 'rgb(200,200,210)'
     };
@@ -306,7 +306,7 @@ async function history_mode(figures, interval1, interval2) {
         line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
         markers: { color: 'rgb(255, 0, 0)', size: 8 }
     });
-    freqFig.layout.title = `omega=${omega}`;
+    freqFig.layout.title = `$\\omega=${omega.toPrecision(5)}$`;
     freqFig.layout.xaxis.rangeslider = {
         bgcolor: 'rgb(200,200,210)'
     };

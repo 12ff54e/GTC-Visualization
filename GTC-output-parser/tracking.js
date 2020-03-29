@@ -98,7 +98,8 @@ class Tracking extends PlotType {
                 hovertemplate: 'psi: %{a:.4g}<br>theta: %{b:.4g}<extra></extra>'
             });
             figureContainer[0].axisEqual();
-            figureContainer[0].plotLabel = 'Poloidal Plane';
+            figureContainer[0].axesLabel = {x: '$\\text{R}$', y: '$\\text{Z}$'}
+            figureContainer[0].plotLabel = '$\\text{Poloidal Plane}$';
             figureContainer[0].layout.hovermode = 'closest';
 
             figureContainer[1].data = [{

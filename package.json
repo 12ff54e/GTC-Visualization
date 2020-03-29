@@ -15,6 +15,7 @@
   "license": "MIT",
   "devDependencies": {
     "ify-loader": "^1.1.0",
+    "mathjax": "^2.7.7",
     "nodemon": "^2.0.2",
     "plotly.js": "^1.52.3",
     "transform-loader": "^0.2.4",
