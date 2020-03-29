@@ -37,11 +37,14 @@ class PlotType {
      */
     static async readDataFile(filePath, basicParams) {
         const { once } = require('events');
-        const { createReadStream } = require('fs');
+        const { createReadStream, promises: {stat}} = require('fs');
         const { createInterface } = require('readline');
 
+        // For error handling
+        await stat(filePath);
+        
         const rl = createInterface({
-            input: createReadStream(filePath),
+            input: createReadStream(filePath).on('error', (err) => console.log(err)),
             ctrlDelay: Infinity
         });
 
@@ -62,14 +65,14 @@ class PlotType {
         // formal way to check the length of time series data
         if (data.isTimeSeriesData) {
             data.stepNumber =
-                Math.floor((lineNum - data.initBlockSize)/ data.entryPerStep);
+                Math.floor((lineNum - data.initBlockSize) / data.entryPerStep);
             data.isCompleted = data.expectedStepNumber === data.stepNumber;
         }
 
         console.log(`${filePath} read`);
 
         return data;
-    }        
+    }
 }
 
 PlotType.fieldID = ['phi', 'a_para', 'fluid_ne']

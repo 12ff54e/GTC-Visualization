@@ -63,6 +63,9 @@ class Tracking extends PlotType {
                 tracks.push(fileContent.split('\n')[Symbol.iterator]());
             }
         }
+        if (tracks.length !== basicParams.numberpe) {
+            throw new Error('One or more tracking files are missing!');
+        }
 
         return new Tracking({
             path: dir,

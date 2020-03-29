@@ -50,8 +50,8 @@ app.post('/', async (req, res) => {
 
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
+    let type = req.params.type;
     try {
-        let type = req.params.type;
         await output.readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
         const data = output.data[type];
@@ -70,6 +70,7 @@ app.get('/plotType/:type', async (req, res) => {
         res.send(JSON.stringify(status));
     } catch (err) {
         console.log(err);
+        res.json({ err: `Error happens when reading <b>${type}</b> file, this folder may be corrupted!` });
     }
 })
 

@@ -113,9 +113,10 @@ async function openPanel() {
     let res = await fetch(`plotType/${this.id}`);
     // wait for the response, then create buttons for plotting
     if (res.ok) {
-        let { info, warn, id: btn_id_array } = await res.json();
+        let { info, warn, err, id: btn_id_array } = await res.json();
         statusBar.info = info ? info : '';
         statusBar.warn = warn ? warn : '';
+        statusBar.err = err ? err : '';
 
         // add buttons
         const node = this.localName === 'input' ?
