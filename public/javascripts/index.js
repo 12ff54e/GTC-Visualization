@@ -12,7 +12,7 @@ class StatusBar {
     toString() {
         return `${this.orig}<br>` +
             (this.information ? `<font color="green">${this.information}</font><br>` : '') +
-            (this.warning ? `<font color="yellow">${this.warning}</font><br>` : '') +
+            (this.warning ? `<font color="darkYellow">${this.warning}</font><br>` : '') +
             (this.error ? `<font color="red">${this.error}</font><br>` : '');
     }
     show() {
@@ -116,7 +116,10 @@ async function openPanel() {
         let { info, warn, err, id: btn_id_array } = await res.json();
         statusBar.info = info ? info : '';
         statusBar.warn = warn ? warn : '';
-        statusBar.err = err ? err : '';
+        if (err) {
+            statusBar.err = err;
+            return;
+        }
 
         // add buttons
         const node = this.localName === 'input' ?
