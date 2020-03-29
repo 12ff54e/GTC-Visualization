@@ -8,7 +8,9 @@ This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) ou
 
 ## Quick start
 1. Clone from repository.
-2. `mv .env_sample .env` and modifies it as you wish.
+2. `mv .env_example .env` and modifies it as you wish.
+   - **PORT** is the port to which this app listening. Set a larger number to avoid conflicts.
+   - **HOST_DIR** is the folder where this app will search gtc output files in.
 3. Set NODE_ENV to production (for example, `EXPORT NODE_ENV=production` in Linux).
 4. run
     ```bash
@@ -16,6 +18,7 @@ This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) ou
     npm start
     ```
 You can also, and I suggest to, use process manager or init system to keep app ALWAYS running.
+**Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run this command on your own computer, then upload the whole folder to server.
 
 ## What's behind
-This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/). Most, if not all figure types are from Huasheng Xie's Matlab program.
+This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from Huasheng Xie's Matlab program.
