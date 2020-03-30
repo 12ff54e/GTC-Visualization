@@ -63,7 +63,7 @@ window.addEventListener('load', async function () {
             swc.onchange = function () {
                 // expand snapshot file list
                 let div = document.getElementById('files')
-                div.style.height = `${div.childElementCount * 1.2 + 0.2}rem`;
+                div.style.height = `${div.childElementCount * 1.3 + 0.2}rem`;
                 cleanPlot();
                 cleanPanel();
             }

@@ -87,6 +87,9 @@ div#files {
     z-index: -1;
     cursor: grab;
     width: 100%;
+    height: 1.1rem;
+    display: block;
+    overflow: hidden;
 }
 
 #files > button:hover {
