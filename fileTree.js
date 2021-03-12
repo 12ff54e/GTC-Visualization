@@ -40,26 +40,37 @@ class FileTree {
     toHTML2(root = true) {
         let id;
         if (this.mTimeMs) {
+            // This entry is a gtc output folder
             const folderPath = encodeURI(this.path);
             const input = `<input id="${folderPath}" value="${folderPath}" type="radio" name="gtc_output">`;
             const label = `<label for="${folderPath}">${this.dirname}</label>`;
 
-            const modTime = `<div class="mod"><div style="display:none">${localeISOLikeForm(this.mTimeMs)}</div><div>${timeText(this.mTimeMs)}</div></div>`
+            const modTime = `<div class="mod"><div style="display:none">${localeISOLikeForm(
+                this.mTimeMs
+            )}</div><div>${timeText(this.mTimeMs)}</div></div>`;
 
-            id = (div='') => `${input}${label}${div}${modTime}`;
+            id = (div = '') =>
+                `${div}${div}${input}${label}</div>${modTime}</div>`;
         } else {
-            id = (div='') => `${this.dirname}${div}`
+            // This entry is just a folder
+            id = () => `${this.dirname}</div></div>`;
         }
         if (this.content.length == 1 && this.mTimeMs) {
-            return id();
+            // This folder has no sub-folders
+            return `<li class="tip">${id('<div>')}</li>`;
         } else {
-            const listHeader = `${root ? '<div>' : ''}<div><button class="collapsible">+</button>${id('</div>')}${root ? '</div>' : '</li>'}` +
-                '<ul class="content">\n';
-            return listHeader
-                + this.content
-                    .map(item => typeof item === 'string' ? '' : '<li>' + item.toHTML2(false))
-                    .join('')
-                + '</ul>';
+            const listHeader =
+                `<li><div><div><button class="collapsible">+</button>${id()}` +
+                '<ul class="content">';
+            return (
+                listHeader +
+                this.content
+                    .map((item) =>
+                        typeof item === 'string' ? '' : item.toHTML2(false)
+                    )
+                    .join('') +
+                '</ul></li>'
+            );
         }
     }
 
