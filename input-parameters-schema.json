@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "GTC input parameters",
+    "description": "An input parameters in GTC input file gtc.in",
+    "type": "array",
+    "items": {
+        "type": "object",
+
+        "properties": {
+            "name": {
+                "description": "Variable name",
+                "type": "string"
+            },
+            "description": {
+                "description": "Short sentence describing the effect of this parameter",
+                "type": "string"
+            },
+            "group": {
+                "description": "The group this parameter belongs",
+                "type": "string"
+            },
+            "type": {
+                "description": "Input type of parameter",
+                "type": "string"
+            },
+            "default": { "description": "Default value", "type": "string" },
+            "possible_value": {
+                "description": "The only possible values this variable could be",
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+            },
+            "pattern": {
+                "description": "Regex used as input content validator ",
+                "type": "string"
+            }
+        },
+        "required": ["name", "description", "group", "type", "default"]
+    }
+}

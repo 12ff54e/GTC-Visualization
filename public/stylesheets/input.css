@@ -1,0 +1,24 @@
+div.category {
+    margin: 2em 1em 0em 1em;
+    border: solid;
+    border-radius: 1em;
+    padding: 0.5em 1em 1em;
+}
+div.input_wrapper {
+    display: flex;
+    margin-bottom: 0.5em;
+}
+div.input_wrapper > input,
+div.input_wrapper > select {
+    margin: 0em 1em 0em;
+    height: 1.6em;
+}
+div.category > h2 {
+    position: relative;
+    top: -1em;
+    margin-top: 0;
+    padding: 0 5px 0;
+    z-index: 10;
+    background: white;
+    width: max-content;
+}

@@ -23,6 +23,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
+    "ajv": "^7.2.1",
     "compression": "^1.7.4",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",
