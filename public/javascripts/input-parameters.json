@@ -554,14 +554,14 @@
     {
         "name": "psiw_analytic",
         "default": "3.75e-2",
-        "description": "poloidal flux at wall",
+        "description": "poloidal flux at wall, unit=Wb",
         "group": "equilibrium",
         "type": "real"
     },
     {
         "name": "ped_analytic",
         "default": "3.75e-2",
-        "description": "poloidal flux at separatrix",
+        "description": "poloidal flux at separatrix, unit=Wb",
         "group": "equilibrium",
         "type": "real"
     },

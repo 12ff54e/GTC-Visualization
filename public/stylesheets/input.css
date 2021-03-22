@@ -1,10 +1,11 @@
 div.category {
-    margin: 2em 1em 0em 1em;
+    margin: 2em 1em 0.5em;
     border: solid;
     border-radius: 1em;
     padding: 0.5em 1em 1em;
 }
 div.input_wrapper {
+    position: relative;
     display: flex;
     margin-bottom: 0.5em;
 }
@@ -21,4 +22,8 @@ div.category > h2 {
     z-index: 10;
     background: white;
     width: max-content;
+}
+
+.bold {
+    font-weight: bold;
 }

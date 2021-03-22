@@ -143,7 +143,7 @@ async function generate_input(params) {
     let input_params = '&input_parameters\n';
     let eq_params = '&equilibrium_parameters\n';
     for (const [variable, value] of Object.entries(params)) {
-        const filtered_value = value.replace(/,/g, ' ');
+        const filtered_value = value.replace(/,\s*/g, ' ');
         if (variable.startsWith('eq-')) {
             eq_params += `${variable.substring(3)}=${filtered_value}\n`;
         } else {
