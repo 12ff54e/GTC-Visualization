@@ -27,3 +27,18 @@ div.category > h2 {
 .bold {
     font-weight: bold;
 }
+
+button {
+    margin: 0 0.5em 0;
+    height: 2em;
+    width: 8em;
+    padding: 0;
+    overflow: hidden;
+}
+
+form {
+    text-align: center;
+}
+form > div {
+    text-align: start;
+}

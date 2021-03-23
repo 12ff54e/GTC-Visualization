@@ -1,0 +1,71 @@
+/*
+It defines the layer which will cover the site once the
+floating window is showed.
+*/
+#dark_overlay {
+    background: none repeat scroll 0 0 rgba(100, 100, 100, 0.8);
+    cursor: auto;
+    display: none;
+    height: 100%;
+    left: 0;
+    overflow-y: auto;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100; /*over everything */
+}
+
+/*
+We want the content to be center...
+*/
+#float_wrap {
+    margin: 0 auto;
+    position: static;
+    width: 878px;
+    z-index: 102;
+}
+
+/*
+Defining the window wrap...
+*/
+#float_content {
+    float: left;
+    background: white;
+    box-shadow: 0 3px 8px rgba(34, 25, 25, 0.4);
+    z-index: 101; /*over the overlay*/
+    margin: 80px 0 80px 0;
+    position: relative;
+}
+
+/*
+Defining the window...
+*/
+#main_float {
+    float: left;
+    margin: 0;
+    width: 900px;
+    min-height: 500px;
+    position: relative;
+}
+
+/*
+Adding the X for closing the window
+*/
+.close {
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    width: 30px;
+    height: 30px;
+    background: black;
+    opacity: 0.8;
+    cursor: pointer;
+    z-index: 103;
+    display: inline;
+    border-radius: 15px;
+
+    color: white;
+    text-align: center;
+    line-height: 30px;
+    text-shadow: 0px 0px 4px white;
+}

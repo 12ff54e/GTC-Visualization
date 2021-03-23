@@ -2,15 +2,20 @@ window.addEventListener('load', (ev) => {
     const form = document.getElementById('input');
     const input_area = form.firstElementChild;
 
-    fetch('/javascripts/input-parameters.json')
-        .then((res) => {
+    const input_spec = fetch('/javascripts/input-parameters.json').then(
+        (res) => {
             if (res.ok) {
                 return res.json();
             } else {
                 throw new Error('No input parameters descriptor file found.');
             }
-        })
-        .then((input_parameters) => {
+        }
+    );
+    // I have to do this, since the float window button is added during input form generation
+    const import_script = import('./floating-window.js');
+
+    Promise.all([input_spec, import_script])
+        .then(([input_parameters, add_float_window]) => {
             const cat = new Map();
             for (const parameter_spec of input_parameters) {
                 let cat_div = cat.get(parameter_spec.group);
@@ -79,6 +84,8 @@ window.addEventListener('load', (ev) => {
 
                 // Add description texts
                 const description = document.createElement('span');
+                input_div.append(description);
+
                 description.innerText = parameter_spec.description;
                 if (
                     parameter_spec.group == 'equilibrium' &&
@@ -87,9 +94,18 @@ window.addEventListener('load', (ev) => {
                     description.innerText += '. Corresponding gradient R0/L = ';
                     const span = document.createElement('span');
                     span.classList.add('bold');
-                    description.append(span, '@ psi/psiw = ', span.cloneNode());
+                    description.append(span, ' @psi/psiw = ', span.cloneNode());
                 }
-                input_div.append(description);
+                if (
+                    parameter_spec.group == 'equilibrium' &&
+                    parameter_spec.type == 'array'
+                ) {
+                    // Add figure plot button
+                    const figure_button = document.createElement('button');
+                    input_div.append(figure_button);
+                    figure_button.innerText = 'Plot figure';
+                    figure_button.classList.add('float_window_trigger');
+                }
 
                 cat_div.append(input_div);
             }
@@ -212,6 +228,57 @@ window.addEventListener('load', (ev) => {
             add_eq_update_callback(q_input, 'q_c', (q_coef) =>
                 q_coef.split(',').map((c) => parseFloat(c))
             );
+
+            // define plot function
+            function plot(div) {
+                // this refers to button here, use it to retrieve coefficient
+                const input_div = this.parentElement;
+                const input = input_div.querySelector('input');
+                if (!input_validator(input)) {
+                    return; // TODO: Warn the user!
+                }
+                const coef = input.value.split(',').map((c) => parseFloat(c));
+
+                const len = 100;
+                const psi_line = Array(len + 1)
+                    .fill(0)
+                    .map((_, i) => i / len);
+
+                // determines function to plot according to description
+                const func = input_div
+                    .querySelector('span')
+                    .innerText.includes('parabolic')
+                    ? (psi) => coef[0] + (coef[1] + coef[2] * psi) * psi
+                    : (psi) =>
+                          eq.hyperbolic_profile(...coef, psi) /
+                          eq.hyperbolic_profile(...coef, 0);
+
+                const data = [
+                    {
+                        x: psi_line,
+                        y: psi_line.map((psi) => func(psi)),
+                        mode: 'lines',
+                    },
+                ];
+                const layout = {
+                    title: input_div
+                        .querySelector('label')
+                        .innerText.split('_')[0],
+                    xaxis: {
+                        hoverformat: '.4g',
+                        tickformat: '.4g',
+                        title: 'psi/psiw',
+                    },
+                    yaxis: {
+                        hoverformat: '.4g',
+                        tickformat: '.4g',
+                    },
+                };
+
+                Plotly.newPlot(div, data, layout);
+            }
+            // register float window button callback
+            add_float_window.default(plot);
         })
         .catch((err) => console.log(err));
 });
@@ -250,6 +317,10 @@ class Equilibrium {
         );
     }
 
+    hyperbolic_profile(n0, n1, n2, psi) {
+        return 1 + n0 * (Math.tanh((n1 - psi) / n2) - 1);
+    }
+
     /**
      * Calculate the scale length of profile n0*(Tanh(n1-psi/n2)-1)
      *
@@ -263,7 +334,7 @@ class Equilibrium {
         const sech = (x) => 2 / (Math.exp(x) + Math.exp(-x));
         const df_dp = (psi) =>
             (n0 * Math.pow(sech((n1 - psi) / n2), 2)) /
-            (n2 + n0 * n2 * (Math.tanh((n1 - psi) / n2) - 1));
+            (n2 * this.hyperbolic_profile(n0, n1, n2, psi));
 
         return (
             (this.r_norm(psi) * df_dp(psi) * this.R0) /
