@@ -82,6 +82,27 @@ window.addEventListener('load', (ev) => {
 
                 input_div.prepend(label);
 
+                // Add Slider
+                if (
+                    parameter_spec.group == 'equilibrium' &&
+                    parameter_spec.description.includes('hyperbolic')
+                ) {
+                    const slider_div = document.createElement('div');
+                    // input_div.append(slider_div);
+
+                    const slider0 = document.createElement('input');
+                    slider0.type = 'range';
+                    slider0.min = '0';
+                    slider0.max = '0.5';
+                    slider0.step = 'any';
+
+                    const slider1 = slider0.cloneNode();
+                    slider1.max = '1';
+                    const slider2 = slider1.cloneNode();
+                    slider2.min = '0.05';
+                    slider_div.append(slider0, slider1, slider2);
+                }
+
                 // Add description texts
                 const description = document.createElement('span');
                 input_div.append(description);
@@ -185,11 +206,11 @@ window.addEventListener('load', (ev) => {
             };
             mhd_profiles_inputs.forEach((input) => {
                 update_scale_length.call(input);
-                input.addEventListener('input', update_scale_length);
+                input.addEventListener('change', update_scale_length);
             });
             // Once ref surface position changes, update scale length
             Object.values(ref_flux_surface_inputs).forEach((input) => {
-                input.addEventListener('input', () => {
+                input.addEventListener('change', () => {
                     mhd_profiles_inputs.forEach((input) =>
                         update_scale_length.call(input)
                     );
@@ -202,7 +223,7 @@ window.addEventListener('load', (ev) => {
                 var_name,
                 preprocess = parseFloat
             ) {
-                input_element.addEventListener('input', function () {
+                input_element.addEventListener('change', function () {
                     // Validate input
                     if (!input_validator(this)) {
                         return;
@@ -245,40 +266,115 @@ window.addEventListener('load', (ev) => {
                     .map((_, i) => i / len);
 
                 // determines function to plot according to description
-                const func = input_div
+                const is_mhd_profile = input_div
                     .querySelector('span')
-                    .innerText.includes('parabolic')
-                    ? (psi) => coef[0] + (coef[1] + coef[2] * psi) * psi
-                    : (psi) =>
+                    .innerText.includes('hyperbolic');
+                const func = is_mhd_profile
+                    ? (psi) =>
                           eq.hyperbolic_profile(...coef, psi) /
-                          eq.hyperbolic_profile(...coef, 0);
+                          eq.hyperbolic_profile(...coef, 0)
+                    : (psi) => coef[0] + (coef[1] + coef[2] * psi) * psi;
 
                 const data = [
                     {
                         x: psi_line,
                         y: psi_line.map((psi) => func(psi)),
                         mode: 'lines',
+                        name: 'profile',
                     },
                 ];
+                if (is_mhd_profile) {
+                    data.push({
+                        x: psi_line,
+                        y: psi_line.map((psi) =>
+                            eq.inverse_scale_length_hyperbolic(...coef, psi)
+                        ),
+                        xaxis: 'x2',
+                        yaxis: 'y2',
+                        mode: 'lines',
+                        name: 'gradient',
+                    });
+                    const ref = eq.psi_r(ref_flux_r());
+                    data.push(
+                        { x: [ref], y: [0], name: 'ref' },
+                        {
+                            x: [ref],
+                            y: [0],
+                            xaxis: 'x2',
+                            yaxis: 'y2',
+                            name: 'ref',
+                        }
+                    );
+                }
+
+                const plot_name = input_div
+                    .querySelector('label')
+                    .innerText.split('_')[0];
                 const layout = {
-                    title: input_div
-                        .querySelector('label')
-                        .innerText.split('_')[0],
+                    title: plot_name,
                     xaxis: {
                         hoverformat: '.4g',
-                        tickformat: '.4g',
-                        title: 'psi/psiw',
                     },
                     yaxis: {
                         hoverformat: '.4g',
-                        tickformat: '.4g',
                     },
                 };
+                if (is_mhd_profile) {
+                    const type = plot_name.substring(0, 1);
+                    const particle = plot_name.substring(1);
+                    layout.xaxis2 = {
+                        hoverformat: '.4g',
+                        title: '$\\psi/\\psi_w$',
+                    };
+                    layout.yaxis.title = `$${type}_{${particle}}$`;
+                    layout.yaxis2 = {
+                        hoverformat: '.4g',
+                        title: `$\\frac{\\mathrm{d}\\ln ${type}_{${particle}}}{\\mathrm{d}r}$`,
+                    };
+                    layout.grid = {
+                        rows: 1,
+                        columns: 2,
+                        pattern: 'independent',
+                    };
+                } else {
+                    layout.xaxis.title = '$\\psi/\\psi_w$';
+                }
 
                 Plotly.newPlot(div, data, layout);
             }
-            // register float window button callback
-            add_float_window.default(plot);
+
+            // // register float window button callback
+            // add_float_window.default(plot);
+
+            // show figure above its input
+            document
+                .querySelectorAll('.float_window_trigger')
+                .forEach((btn) => {
+                    btn.addEventListener('click', function (event) {
+                        event.preventDefault();
+
+                        const input_div = this.parentElement;
+                        let figure = input_div.previousElementSibling.querySelector(
+                            '#figure_div'
+                        );
+                        if (!figure) {
+                            const figure_container = document.createElement(
+                                'div'
+                            );
+                            figure_container.classList.add('figure_container');
+                            figure = document.createElement('div');
+                            figure.id = 'figure_div';
+                            input_div
+                                .insertAdjacentElement(
+                                    'beforeBegin',
+                                    figure_container
+                                )
+                                .append(figure);
+                        }
+
+                        plot.call(this, figure);
+                    });
+                });
         })
         .catch((err) => console.log(err));
 });

@@ -42,3 +42,8 @@ form {
 form > div {
     text-align: start;
 }
+
+div.figure_container {
+    width: 100%;
+    height: auto;
+}

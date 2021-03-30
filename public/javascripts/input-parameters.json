@@ -469,6 +469,7 @@
         "default": "2",
         "description": "0: no zonal flow;\n 1: solve zonal flow using new method;\n 2: solve zonal flow using old method",
         "group": "misc",
+        "possible_value": ["0", "1", "2"],
         "type": "integer"
     },
     {
