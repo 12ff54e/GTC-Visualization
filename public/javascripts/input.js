@@ -338,9 +338,6 @@ window.addEventListener('load', (ev) => {
                 Plotly.newPlot(div, data, layout);
             }
 
-            // // register float window button callback
-            // add_float_window.default(plot);
-
             // show figure above its input
             document
                 .querySelectorAll('.float_window_trigger')
@@ -370,6 +367,11 @@ window.addEventListener('load', (ev) => {
                         plot.call(this, figure);
                     });
                 });
+
+            // enable submit button
+            form.querySelectorAll('input[type=submit]').forEach((btn) => {
+                btn.disabled = false;
+            });
         })
         .catch((err) => console.log(err));
 });
