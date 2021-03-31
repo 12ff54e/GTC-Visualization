@@ -104,10 +104,19 @@ app.get('/data/:type-:id', (req, res) => {
     }
 });
 
-app.post('/input.html', (req, res) => {
-    generate_input(req.body).then(() => {
-        res.redirect('/');
+app.post('/input', (req, res) => {
+    res.send('Not implement yet.');
+    // fs.writeFile('./gtc.in', generate_input(req.body)).then(() => {
+    //     res.redirect('/');
+    // });
+});
+
+app.post('/input/download', (req, res) => {
+    res.set({
+        'Content-Disposition': 'attachment; filename="gtc.in"',
+        'Content-Type': 'text/plain',
     });
+    res.send(generate_input(req.body));
 });
 
 async function getFolderStructure(dir) {
@@ -139,7 +148,7 @@ async function getFolderStructure(dir) {
     return filtered.toHTML2();
 }
 
-async function generate_input(params) {
+function generate_input(params) {
     let input_params = '&input_parameters\n';
     let eq_params = '&equilibrium_parameters\n';
     for (const [variable, value] of Object.entries(params)) {
@@ -151,8 +160,7 @@ async function generate_input(params) {
         }
     }
 
-    await fs.writeFile('./gtc.in', `${input_params}/\n${eq_params}/\n`);
-    console.log('input data received and gtc.in created');
+    return `${input_params}/\n${eq_params}/\n`;
 }
 
 async function validate_input_schema() {

@@ -2,20 +2,15 @@ window.addEventListener('load', (ev) => {
     const form = document.getElementById('input');
     const input_area = form.firstElementChild;
 
-    const input_spec = fetch('/javascripts/input-parameters.json').then(
-        (res) => {
+    fetch('/javascripts/input-parameters.json')
+        .then((res) => {
             if (res.ok) {
                 return res.json();
             } else {
                 throw new Error('No input parameters descriptor file found.');
             }
-        }
-    );
-    // I have to do this, since the float window button is added during input form generation
-    const import_script = import('./floating-window.js');
-
-    Promise.all([input_spec, import_script])
-        .then(([input_parameters, add_float_window]) => {
+        })
+        .then((input_parameters) => {
             const cat = new Map();
             for (const parameter_spec of input_parameters) {
                 let cat_div = cat.get(parameter_spec.group);
@@ -437,24 +432,6 @@ class Equilibrium {
             (Math.sqrt(this.psi_w / (2 * this.B0)) * this.q(psi))
         );
     }
-
-    // /**
-    //  * Calculate the maximum inverse scale length of profile n0*(Tanh(n1-psi/n2)-1)
-    //  *
-    //  * @param {number} n0
-    //  * @param {number} n1
-    //  * @param {number} n2
-    //  * @returns scale_length
-    //  */
-    // inverse_scale_length_hyperbolic_maximum(n0, n1, n2) {
-    //     const psi = n1;
-    //     return this.inverse_scale_length_hyperbolic(
-    //         n0,
-    //         n1,
-    //         n2,
-    //         psi < 0 ? 0 : psi > 1 ? 1 : psi
-    //     );
-    // }
 
     psi_r(r) {
         return bisection((psi) => this.r_norm(psi) - r, 0, 1);
