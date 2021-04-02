@@ -6,6 +6,7 @@ const compression = require('compression');
 const FileTree = require('./fileTree.js');
 const fs = require('fs').promises;
 const Ajv = require('ajv').default;
+const helmet = require('helmet');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,6 +22,7 @@ app.use(compression());
 app.use(express.static('./public'));
 app.use(express.urlencoded({ extended: true }));
 app.set('view engine', 'pug');
+app.use(helmet());
 
 app.listen(port);
 
