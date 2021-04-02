@@ -36,8 +36,19 @@
             "pattern": {
                 "description": "Regex used as input content validator ",
                 "type": "string"
+            },
+            "namelist_group": {
+                "description": "Specify namelist group for GTC input/output",
+                "type": "string"
             }
         },
-        "required": ["name", "description", "group", "type", "default"]
+        "required": [
+            "name",
+            "description",
+            "group",
+            "type",
+            "default",
+            "namelist_group"
+        ]
     }
 }

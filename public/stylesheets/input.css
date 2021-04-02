@@ -47,3 +47,7 @@ div.figure_container {
     width: 100%;
     height: auto;
 }
+
+body > div.container {
+    display: none;
+}

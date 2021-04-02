@@ -1,0 +1,395 @@
+[
+    {
+        "name": "irun",
+        "default": "0",
+        "description": "0 for initial run, any non-zero value for restart",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "mstep",
+        "default": "800",
+        "description": "number of ion and field time steps",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "msnap",
+        "default": "5",
+        "description": "number of snapshots and restarts",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ndiag",
+        "default": "10",
+        "description": "do diagnosis when mod(istep,ndiag)=0",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "nonlinear",
+        "default": "0",
+        "description": "1: nonlinear run;\n 0: linear run",
+        "group": "control parameters",
+        "type": "integer",
+        "possible_value": ["0", "1"],
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "nfilter",
+        "default": "0",
+        "description": "0: keep all modes;\n1: select n-mode in setup.F90;\n2: select n & m mode;\n>2: select n & m and k_para<<k_perp",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "tstep",
+        "default": "0.02",
+        "description": "time step size, unit=R_0/c_s (c_s^2=T_e/m_i: main ion species)",
+        "group": "control parameters",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "paranl",
+        "description": "0: no parallel nonlinearity;\n 1: keep parallel nonlinearity",
+        "default": "0",
+        "group": "control parameters",
+        "type": "integer",
+        "possible_value": ["0", "1"],
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "track_particles",
+        "description": "0: no tracking;\n 1: track particles",
+        "default": "0",
+        "group": "control parameters",
+        "type": "integer",
+        "possible_value": ["0", "1"],
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ndata3d",
+        "default": "0",
+        "description": "0: no 3D data;\n 1: write out 3D field data",
+        "group": "control parameters",
+        "possible_value": ["0", "1"],
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "magnetic",
+        "default": "0",
+        "description": "0: electrostatic;\n 1: electromagnetic",
+        "group": "control parameters",
+        "possible_value": ["0", "1"],
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "nbound",
+        "default": "110",
+        "description": "# of radial points subjected to boundary condition. <99 use linear boundary;\n >99: gaussian boundary. nbound-100 points are used. At least 10 points recommented for gaussian boundary, i.e. nbound=110;\n 0: Same number of points for fields and particle drives.",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ismooth",
+        "default": "1",
+        "description": "# of iterations of smoothing in smooth.F90",
+        "group": "control parameters",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "numereq",
+        "default": "0",
+        "description": "0: analytic equilibrium;\n 1: numerical equilibrium, EFIT input;\n 2: VMEC input",
+        "group": "control parameters",
+        "possible_value": ["0", "1", "2"],
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "n_modes",
+        "default": "10 10 10 10 10 10 10 10",
+        "description": "",
+        "group": "diagnostic and filtering specifics",
+        "type": "array",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "m_modes",
+        "default": "11 12 13 14 15 16 17 18",
+        "description": "",
+        "group": "diagnostic and filtering specifics",
+        "type": "array",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "iflux",
+        "default": "48",
+        "description": "reference flux surface label. Usually, iflux=mpsi/2. rho0 defined w.r.t. iflux",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "mpsi",
+        "default": "96",
+        "description": "# of radial grid points",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "mthetamax",
+        "default": "394",
+        "description": "# poloidal grid points (in fieldline following coordinate)",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "mtoroidal",
+        "default": "32",
+        "description": "# of toroidal grids=MPI DD, 64 needed for ITG linear dispersion",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "psi0",
+        "default": "0.02",
+        "description": "inner boundary, psi_inner/psiw",
+        "group": "field grids",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "psi1",
+        "default": "0.88",
+        "description": "outer boundary, psi_outer/psiw",
+        "group": "field grids",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "neop",
+        "default": "16",
+        "description": "radial grids for collision",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "neot",
+        "default": "16",
+        "description": "poloidal grids for collision (in magnetic coordiante)",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "neoz",
+        "default": "3",
+        "description": "toroidal grids. 1 or >9: normal",
+        "group": "field grids",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "micell",
+        "default": "100",
+        "description": "particle per cell for ion",
+        "group": "thermal (main) ion",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "aion",
+        "default": "1.0",
+        "description": "ion mass, unit=proton mass",
+        "group": "thermal (main) ion",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "qion",
+        "default": "1.0",
+        "description": "ion charge, unit=proton charge",
+        "group": "thermal (main) ion",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ngyroi",
+        "default": "4",
+        "description": "N-point gyro-averaging, N=1, 4, or 8",
+        "group": "thermal (main) ion",
+        "possible_value": ["1", "4", "8"],
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "iload",
+        "default": "1",
+        "description": "0: ideal MHD;\n 1: uniform marker & MHD;\n >1: non-uniform marker & MHD",
+        "group": "thermal (main) ion",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "icoll",
+        "default": "0",
+        "description": "0: no collisions;\n >0: collisions when mod(istep,ndiag)=0",
+        "group": "thermal (main) ion",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "mfcell",
+        "default": "1",
+        "description": "particle per cell for fast ion",
+        "group": "fast ion",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "afast",
+        "default": "1.0",
+        "description": "fast ion mass, unit=proton mass",
+        "group": "fast ion",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "qfast",
+        "default": "1.0",
+        "description": "fast ion charge, unit=proton charge",
+        "group": "fast ion",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ngyrof",
+        "default": "1",
+        "description": "N-point gyro-averaging, N=1, 4, or 8",
+        "group": "fast ion",
+        "possible_value": ["1", "4", "8"],
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "fload",
+        "default": "0",
+        "description": "0: no fast ion;\n 1: uniform marker temperature;\n 2: non-uniform marker;\n 11: slowing down distribution;\n uniform marker temperature",
+        "group": "fast ion",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "mecell",
+        "default": "100",
+        "description": "particle per cell for electron",
+        "group": "electron",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "nhybrid",
+        "default": "0",
+        "description": "fluid-kinetic hybrid electron model, 0: no kinetic electron",
+        "group": "electron",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ncyclee",
+        "default": "5",
+        "description": " # of electron subcycle",
+        "group": "electron",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "qelectron",
+        "default": "-1.0",
+        "description": "electron charge, unit=proton charge",
+        "group": "electron",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "aelectron",
+        "default": "5.44618e-4",
+        "description": "electron mass, unit=proton mass",
+        "group": "electron",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "eload",
+        "default": "1",
+        "description": "1: uniform marker temperature;\n >1: non-uniform marker",
+        "group": "electron",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "etrap",
+        "default": "1",
+        "description": "1: load trapped electrons;\n 2: load all electrons",
+        "group": "electron",
+        "possible_value": ["1", "2"],
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "ecoll",
+        "default": "0",
+        "description": "0: no collisions;\n >0: collisions when mod(istep,ndiag)=0",
+        "group": "electron",
+        "type": "integer",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "etemp0",
+        "default": "2223",
+        "description": "electron temperature, unit=ev",
+        "group": "physical unit for equilibrium",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "eden0",
+        "default": "1.13e14",
+        "description": "electron number density, unit=1/cm^3",
+        "group": "physical unit for equilibrium",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "r0",
+        "default": "83.5",
+        "description": "major radius, unit=cm",
+        "group": "physical unit for equilibrium",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    },
+    {
+        "name": "b0",
+        "default": "20125.4",
+        "description": "on-axis magnetic field, unit=gauss",
+        "group": "physical unit for equilibrium",
+        "type": "real",
+        "namelist_group": "input_parameters"
+    }
+]

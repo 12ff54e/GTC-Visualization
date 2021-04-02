@@ -1,8 +1,17 @@
 window.addEventListener('load', (ev) => {
+    // read query string
+    const ver = new URLSearchParams(window.location.search).get('v');
+    if (!ver) {
+        return;
+    } else {
+        document.querySelector('#version_selection').style.display = 'none';
+    }
+
     const form = document.getElementById('input');
     const input_area = form.firstElementChild;
+    form.parentElement.style.display = 'block';
 
-    fetch('/javascripts/input-parameters.json')
+    fetch(`/javascripts/input-parameters-v${ver}.json`)
         .then((res) => {
             if (res.ok) {
                 return res.json();
@@ -31,9 +40,7 @@ window.addEventListener('load', (ev) => {
                 if (parameter_spec.possible_value) {
                     // Add select element
                     const select = document.createElement('select');
-                    select.name =
-                        (parameter_spec.group == 'equilibrium' ? 'eq-' : '') +
-                        parameter_spec.name;
+                    select.name = `${parameter_spec.namelist_group}-${parameter_spec.name}`;
                     select.id = parameter_spec.name;
                     for (const v of parameter_spec.possible_value) {
                         const opt = document.createElement('option');
@@ -45,9 +52,8 @@ window.addEventListener('load', (ev) => {
                 } else {
                     // Add input element
                     const input = document.createElement('input');
-                    input.name =
-                        (parameter_spec.group == 'equilibrium' ? 'eq-' : '') +
-                        parameter_spec.name;
+                    // append namelist naming
+                    input.name = `${parameter_spec.namelist_group}-${parameter_spec.name}`;
                     input.id = parameter_spec.name;
                     input.value =
                         parameter_spec.type == 'array'
@@ -126,248 +132,258 @@ window.addEventListener('load', (ev) => {
                 cat_div.append(input_div);
             }
 
-            // Create eq object
-            const R0_input = document.querySelector('#r0,#R0');
-            const B0_input = document.querySelector('#b0,#B0');
-            const psi_w_input = document.querySelector('#psiw_analytic');
-            const q_input = document.querySelector('#q_analytic');
-            const eq = new Equilibrium({
-                R0: parseFloat(R0_input.value) / 100,
-                B0: parseFloat(B0_input.value) / 10000,
-                psi_w: parseFloat(psi_w_input.value),
-                q_c: q_input.value.split(',').map((c) => parseFloat(c)),
-            });
-
-            // mhd profile coefficients inputs, including temperature and density of ion and electron
-            const mhd_profiles_inputs = Array.from(
-                document.getElementsByTagName('input')
-            ).filter(
-                (input) =>
-                    input.name.startsWith('eq-') &&
-                    input.nextElementSibling.innerText.includes('hyperbolic')
-            );
-
-            // inputs determine ref flux surface position
-            const ref_flux_surface_inputs = {
-                psi0: document.querySelector('#psi0'),
-                psi1: document.querySelector('#psi1'),
-                m_psi: document.querySelector('#mpsi'),
-                ref_flux_index: document.querySelector('#iflux'),
-            };
-
-            function input_validator(input) {
-                return new RegExp(input.pattern).test(input.value);
-            }
-
-            function ref_flux_r() {
-                const {
-                    psi0,
-                    psi1,
-                    m_psi,
-                    ref_flux_index,
-                } = ref_flux_surface_inputs;
-                const valid = input_validator(psi0) && input_validator(psi1);
-                if (!valid) {
-                    return;
-                }
-
-                const psi0_val = parseFloat(psi0.value);
-                const psi1_val = parseFloat(psi1.value);
-                const m = parseInt(m_psi.value);
-                const i = parseInt(ref_flux_index.value);
-
-                return (
-                    eq.r_norm(psi0_val) * (1 - i / m) +
-                    (eq.r_norm(psi1_val) * i) / m
-                );
-            }
-
-            // Add callback for updating scale length
-            const update_scale_length = function () {
-                // Validate input
-                if (!input_validator(this)) {
-                    return;
-                }
-                const gradient_span = this.nextElementSibling.firstElementChild;
-                const position_span = this.nextElementSibling.lastElementChild;
-                const psi_ref = eq.psi_r(ref_flux_r());
-                gradient_span.innerText = eq
-                    .inverse_scale_length_hyperbolic(
-                        ...this.value.split(',').map((n) => parseFloat(n)),
-                        psi_ref
-                    )
-                    .toFixed(2);
-                position_span.innerText = psi_ref.toFixed(2);
-            };
-            mhd_profiles_inputs.forEach((input) => {
-                update_scale_length.call(input);
-                input.addEventListener('change', update_scale_length);
-            });
-            // Once ref surface position changes, update scale length
-            Object.values(ref_flux_surface_inputs).forEach((input) => {
-                input.addEventListener('change', () => {
-                    mhd_profiles_inputs.forEach((input) =>
-                        update_scale_length.call(input)
-                    );
+            if (ver == '16') {
+                // Create eq object
+                const R0_input = document.querySelector('#r0,#R0');
+                const B0_input = document.querySelector('#b0,#B0');
+                const psi_w_input = document.querySelector('#psiw_analytic');
+                const q_input = document.querySelector('#q_analytic');
+                const eq = new Equilibrium({
+                    R0: parseFloat(R0_input.value) / 100,
+                    B0: parseFloat(B0_input.value) / 10000,
+                    psi_w: parseFloat(psi_w_input.value),
+                    q_c: q_input.value.split(',').map((c) => parseFloat(c)),
                 });
-            });
 
-            // Add callback for updating eq object
-            function add_eq_update_callback(
-                input_element,
-                var_name,
-                preprocess = parseFloat
-            ) {
-                input_element.addEventListener('change', function () {
+                // mhd profile coefficients inputs, including temperature and density of ion and electron
+                const mhd_profiles_inputs = Array.from(
+                    document.getElementsByTagName('input')
+                ).filter(
+                    (input) =>
+                        input.name.startsWith('equilibrium_parameters-') &&
+                        input.nextElementSibling.innerText.includes(
+                            'hyperbolic'
+                        )
+                );
+
+                // inputs determine ref flux surface position
+                const ref_flux_surface_inputs = {
+                    psi0: document.querySelector('#psi0'),
+                    psi1: document.querySelector('#psi1'),
+                    m_psi: document.querySelector('#mpsi'),
+                    ref_flux_index: document.querySelector('#iflux'),
+                };
+
+                function input_validator(input) {
+                    return new RegExp(input.pattern).test(input.value);
+                }
+
+                function ref_flux_r() {
+                    const {
+                        psi0,
+                        psi1,
+                        m_psi,
+                        ref_flux_index,
+                    } = ref_flux_surface_inputs;
+                    const valid =
+                        input_validator(psi0) && input_validator(psi1);
+                    if (!valid) {
+                        return;
+                    }
+
+                    const psi0_val = parseFloat(psi0.value);
+                    const psi1_val = parseFloat(psi1.value);
+                    const m = parseInt(m_psi.value);
+                    const i = parseInt(ref_flux_index.value);
+
+                    return (
+                        eq.r_norm(psi0_val) * (1 - i / m) +
+                        (eq.r_norm(psi1_val) * i) / m
+                    );
+                }
+
+                // Add callback for updating scale length
+                const update_scale_length = function () {
                     // Validate input
                     if (!input_validator(this)) {
                         return;
                     }
-                    eq.update({ [var_name]: preprocess(this.value) });
-                    // Notice that once eq has changed, scale lengths need to be re-calculated
-                    mhd_profiles_inputs.forEach((input) =>
-                        update_scale_length.call(input)
-                    );
+                    const gradient_span = this.nextElementSibling
+                        .firstElementChild;
+                    const position_span = this.nextElementSibling
+                        .lastElementChild;
+                    const psi_ref = eq.psi_r(ref_flux_r());
+                    gradient_span.innerText = eq
+                        .inverse_scale_length_hyperbolic(
+                            ...this.value.split(',').map((n) => parseFloat(n)),
+                            psi_ref
+                        )
+                        .toFixed(2);
+                    position_span.innerText = psi_ref.toFixed(2);
+                };
+                mhd_profiles_inputs.forEach((input) => {
+                    update_scale_length.call(input);
+                    input.addEventListener('change', update_scale_length);
                 });
-            }
-            add_eq_update_callback(
-                R0_input,
-                'R0',
-                (r0) => parseFloat(r0) / 100
-            );
-            add_eq_update_callback(
-                B0_input,
-                'B0',
-                (b0) => parseFloat(b0) / 10000
-            );
-            add_eq_update_callback(psi_w_input, 'psi_w');
-            add_eq_update_callback(q_input, 'q_c', (q_coef) =>
-                q_coef.split(',').map((c) => parseFloat(c))
-            );
-
-            // define plot function
-            function plot(div) {
-                // this refers to button here, use it to retrieve coefficient
-                const input_div = this.parentElement;
-                const input = input_div.querySelector('input');
-                if (!input_validator(input)) {
-                    return; // TODO: Warn the user!
-                }
-                const coef = input.value.split(',').map((c) => parseFloat(c));
-
-                const len = 100;
-                const psi_line = Array(len + 1)
-                    .fill(0)
-                    .map((_, i) => i / len);
-
-                // determines function to plot according to description
-                const is_mhd_profile = input_div
-                    .querySelector('span')
-                    .innerText.includes('hyperbolic');
-                const func = is_mhd_profile
-                    ? (psi) =>
-                          eq.hyperbolic_profile(...coef, psi) /
-                          eq.hyperbolic_profile(...coef, 0)
-                    : (psi) => coef[0] + (coef[1] + coef[2] * psi) * psi;
-
-                const data = [
-                    {
-                        x: psi_line,
-                        y: psi_line.map((psi) => func(psi)),
-                        mode: 'lines',
-                        name: 'profile',
-                    },
-                ];
-                if (is_mhd_profile) {
-                    data.push({
-                        x: psi_line,
-                        y: psi_line.map((psi) =>
-                            eq.inverse_scale_length_hyperbolic(...coef, psi)
-                        ),
-                        xaxis: 'x2',
-                        yaxis: 'y2',
-                        mode: 'lines',
-                        name: 'gradient',
+                // Once ref surface position changes, update scale length
+                Object.values(ref_flux_surface_inputs).forEach((input) => {
+                    input.addEventListener('change', () => {
+                        mhd_profiles_inputs.forEach((input) =>
+                            update_scale_length.call(input)
+                        );
                     });
-                    const ref = eq.psi_r(ref_flux_r());
-                    data.push(
-                        { x: [ref], y: [0], name: 'ref' },
+                });
+
+                // Add callback for updating eq object
+                function add_eq_update_callback(
+                    input_element,
+                    var_name,
+                    preprocess = parseFloat
+                ) {
+                    input_element.addEventListener('change', function () {
+                        // Validate input
+                        if (!input_validator(this)) {
+                            return;
+                        }
+                        eq.update({ [var_name]: preprocess(this.value) });
+                        // Notice that once eq has changed, scale lengths need to be re-calculated
+                        mhd_profiles_inputs.forEach((input) =>
+                            update_scale_length.call(input)
+                        );
+                    });
+                }
+                add_eq_update_callback(
+                    R0_input,
+                    'R0',
+                    (r0) => parseFloat(r0) / 100
+                );
+                add_eq_update_callback(
+                    B0_input,
+                    'B0',
+                    (b0) => parseFloat(b0) / 10000
+                );
+                add_eq_update_callback(psi_w_input, 'psi_w');
+                add_eq_update_callback(q_input, 'q_c', (q_coef) =>
+                    q_coef.split(',').map((c) => parseFloat(c))
+                );
+
+                // define plot function
+                function plot(div) {
+                    // this refers to button here, use it to retrieve coefficient
+                    const input_div = this.parentElement;
+                    const input = input_div.querySelector('input');
+                    if (!input_validator(input)) {
+                        return; // TODO: Warn the user!
+                    }
+                    const coef = input.value
+                        .split(',')
+                        .map((c) => parseFloat(c));
+
+                    const len = 100;
+                    const psi_line = Array(len + 1)
+                        .fill(0)
+                        .map((_, i) => i / len);
+
+                    // determines function to plot according to description
+                    const is_mhd_profile = input_div
+                        .querySelector('span')
+                        .innerText.includes('hyperbolic');
+                    const func = is_mhd_profile
+                        ? (psi) =>
+                              eq.hyperbolic_profile(...coef, psi) /
+                              eq.hyperbolic_profile(...coef, 0)
+                        : (psi) => coef[0] + (coef[1] + coef[2] * psi) * psi;
+
+                    const data = [
                         {
-                            x: [ref],
-                            y: [0],
+                            x: psi_line,
+                            y: psi_line.map((psi) => func(psi)),
+                            mode: 'lines',
+                            name: 'profile',
+                        },
+                    ];
+                    if (is_mhd_profile) {
+                        data.push({
+                            x: psi_line,
+                            y: psi_line.map((psi) =>
+                                eq.inverse_scale_length_hyperbolic(...coef, psi)
+                            ),
                             xaxis: 'x2',
                             yaxis: 'y2',
-                            name: 'ref',
-                        }
-                    );
-                }
-
-                const plot_name = input_div
-                    .querySelector('label')
-                    .innerText.split('_')[0];
-                const layout = {
-                    title: plot_name,
-                    xaxis: {
-                        hoverformat: '.4g',
-                    },
-                    yaxis: {
-                        hoverformat: '.4g',
-                    },
-                };
-                if (is_mhd_profile) {
-                    const type = plot_name.substring(0, 1);
-                    const particle = plot_name.substring(1);
-                    layout.xaxis2 = {
-                        hoverformat: '.4g',
-                        title: '$\\psi/\\psi_w$',
-                    };
-                    layout.yaxis.title = `$${type}_{${particle}}$`;
-                    layout.yaxis2 = {
-                        hoverformat: '.4g',
-                        title: `$\\frac{\\mathrm{d}\\ln ${type}_{${particle}}}{\\mathrm{d}r}$`,
-                    };
-                    layout.grid = {
-                        rows: 1,
-                        columns: 2,
-                        pattern: 'independent',
-                    };
-                } else {
-                    layout.xaxis.title = '$\\psi/\\psi_w$';
-                }
-
-                Plotly.newPlot(div, data, layout);
-            }
-
-            // show figure above its input
-            document
-                .querySelectorAll('.float_window_trigger')
-                .forEach((btn) => {
-                    btn.addEventListener('click', function (event) {
-                        event.preventDefault();
-
-                        const input_div = this.parentElement;
-                        let figure = input_div.previousElementSibling.querySelector(
-                            '#figure_div'
+                            mode: 'lines',
+                            name: 'gradient',
+                        });
+                        const ref = eq.psi_r(ref_flux_r());
+                        data.push(
+                            { x: [ref], y: [0], name: 'ref' },
+                            {
+                                x: [ref],
+                                y: [0],
+                                xaxis: 'x2',
+                                yaxis: 'y2',
+                                name: 'ref',
+                            }
                         );
-                        if (!figure) {
-                            const figure_container = document.createElement(
-                                'div'
+                    }
+
+                    const plot_name = input_div
+                        .querySelector('label')
+                        .innerText.split('_')[0];
+                    const layout = {
+                        title: plot_name,
+                        xaxis: {
+                            hoverformat: '.4g',
+                        },
+                        yaxis: {
+                            hoverformat: '.4g',
+                        },
+                    };
+                    if (is_mhd_profile) {
+                        const type = plot_name.substring(0, 1);
+                        const particle = plot_name.substring(1);
+                        layout.xaxis2 = {
+                            hoverformat: '.4g',
+                            title: '$\\psi/\\psi_w$',
+                        };
+                        layout.yaxis.title = `$${type}_{${particle}}$`;
+                        layout.yaxis2 = {
+                            hoverformat: '.4g',
+                            title: `$\\frac{\\mathrm{d}\\ln ${type}_{${particle}}}{\\mathrm{d}r}$`,
+                        };
+                        layout.grid = {
+                            rows: 1,
+                            columns: 2,
+                            pattern: 'independent',
+                        };
+                    } else {
+                        layout.xaxis.title = '$\\psi/\\psi_w$';
+                    }
+
+                    Plotly.newPlot(div, data, layout);
+                }
+
+                // show figure above its input
+                document
+                    .querySelectorAll('.float_window_trigger')
+                    .forEach((btn) => {
+                        btn.addEventListener('click', function (event) {
+                            event.preventDefault();
+
+                            const input_div = this.parentElement;
+                            let figure = input_div.previousElementSibling.querySelector(
+                                '#figure_div'
                             );
-                            figure_container.classList.add('figure_container');
-                            figure = document.createElement('div');
-                            figure.id = 'figure_div';
-                            input_div
-                                .insertAdjacentElement(
-                                    'beforeBegin',
-                                    figure_container
-                                )
-                                .append(figure);
-                        }
+                            if (!figure) {
+                                const figure_container = document.createElement(
+                                    'div'
+                                );
+                                figure_container.classList.add(
+                                    'figure_container'
+                                );
+                                figure = document.createElement('div');
+                                figure.id = 'figure_div';
+                                input_div
+                                    .insertAdjacentElement(
+                                        'beforeBegin',
+                                        figure_container
+                                    )
+                                    .append(figure);
+                            }
 
-                        plot.call(this, figure);
+                            plot.call(this, figure);
+                        });
                     });
-                });
-
+            }
             // enable submit button
             form.querySelectorAll('input[type=submit]').forEach((btn) => {
                 btn.disabled = false;

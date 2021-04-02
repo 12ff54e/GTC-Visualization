@@ -151,18 +151,25 @@ async function getFolderStructure(dir) {
 }
 
 function generate_input(params) {
-    let input_params = '&input_parameters\n';
-    let eq_params = '&equilibrium_parameters\n';
+    const namelist_grouping = new Map();
+
     for (const [variable, value] of Object.entries(params)) {
+        const [group, name] = variable.split('-');
         const filtered_value = value.replace(/[, ]+/g, ' ');
-        if (variable.startsWith('eq-')) {
-            eq_params += `${variable.substring(3)}=${filtered_value}\n`;
-        } else {
-            input_params += `${variable}=${filtered_value}\n`;
+
+        let arr;
+        if (!(arr = namelist_grouping.get(group))) {
+            namelist_grouping.set(group, (arr = []));
         }
+        arr.push(`${name}=${filtered_value}\n`);
     }
 
-    return `${input_params}/\n${eq_params}/\n`;
+    let result = '';
+    for (const [group_name, group_vars] of namelist_grouping) {
+        result += `&${group_name}\n${group_vars.join('')}/\n`;
+    }
+
+    return result;
 }
 
 async function validate_input_schema() {
@@ -171,12 +178,21 @@ async function validate_input_schema() {
     const schema = JSON.parse(
         await fs.readFile('./input-parameters-schema.json', 'utf-8')
     );
-    const input_spec = JSON.parse(
-        await fs.readFile('./public/javascripts/input-parameters.json', 'utf-8')
+    const input_specs = await Promise.all(
+        (await fs.readdir('./public/javascripts/'))
+            .filter((filename) => filename.endsWith('.json'))
+            .map((filename) =>
+                fs
+                    .readFile(
+                        path.join('./public/javascripts/', filename),
+                        'utf-8'
+                    )
+                    .then((str) => JSON.parse(str))
+            )
     );
 
     const validate = ajv.compile(schema);
-    const valid = validate(input_spec);
+    const valid = input_specs.every((input_spec) => validate(input_spec));
     if (valid) {
         console.log('Input specs are valid.');
     } else {
