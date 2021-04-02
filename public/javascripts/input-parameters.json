@@ -36,7 +36,7 @@
         "possible_value": ["0", "1"]
     },
     {
-        "name": "toroidal",
+        "name": "toroidaln",
         "default": "1",
         "description": "must be >=1: toroidal simulation domain zeta=[0,2pi/toroidaln]",
         "group": "control parameters",
