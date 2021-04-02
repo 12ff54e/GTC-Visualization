@@ -580,7 +580,7 @@
         "namelist_group": "input_parameters"
     },
     {
-        "name": "sd_withInv",
+        "name": "sd_widthInv",
         "default": "0",
         "description": "inverse anisotropic distribution pitch width;\n 0 for isotropic limit",
         "group": "slowing down distribution parameters",
@@ -685,7 +685,7 @@
         "namelist_group": "equilibrium_parameters"
     },
     {
-        "name": "fedn0_analytic",
+        "name": "fden0_analytic",
         "default": "1.0e-5",
         "description": "on-axis fast ion density, unit=n_e0",
         "group": "equilibrium",
