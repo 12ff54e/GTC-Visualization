@@ -49,7 +49,9 @@ module.exports = async function (dir) {
                         .split(/\s+/)
                         .map(str => parseInt(str));
                 }
-                params[g.key.toLowerCase()] = value;
+                if(params[g.key.toLowerCase()] === undefined) {
+                    params[g.key.toLowerCase()] = value;
+                }
             }
         });
 
