@@ -94,8 +94,8 @@
     },
     {
         "name": "nbound",
-        "default": "110",
-        "description": "# of radial points subjected to boundary condition. <99 use linear boundary;\n >99: gaussian boundary. nbound-100 points are used. At least 10 points recommented for gaussian boundary, i.e. nbound=110;\n 0: Same number of points for fields and particle drives.",
+        "default": "10",
+        "description": "# of radial points subjected to boundary condition.",
         "group": "control parameters",
         "type": "integer",
         "namelist_group": "input_parameters"
@@ -111,9 +111,8 @@
     {
         "name": "numereq",
         "default": "0",
-        "description": "0: analytic equilibrium;\n 1: numerical equilibrium, EFIT input;\n 2: VMEC input",
+        "description": "0: numerical equilibrium;\n >0: choice of analytic equilibrium",
         "group": "control parameters",
-        "possible_value": ["0", "1", "2"],
         "type": "integer",
         "namelist_group": "input_parameters"
     },
