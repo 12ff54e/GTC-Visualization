@@ -285,38 +285,52 @@ async function history_mode(figures, interval1, interval2) {
 
     // frequency figure
     let y0 = componentsFig.data[0].y[0];
+    y0 = y0 == 0 ? 1 : y0;
     let yReals = componentsFig.data[0].y
         .map((y, i) => y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0));
     let yImages = componentsFig.data[1].y
         .map((y, i) => y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0));
     let omega;
-    ({ omega, measurePts } = spectrum.cal_omega_r(yReals, window.GTCGlobal.timeStep, interval2));
-    freqFig.data[0] = ({
-        x: [...Array(yReals.length).keys()].map(i => (i + 1) * window.GTCGlobal.timeStep),
+    ({ omega, measurePts } = spectrum.cal_omega_r(
+        yReals,
+        yImages,
+        window.GTCGlobal.timeStep,
+        interval2
+    ));
+    freqFig.data[0] = {
+        x: [...Array(yReals.length).keys()].map(
+            (i) => (i + 1) * window.GTCGlobal.timeStep
+        ),
         y: yReals,
         type: 'scatter',
-        mode: 'lines'
-    });
-    freqFig.data[1] = ({
-        x: [...Array(yReals.length).keys()].map(i => (i + 1) * window.GTCGlobal.timeStep),
+        mode: 'lines',
+    };
+    freqFig.data[1] = {
+        x: [...Array(yReals.length).keys()].map(
+            (i) => (i + 1) * window.GTCGlobal.timeStep
+        ),
         y: yImages,
         type: 'scatter',
-        mode: 'lines'
-    });
-    freqFig.data[2] = ({
+        mode: 'lines',
+    };
+    freqFig.data[2] = {
         x: [measurePts[0].x, measurePts[1].x],
         y: [measurePts[0].y, measurePts[1].y],
         type: 'scatter',
         line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
-        markers: { color: 'rgb(255, 0, 0)', size: 8 }
-    });
+        markers: { color: 'rgb(255, 0, 0)', size: 8 },
+    };
     freqFig.layout.title = `$\\omega=${omega.toPrecision(5)}$`;
     freqFig.layout.xaxis.rangeslider = {
-        bgcolor: 'rgb(200,200,210)'
+        bgcolor: 'rgb(200,200,210)',
     };
 
     // spectral figure
-    let powerSpectrum = await spectrum.cal_spectrum(yReals, yImages, window.GTCGlobal.timeStep);
+    let powerSpectrum = spectrum.cal_spectrum(
+        yReals,
+        yImages,
+        window.GTCGlobal.timeStep
+    );
     spectralFig.data[0] = (
         Object.assign(powerSpectrum, {
             type: 'scatter',

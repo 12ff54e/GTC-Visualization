@@ -100,7 +100,7 @@ class History extends PlotType {
         type = type ? type : 'point';
         let figureContainer = new Array();
         let timeStep = basicParams.ndiag * basicParams.tstep;
-        const tu = '$R_0/c_s$';
+        const tu = '$R_0/c_{s,i}$';
 
         if (PlotType.fieldID.includes(cat)) {
             // field
