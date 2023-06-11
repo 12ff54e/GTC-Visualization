@@ -20,5 +20,5 @@ This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) ou
 You can also, and I suggest to, use process manager or init system to keep app ALWAYS running.
 **Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run this command on your own computer, then upload the whole folder to server.
 
-## What's behind
-This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from Huasheng Xie's Matlab program.
+## What's behind the scene
+This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from [Huasheng Xie](http://hsxie.me/)'s Matlab program.
