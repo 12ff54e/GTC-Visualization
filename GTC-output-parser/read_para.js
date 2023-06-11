@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs').promises;
 
 // RegExp for output in the form 'var' = 'value'
-const regexp = /\s*(?<key>[\w_]+)\s*=\s*(?<value>[\d.E+-]+)/i;
+const regexp = /^\s*(?<key>[\w_]+)\s*=\s*(?<value>[\d.E+-]+)/i;
 
 module.exports = async function (dir) {
     const file1 = path.join(dir, 'gtc.out');
@@ -19,7 +19,7 @@ module.exports = async function (dir) {
             outputData = await fs.readFile(file2, 'utf8');
             console.log(`${file2} read`);
         } catch (err) {
-            throw new Error("No gtc.out found in this directory");
+            throw new Error('No gtc.out found in this directory');
         }
     }
 
@@ -30,30 +30,38 @@ module.exports = async function (dir) {
 
     // return all the parameters capsuled in a object
     const params = new Object();
-    validatedData
-        .forEach(line => {
-            let regexMatch;
-            if (regexMatch = line.match(regexp)) {
-                const g = regexMatch.groups;
-                let value;
-                if (g.value.includes('.')) {
-                    value = parseFloat(g.value);
-                } else {
-                    value = parseInt(g.value);
-                }
-                // n modes and m modes are list of mode numbers
-                if (g.key === 'nmodes' || g.key === 'mmodes') {
-                    value = line
-                        .substring(8)
-                        .trim()
-                        .split(/\s+/)
-                        .map(str => parseInt(str));
-                }
-                if(params[g.key.toLowerCase()] === undefined) {
-                    params[g.key.toLowerCase()] = value;
-                }
+    validatedData.forEach(line => {
+        let regexMatch;
+        if ((regexMatch = line.match(regexp))) {
+            const g = regexMatch.groups;
+            let value;
+            if (g.value.includes('.')) {
+                value = parseFloat(g.value);
+            } else {
+                value = parseInt(g.value);
             }
-        });
+            // n modes and m modes are list of mode numbers
+            if (g.key === 'nmodes' || g.key === 'mmodes') {
+                value = line
+                    .substring(8)
+                    .trim()
+                    .split(/\s+/)
+                    .map(str => parseInt(str));
+            }
+            if (params[g.key.toLowerCase()] === undefined) {
+                params[g.key.toLowerCase()] = value;
+            }
+        } else if (
+            (regexMatch = line.match(
+                /^\s*rg0,\s*rg1\s*=\s*(?<r0>[\d.Ee+-]+)\s+(?<r1>[\d.Ee+-]+).*/i
+            ))
+        ) {
+            params['radial_region'] = [
+                parseFloat(regexMatch.groups.r0),
+                parseFloat(regexMatch.groups.r1),
+            ];
+        }
+    });
 
     return params;
-}
+};
