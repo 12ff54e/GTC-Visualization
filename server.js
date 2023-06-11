@@ -6,7 +6,6 @@ const compression = require('compression');
 const FileTree = require('./fileTree.js');
 const fs = require('fs').promises;
 const Ajv = require('ajv').default;
-const helmet = require('helmet');
 
 const app = express();
 const port = process.env.PORT || 3000;

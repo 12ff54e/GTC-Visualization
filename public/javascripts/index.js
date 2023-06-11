@@ -88,8 +88,8 @@ window.addEventListener('error', () => {
         'Please consult javascript console for more info.'
 })
 
-function registerButtons() {
-    let buttons = document.getElementsByClassName('tab-l1-btn');
+function registerButtons(buttons) {
+    // let buttons = document.getElementsByClassName('tab-l1-btn');
     for (let btn of buttons) {
         btn.onclick = getDataThenPlot;
     }
@@ -137,19 +137,22 @@ async function openPanel() {
             btn_id_array = [poloidalPlane, others];
             createEqPanel1D(x, y);
         }
-        btn_id_array.forEach(type => {
+        btn_id_array.map(type => {
             let subDiv = document.createElement('div')
-            type.forEach(btnID => {
+            const btns = type.map(btnID => {
                 let btn = document.createElement('button');
                 btn.setAttribute('id', `${majorType}-${btnID}`);
                 btn.setAttribute('class', 'tab-l1-btn');
                 btn.innerText = btnID;
                 subDiv.appendChild(btn);
+
+                return btn;
             })
+            registerButtons(btns);
             panel.appendChild(subDiv)
         });
         // register buttons' callback functions
-        registerButtons();
+        // registerButtons();
 
         if (this.id === 'History') {
             if (!window.GTCGlobal.GTCtimeStep) {
@@ -375,26 +378,38 @@ async function snapshot_spectrum(figures) {
 
 }
 
-async function snapshot_poloidal(figures) {
+function snapshot_poloidal(figures) {
     const { polNum, radNum } = figures.pop();
     const flattenedField = figures[0].data[1].z;
-    const modeNum = polNum / 2;
+    const modeNum = polNum / 20;
 
+    const spectrum_figure_data = figures[1].data;
     for (let i = 0; i < modeNum; i++) {
-        figures[1].data.push({
+        spectrum_figure_data.push({
             y: [],
+            name: `m = ${i}`,
             showlegend: false,
-            hoverinfo: 'none'
+            hoverinfo: 'none',
+            total: 0,
         });
     }
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        Array.from(window.GTCGlobal.Fourier.spectrum(circle).slice(0, modeNum))
-            .forEach((amp, i) => {
-                let trace = figures[1].data[i];
-                trace.y.push(amp);
-            });
+        Array.from(
+            window.GTCGlobal.Fourier.spectrum(circle).slice(0, modeNum)
+        ).forEach((amp, i) => {
+            spectrum_figure_data[i].y.push(amp);
+            spectrum_figure_data[i].total += amp;
+        });
     }
+    spectrum_figure_data
+        .sort((u, v) => {
+            return v.total - u.total;
+        })
+        .some((d, i) => {
+            d.showlegend = true;
+            return i > 6;
+        });
 }
 
 async function tracking_plot(figures) {
@@ -409,7 +424,7 @@ async function tracking_plot(figures) {
     Object.assign(figures[1].data[0], {
         x: scatter.map(({ x }, i) => x * Math.cos(zeta[i])),
         y: scatter.map(({ x }, i) => x * Math.sin(zeta[i])),
-        z: scatter.map(({ y }) => y)
+        z: scatter.map(({ y }) => y),
     });
 
     Plotly.newPlot('figure-2', figures[1]);
@@ -418,25 +433,24 @@ async function tracking_plot(figures) {
 function transpose(matrix) {
     let result = new Array(matrix[0].length);
     for (let i = 0; i < result.length; i++) {
-        result[i] = matrix.map(line => line[i])
+        result[i] = matrix.map((line) => line[i]);
     }
     return result;
 }
 
 function createEqPanel1D(xDataTypes, yDataTypes) {
-
     const xDiv = document.getElementById('eq-x');
     const yDiv = document.getElementById('eq-y');
 
     // add x group radio buttons
-    xDataTypes.forEach(xData => {
+    xDataTypes.forEach((xData) => {
         let input = document.createElement('input');
         Object.assign(input, {
             id: `x-${xData}`,
             value: xData,
             type: 'radio',
             name: 'x',
-            className: 'eq-1d-x'
+            className: 'eq-1d-x',
         });
 
         let label = document.createElement('label');
@@ -448,14 +462,14 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     });
 
     // add y group radio buttons
-    yDataTypes.forEach(yData => {
+    yDataTypes.forEach((yData) => {
         let input = document.createElement('input');
         Object.assign(input, {
             id: `y-${yData}`,
             value: yData,
             type: 'radio',
             name: 'y',
-            className: 'eq-1d-y'
+            className: 'eq-1d-y',
         });
 
         let label = document.createElement('label');
@@ -483,5 +497,5 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
         }
 
         getDataThenPlot.call({ id: `${type}-1D-${xType}-${yType}` });
-    })
+    });
 }
