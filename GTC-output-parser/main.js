@@ -66,9 +66,7 @@ class GTCOutput {
             return;
         }
 
-        if (type !== 'Equilibrium') {
-            await this.read_para();
-        }
+        await this.read_para();
         if (type === 'Tracking') {
             await this.readData('Equilibrium');
         }
