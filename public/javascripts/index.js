@@ -430,7 +430,7 @@ async function snapshot_spectrum(figures) {
 function snapshot_poloidal(figures) {
     const { polNum, radNum } = figures.pop();
     const flattenedField = figures[0].data[1].z;
-    const modeNum = polNum / 20;
+    const modeNum = polNum / 10;
 
     const spectrum_figure_data = figures[1].data;
     for (let i = 0; i < modeNum; i++) {
