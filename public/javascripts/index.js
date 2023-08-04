@@ -430,7 +430,7 @@ async function snapshot_spectrum(figures) {
 function snapshot_poloidal(figures) {
     const { polNum, radNum } = figures.pop();
     const flattenedField = figures[0].data[1].z;
-    const modeNum = polNum / 10;
+    const modeNum = Math.floor(polNum / 10);
 
     const spectrum_figure_data = figures[1].data;
     for (let i = 0; i < modeNum; i++) {
@@ -442,15 +442,31 @@ function snapshot_poloidal(figures) {
             total: 0,
         });
     }
+
+    const now = performance.now();
+    const planConstructor = fftw['r2c']['fft1d'];
+    const plan = new planConstructor(polNum);
+
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        Array.from(
-            window.GTCGlobal.Fourier.spectrum(circle).slice(0, modeNum)
-        ).forEach((amp, i) => {
-            spectrum_figure_data[i].y.push(amp);
-            spectrum_figure_data[i].total += amp;
-        });
+        plan.forward(circle)
+            .slice(0, 2 * modeNum)
+            .forEach((amp, i) => {
+                if (i % 2 == 0) {
+                    spectrum_figure_data[i / 2].y.push(amp);
+                } else {
+                    let p = spectrum_figure_data[(i - 1) / 2].y.pop();
+                    p = Math.sqrt(p * p + amp * amp);
+                    spectrum_figure_data[(i - 1) / 2].total += p;
+                    spectrum_figure_data[(i - 1) / 2].y.push(p);
+                }
+            });
     }
+
+    plan.dispose();
+
+    console.log(performance.now() - now);
+
     spectrum_figure_data
         .sort((u, v) => {
             return v.total - u.total;

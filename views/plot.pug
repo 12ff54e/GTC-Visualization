@@ -4,9 +4,10 @@ html(lang="en")
         meta(charset="UTF-8")
         title GTC-Visualization
         link(rel="stylesheet" href="stylesheets/tabs.css")
-        script(src="mathjax/MathJax.js?config=TeX-AMS-MML_SVG" defer)
         script(src="javascripts/plotly-custom.min.js" defer)
         script(type="module" src="javascripts/index.js" defer)
+        script(src="libs/mathjax/MathJax.js?config=TeX-AMS-MML_SVG" defer)
+        script(src="libs/fftw-js/bundle.js" defer) 
     body
         p(id='status')= `Current GTC output folder set to ${dir}`
         div(id="tabs")
