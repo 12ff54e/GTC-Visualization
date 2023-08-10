@@ -443,7 +443,6 @@ function snapshot_poloidal(figures) {
         });
     }
 
-    const now = performance.now();
     const planConstructor = fftw['r2c']['fft1d'];
     const plan = new planConstructor(polNum);
 
@@ -464,8 +463,6 @@ function snapshot_poloidal(figures) {
     }
 
     plan.dispose();
-
-    console.log(performance.now() - now);
 
     spectrum_figure_data
         .sort((u, v) => {

@@ -5,8 +5,10 @@
   "main": "server.js",
   "scripts": {
     "test": "nodemon ./server.js",
-    "start": "node ./server.js",
-    "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js"
+    "start": "node ./server-prod.js",
+    "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
+    "pack-server": "webpack --config webpack.config.js",
+    "pack": "npm install && npm run pack-server && cd .. && zip -9rFS GTC-Visualization/GTC-Visualization.zip GTC-Visualization/public GTC-Visualization/views GTC-Visualization/.env_example GTC-Visualization/LICENSE GTC-Visualization/package.json GTC-Visualization/README.md GTC-Visualization/server-prod.js"
   },
   "keywords": [
     "Visualization"
@@ -14,6 +16,7 @@
   "author": "Q. Zhong",
   "license": "MIT",
   "devDependencies": {
+    "@webdiscus/pug-loader": "^2.10.4",
     "ify-loader": "^1.1.0",
     "mathjax": "^2.7.7",
     "nodemon": "^2.0.2",

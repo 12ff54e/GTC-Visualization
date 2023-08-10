@@ -377,12 +377,11 @@ window.addEventListener('load', ev => {
                             if (figure.classList.contains('show')) {
                                 figure.style.height = '0px';
                                 this.innerText = 'Plot figure';
-                                figure.classList.remove('show');
                             } else {
                                 figure.style.height = 'auto';
                                 this.innerText = 'Hide figure';
-                                figure.classList.add('show');
                             }
+                            figure.classList.toggle('show');
 
                             plot.call(this, figure);
                         });

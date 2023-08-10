@@ -6,12 +6,15 @@ const compression = require('compression');
 const FileTree = require('./fileTree.js');
 const fs = require('fs').promises;
 const Ajv = require('ajv').default;
+const pug = require('pug');
+
+const input_schema = require('./input-parameters-schema.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
 
-validate_input_schema().catch((err) => {
+validate_input_schema().catch(err => {
     console.log(err);
 });
 
@@ -20,20 +23,23 @@ let output;
 app.use(compression());
 app.use(express.static('./public'));
 app.use(express.urlencoded({ extended: true }));
-app.set('view engine', 'pug');
 app.disable('x-powered-by');
 
 app.listen(port);
 
+const pug_view = fileBasename => {
+    return path.join(__dirname, 'views', `${fileBasename}.pug`);
+};
+
 app.get('/', async (req, res) => {
     const html = await getFolderStructure(path.normalize(host_dir));
     await fs.writeFile(path.join(__dirname, 'views', 'files.html'), html);
-    res.render('index');
+    res.send(pug.renderFile(pug_view('index')));
 });
 
 app.post('/', async (req, res) => {
     try {
-        GTC_outputDir = path.join(
+        const GTC_outputDir = path.join(
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
         );
@@ -43,13 +49,15 @@ app.post('/', async (req, res) => {
         await output.getSnapshotFileList();
         await output.check_tracking();
         const plotTypes = Object.keys(GTCOutput.index);
-        res.render('plot', {
-            dir: GTC_outputDir,
-            types: output.particleTrackingExist
-                ? plotTypes
-                : plotTypes.filter((e) => e !== 'Tracking'),
-            snapFiles: output.snapshotFiles,
-        });
+        res.send(
+            pug.renderFile(pug_view('plot'), {
+                dir: GTC_outputDir,
+                types: output.particleTrackingExist
+                    ? plotTypes
+                    : plotTypes.filter(e => e !== 'Tracking'),
+                snapFiles: output.snapshotFiles,
+            })
+        );
     } catch (err) {
         console.log(err);
     }
@@ -124,20 +132,17 @@ async function getFolderStructure(dir) {
     const fileTree = await FileTree.readFileTree(dir);
     // find out all gtc.out, and their parent folder should be gtc output folder
     const index = [];
-    const filtered = fileTree.filter('gtc.out', (pathArr) => {
+    const filtered = fileTree.filter('gtc.out', pathArr => {
         const [file, ...folders] = pathArr;
         index.push({
             folder: folders[0],
-            filePath: path.join(
-                ...folders.reverse().map((f) => f.dirname),
-                file
-            ),
+            filePath: path.join(...folders.reverse().map(f => f.dirname), file),
         });
         return file;
     });
 
     await Promise.all(
-        index.map(async (f) => {
+        index.map(async f => {
             const { folder, filePath } = f;
             pos = path.dirname(dir) === dir ? '' : path.dirname(dir);
             const stat = await fs.stat(path.join(pos, filePath));
@@ -174,24 +179,21 @@ function generate_input(params) {
 async function validate_input_schema() {
     const ajv = new Ajv();
 
-    const schema = JSON.parse(
-        await fs.readFile('./input-parameters-schema.json', 'utf-8')
-    );
     const input_specs = await Promise.all(
         (await fs.readdir('./public/javascripts/'))
-            .filter((filename) => filename.endsWith('.json'))
-            .map((filename) =>
+            .filter(filename => filename.endsWith('.json'))
+            .map(filename =>
                 fs
                     .readFile(
                         path.join('./public/javascripts/', filename),
                         'utf-8'
                     )
-                    .then((str) => JSON.parse(str))
+                    .then(str => JSON.parse(str))
             )
     );
 
-    const validate = ajv.compile(schema);
-    const valid = input_specs.every((input_spec) => validate(input_spec));
+    const validate = ajv.compile(input_schema);
+    const valid = input_specs.every(input_spec => validate(input_spec));
     if (valid) {
         console.log('Input specs are valid.');
     } else {
