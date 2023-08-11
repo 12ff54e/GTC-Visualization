@@ -127,6 +127,8 @@ async function openPanel() {
     let res = await fetch(`plotType/${this.id}`);
     // wait for the response, then create buttons for plotting
     if (res.ok) {
+        await getBasicParameters();
+
         let { info, warn, err, id: btn_id_array } = await res.json();
         statusBar.info = info ? info : '';
         statusBar.warn = warn ? warn : '';
@@ -148,7 +150,6 @@ async function openPanel() {
 
         // Equilibrium panel needs special care
         if (this.id === 'Equilibrium') {
-            await getBasicParameters();
             let { x, y, poloidalPlane, others } = btn_id_array;
             btn_id_array = [poloidalPlane, others];
             createEqPanel1D(x, y);
@@ -171,7 +172,6 @@ async function openPanel() {
         // registerButtons();
 
         if (this.id === 'History') {
-            await getBasicParameters();
             if (!window.GTCGlobal.timeStep) {
                 window.GTCGlobal.timeStep =
                     window.GTCGlobal.basicParameters.ndiag *
@@ -429,6 +429,36 @@ async function snapshot_spectrum(figures) {
 
 function snapshot_poloidal(figures) {
     const { polNum, radNum } = figures.pop();
+
+    // draw diagnostic flux indicator
+
+    const diag_flux = GTCGlobal.basicParameters.diag_flux;
+    const diagnostic_flux_line = {
+        name: 'Diagnostic Flux',
+        mode: 'lines',
+        line: {
+            color: 'rgba(142.846, 176.35, 49.6957, 0.9)',
+            width: 3,
+            shape: 'spline',
+            smoothing: 1,
+        },
+        hoverinfo: 'none',
+        type: 'scatter',
+        showlegend: true,
+        x: figures[0].data[0].x.slice(
+            diag_flux * (polNum + 1),
+            (diag_flux + 1) * (polNum + 1)
+        ),
+        y: figures[0].data[0].y.slice(
+            diag_flux * (polNum + 1),
+            (diag_flux + 1) * (polNum + 1)
+        ),
+    };
+
+    figures[0].data.push(diagnostic_flux_line);
+
+    // calculate spectrum profile on radial grids
+
     const flattenedField = figures[0].data[1].z;
     const modeNum = Math.floor(polNum / 10);
 

@@ -139,30 +139,35 @@ class Snapshot extends PlotType {
                         .map(i => Array(this.poloidalGridPtNumber + 1).fill(i)));
                     let polData = this.fieldData['poloidalPlane'];
                     // add carpet
-                    fig.data.push({
+                    const carpet = {
                         a: thetaMesh,
                         b: psiMesh,
                         x: util.flat(polData['x']),
                         y: util.flat(polData['y']),
-                        type: 'carpet'
-                    })
-                    fig.hideCarpetGrid();
+                        type: 'carpet',
+                    };
                     // add contour
-                    fig.data.push({
+                    const field_contour = {
                         a: thetaMesh,
                         b: psiMesh,
                         z: util.flat(polData[cat]),
                         type: 'contourcarpet',
                         contours: {
-                            showlines: false
+                            showlines: false,
                         },
                         colorbar: {
-                            tickformat: '.4g'
-                        }
-                    })
+                            tickformat: '.4g',
+                            y: 0,
+                            yanchor: 'bottom',
+                            len: 0.85,
+                        },
+                    };
+                    fig.data.push(carpet, field_contour);
                     fig.axisEqual();
-                    fig.axesLabel = {x: '$\\text{R}$', y:'$\\text{Z}$'}
+                    fig.hideCarpetGrid();
+                    fig.axesLabel = { x: '$\\text{R}$', y: '$\\text{Z}$' };
                     fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on poloidal plane}$`;
+                    fig.layout.height = 700;
                     figureContainer.push(fig);
 
                     let fig2 = new PlotlyData();
