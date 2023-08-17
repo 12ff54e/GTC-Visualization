@@ -27,6 +27,8 @@ app.disable('x-powered-by');
 
 app.listen(port);
 
+console.log(`Server is running at http://127.0.0.1:${port}`);
+
 const pug_view = fileBasename => {
     return path.join(__dirname, 'views', `${fileBasename}.pug`);
 };
