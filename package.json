@@ -16,7 +16,6 @@
   "author": "Q. Zhong",
   "license": "MIT",
   "devDependencies": {
-    "@webdiscus/pug-loader": "^2.10.4",
     "ify-loader": "^1.1.0",
     "mathjax": "^2.7.7",
     "nodemon": "^2.0.2",
@@ -26,7 +25,7 @@
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
-    "ajv": "^7.2.1",
+    "ajv": "6.9.1",
     "compression": "^1.7.4",
     "dotenv": "^8.2.0",
     "express": "^4.17.1",

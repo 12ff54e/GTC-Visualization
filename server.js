@@ -5,7 +5,7 @@ const path = require('path');
 const compression = require('compression');
 const FileTree = require('./fileTree.js');
 const fs = require('fs').promises;
-const Ajv = require('ajv').default;
+const Ajv = require('ajv');
 const pug = require('pug');
 
 const input_schema = require('./input-parameters-schema.json');
