@@ -14,7 +14,7 @@ const app = express();
 const port = process.env.PORT || 3000;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
 
-validate_input_schema().catch(err => {
+validateInputSchema().catch(err => {
     console.log(err);
 });
 
@@ -29,14 +29,14 @@ app.listen(port);
 
 console.log(`Server is running at http://127.0.0.1:${port}`);
 
-const pug_view = fileBasename => {
+function pugView(fileBasename) {
     return path.join(__dirname, 'views', `${fileBasename}.pug`);
-};
+}
 
 app.get('/', async (req, res) => {
     const html = await getFolderStructure(path.normalize(host_dir));
     await fs.writeFile(path.join(__dirname, 'views', 'files.html'), html);
-    res.send(pug.renderFile(pug_view('index')));
+    res.send(pug.renderFile(pugView('index')));
 });
 
 app.post('/', async (req, res) => {
@@ -50,9 +50,9 @@ app.post('/', async (req, res) => {
 
         await output.getSnapshotFileList();
         await output.check_tracking();
-        const plotTypes = Object.keys(GTCOutput.index);
+        const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
-            pug.renderFile(pug_view('plot'), {
+            pug.renderFile(pugView('plot'), {
                 dir: GTC_outputDir,
                 types: output.particleTrackingExist
                     ? plotTypes
@@ -68,6 +68,10 @@ app.post('/', async (req, res) => {
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
     let type = req.params.type;
+    if (type == 'Summary') {
+        res.json(await generateSummary());
+        return;
+    }
     try {
         await output.readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
@@ -99,7 +103,9 @@ app.get('/plotType/:type', async (req, res) => {
 });
 
 app.get('/data/basicParameters', (req, res) => {
-    res.json(output.parameters);
+    output.read_para().then(() => {
+        res.json(output.parameters);
+    });
 });
 
 app.get('/data/:type-:id', (req, res) => {
@@ -115,19 +121,12 @@ app.get('/data/:type-:id', (req, res) => {
     }
 });
 
-app.post('/input', (req, res) => {
-    res.send('Not implement yet.');
-    // fs.writeFile('./gtc.in', generate_input(req.body)).then(() => {
-    //     res.redirect('/');
-    // });
-});
-
 app.post('/input/download', (req, res) => {
     res.set({
         'Content-Disposition': 'attachment; filename="gtc.in"',
         'Content-Type': 'text/plain',
     });
-    res.send(generate_input(req.body));
+    res.send(generateInput(req.body));
 });
 
 async function getFolderStructure(dir) {
@@ -156,7 +155,7 @@ async function getFolderStructure(dir) {
     return filtered.toHTML2();
 }
 
-function generate_input(params) {
+function generateInput(params) {
     const namelist_grouping = new Map();
 
     for (const [variable, value] of Object.entries(params)) {
@@ -178,7 +177,7 @@ function generate_input(params) {
     return result;
 }
 
-async function validate_input_schema() {
+async function validateInputSchema() {
     const ajv = new Ajv();
 
     const input_specs = await Promise.all(
@@ -201,4 +200,8 @@ async function validate_input_schema() {
     } else {
         console.log(validate.errors);
     }
+}
+
+async function generateSummary() {
+    return {};
 }

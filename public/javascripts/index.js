@@ -46,6 +46,16 @@ class StatusBar {
         this.show();
     }
 }
+Object.defineProperty(StatusBar, 'DEFAULT_ERROR', {
+    value: 'Oops, something wrong happened. Please check javascript console for more info.',
+    writable: false,
+    enumerable: true,
+    configurable: false,
+});
+
+function getStatusBar() {
+    return document.querySelector('#status').status;
+}
 
 // global vars
 window.GTCGlobal = new Object();
@@ -78,21 +88,27 @@ window.addEventListener('load', async function () {
                 // collapse snapshot file list
                 let div = document.getElementById('files');
                 div.style.height = '';
-                openPanel.call(swc);
+                openPanel.call(swc).catch(err => {
+                    console.error(err);
+                    getStatusBar().err = StatusBar.DEFAULT_ERROR;
+                });
             };
         }
     }
 
     // snapshot file name buttons
     for (let btn of document.getElementById('files').children) {
-        btn.onclick = openPanel;
+        btn.addEventListener('click', e => {
+            openPanel.call(e.target).catch(err => {
+                console.error(err);
+                getStatusBar().err = StatusBar.DEFAULT_ERROR;
+            });
+        });
     }
 });
 
 window.addEventListener('error', () => {
-    document.getElementById('status').status.err =
-        'Oops, something wrong happened. ' +
-        'Please consult javascript console for more info.';
+    getStatusBar().err = StatusBar.DEFAULT_ERROR;
 });
 
 function registerButtons(buttons) {
@@ -100,8 +116,7 @@ function registerButtons(buttons) {
         btn.addEventListener('click', () => {
             getDataThenPlot.call(btn).catch(err => {
                 console.error(err);
-                document.querySelector('#status').status.err =
-                    'Oops, something wrong happened. Please check javascript console for more info.';
+                getStatusBar().err = StatusBar.DEFAULT_ERROR;
             });
         });
     });
@@ -132,6 +147,11 @@ async function openPanel() {
     let res = await fetch(`plotType/${this.id}`);
     // wait for the response, then create buttons for plotting
     if (res.ok) {
+        if (this.id == 'Summary') {
+            await generateSummary();
+            return;
+        }
+
         await getBasicParameters();
 
         let { info, warn, err, id: btn_id_array } = await res.json();
@@ -194,7 +214,7 @@ async function openPanel() {
                 );
                 const len =
                     figures[0].data[0].x[figures[0].data[0].x.length - 1];
-                await history_mode(
+                await historyMode(
                     figures,
                     window.GTCGlobal.hist_mode_range.growthRate &&
                         window.GTCGlobal.hist_mode_range.growthRate.map(
@@ -254,7 +274,7 @@ async function getDataThenPlot() {
         recal.style.height = '0rem';
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        await history_mode(figures);
+        await historyMode(figures);
         window.GTCGlobal.hist_mode_range.frequency = undefined;
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
         recal.style.height = '3.5rem';
@@ -262,14 +282,14 @@ async function getDataThenPlot() {
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-spectrum')
     ) {
-        await snapshot_spectrum(figures);
+        await snapshotSpectrum(figures);
     } else if (
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-poloidal')
     ) {
-        snapshot_poloidal(figures);
+        snapshotPoloidal(figures);
     } else if (this.id.startsWith('Tracking')) {
-        await tracking_plot(figures);
+        await trackingPlot(figures);
         return;
     } else if (this.id.startsWith('Equilibrium-1D-rg_n')) {
         figures.forEach(fig => {
@@ -317,7 +337,7 @@ async function getDataThenPlot() {
     }
 }
 
-async function history_mode(figures, interval1, interval2) {
+async function historyMode(figures, interval1, interval2) {
     // import calculator
     let spectrum = await import('./spectrum.js');
 
@@ -400,7 +420,7 @@ async function history_mode(figures, interval1, interval2) {
     });
 }
 
-async function snapshot_spectrum(figures) {
+async function snapshotSpectrum(figures) {
     let field = figures.pop().extraData;
     let torNum = field.length;
     let polNum = field[0].length;
@@ -439,7 +459,7 @@ async function snapshot_spectrum(figures) {
     figures[1].data[0].y = toroidalSpectrum;
 }
 
-function snapshot_poloidal(figures) {
+function snapshotPoloidal(figures) {
     const { polNum, radNum } = figures.pop();
 
     // draw diagnostic flux indicator
@@ -516,7 +536,7 @@ function snapshot_poloidal(figures) {
         });
 }
 
-async function tracking_plot(figures) {
+async function trackingPlot(figures) {
     const zeta = figures.pop().extraData;
 
     const figureDiv1 = document.getElementById('figure-1');
@@ -643,4 +663,8 @@ function addSimulationRegion(fig) {
         y_max + 0.1 * (y_max - y_min),
     ];
     fig.layout.showlegend = false;
+}
+
+async function generateSummary() {
+    getStatusBar().warn = 'Not implemented yet.';
 }
