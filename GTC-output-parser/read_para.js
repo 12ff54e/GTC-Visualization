@@ -42,11 +42,7 @@ module.exports = async function (dir) {
             }
             // n modes and m modes are list of mode numbers
             if (g.key === 'nmodes' || g.key === 'mmodes') {
-                value = line
-                    .substring(8)
-                    .trim()
-                    .split(/\s+/)
-                    .map(str => parseInt(str));
+                return;
             }
             if (params[g.key.toLowerCase()] === undefined) {
                 params[g.key.toLowerCase()] = value;
@@ -62,6 +58,27 @@ module.exports = async function (dir) {
             ];
         }
     });
+
+    // n and m modes, works for v4.3 onward
+
+    const getModeNumbers = (key, from = 0) => {
+        const begin = outputData.indexOf(key, from) + 8;
+        const end =
+            begin +
+            outputData.substring(begin).match(/\d\s+[A-Za-z]/).index +
+            1;
+        return {
+            end,
+            modes: outputData
+                .substring(begin, end)
+                .trim()
+                .split(/\s+/)
+                .map(str => parseInt(str)),
+        };
+    };
+
+    params['nmodes'] = getModeNumbers('nmodes').modes;
+    params['mmodes'] = getModeNumbers('mmodes').modes;
 
     return params;
 };
