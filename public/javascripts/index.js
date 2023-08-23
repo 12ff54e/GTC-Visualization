@@ -96,10 +96,15 @@ window.addEventListener('error', () => {
 });
 
 function registerButtons(buttons) {
-    // let buttons = document.getElementsByClassName('tab-l1-btn');
-    for (let btn of buttons) {
-        btn.onclick = getDataThenPlot;
-    }
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            getDataThenPlot.call(btn).catch(err => {
+                console.error(err);
+                document.querySelector('#status').status.err =
+                    'Oops, something wrong happened. Please check javascript console for more info.';
+            });
+        });
+    });
 }
 
 async function getBasicParameters() {
@@ -235,6 +240,9 @@ function cleanPanel() {
 }
 
 async function getDataThenPlot() {
+    const loading = document.querySelector('#loading');
+    loading.style.visibility = 'visible';
+
     cleanPlot();
 
     let figObj = await fetch(`data/${this.id}`);
@@ -259,7 +267,7 @@ async function getDataThenPlot() {
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-poloidal')
     ) {
-        await snapshot_poloidal(figures);
+        snapshot_poloidal(figures);
     } else if (this.id.startsWith('Tracking')) {
         await tracking_plot(figures);
         return;
@@ -269,11 +277,15 @@ async function getDataThenPlot() {
         });
     }
 
-    for (let i = 0; i < figures.length; i++) {
-        Plotly.newPlot(`figure-${i + 1}`, figures[i].data, figures[i].layout, {
-            editable: true,
-        });
-    }
+    await Promise.all(
+        figures.map(({ data, layout }, idx) =>
+            Plotly.newPlot(`figure-${idx + 1}`, data, layout, {
+                editable: true,
+            })
+        )
+    );
+
+    loading.style.visibility = 'hidden';
 
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         document
