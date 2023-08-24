@@ -68,10 +68,6 @@ app.post('/', async (req, res) => {
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
     let type = req.params.type;
-    if (type == 'Summary') {
-        res.json(await generateSummary());
-        return;
-    }
     try {
         await output.readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
@@ -100,6 +96,10 @@ app.get('/plotType/:type', async (req, res) => {
             err: `Error happens when reading <b>${type}</b> file, this folder may be corrupted!`,
         });
     }
+});
+
+app.get('/Summary', (req, res) => {
+    generateSummary().then(res.json.bind(res));
 });
 
 app.get('/data/basicParameters', (req, res) => {
@@ -203,5 +203,9 @@ async function validateInputSchema() {
 }
 
 async function generateSummary() {
-    return {};
+    await output.readData('Equilibrium');
+    return {
+        rg: output.data['Equilibrium'].radialData['rg'],
+        q: output.data['Equilibrium'].radialData['q'],
+    };
 }
