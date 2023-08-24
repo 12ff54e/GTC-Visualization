@@ -431,14 +431,118 @@ async function generateSummary() {
 
     await getBasicParameters();
     const res = await fetch('Summary');
-    if (res.ok) {
-        console.log(await res.json());
-
-        const bp = GTCGlobal.basicParameters;
-        const basicInfo = `This is a ${
-            bp.nonlinear ? 'non' : ''
-        }linear electro${bp.magnetic ? 'magnetic' : 'static'} run.`;
-
-        summary.appendChild(document.createElement('p')).innerText = basicInfo;
+    if (!res.ok) {
+        throw `ERROR, CODE: ${res.status}`;
     }
+
+    const data = await res.json();
+    const minorRadius = data.rg.at(-1);
+
+    const addParagraph = str => {
+        summary.appendChild(document.createElement('p')).innerText = str;
+    };
+
+    const bp = GTCGlobal.basicParameters;
+    const basicInfo = `This is a ${bp.nonlinear ? 'non' : ''}linear electro${
+        bp.magnetic ? 'magnetic' : 'static'
+    } run. The equilibrium is ${
+        bp.numereq ? 'numeric' : 'analytic'
+    } with a major radius of \\(${(bp.r0 / 100).toPrecision(
+        4
+    )}\\text{m}\\), minor radius of \\(${(
+        (minorRadius * bp.r0) /
+        100
+    ).toPrecision(4)}\\text{m}\\)(\\(\\epsilon=${minorRadius.toPrecision(
+        4
+    )}\\)) and axis magnetic field strength of \\(${(bp.b0 / 10000).toPrecision(
+        4
+    )}\\text{T}\\)`;
+    addParagraph(basicInfo);
+
+    const rgDiag =
+        lerp(...bp.radial_region, bp.diag_flux / bp.mpsi) * minorRadius;
+    const eqRadialDiagIndex = lower_bound(data.rg, rgDiag) - 1;
+    const safetyFactor = linearMap(
+        rgDiag,
+        data.rg[eqRadialDiagIndex],
+        data.rg[eqRadialDiagIndex + 1],
+        data.q[eqRadialDiagIndex],
+        data.q[eqRadialDiagIndex + 1]
+    );
+    const properModeIndex = bp.nmodes.reduce(
+        (acc, val, idx) => {
+            const { eps } = acc;
+            const delta = Math.abs(bp.mmodes[idx] / val - safetyFactor);
+            return eps > delta ? { eps: delta, minIdx: idx } : acc;
+        },
+        { minIdx: 0, eps: Infinity }
+    ).minIdx;
+    const diagFluxProp = `The diagnostic flux you choose locates at \\(${(
+        rgDiag / minorRadius
+    ).toPrecision(4)}a_0\\). Here safety factor \\(q=${safetyFactor.toPrecision(
+        4
+    )}\\), shear \\(\\hat{s}=r\\mathrm{d\\,ln}q/\\mathrm{d}r=${(
+        (interpolationDerivative(rgDiag, data.rg, data.q) * rgDiag) /
+        safetyFactor
+    ).toFixed(4)}\\). Among 8 modes you choose, the ${properModeIndex + 1}${
+        properModeIndex == 0 ? 'st' : properModeIndex == 1 ? 'nd' : 'th'
+    } one (\\(m/n=${bp.mmodes[properModeIndex]}/${
+        bp.nmodes[properModeIndex]
+    }\\)) matches safety factor at diagnostic surface best.`;
+    addParagraph(diagFluxProp);
+
+    const driveDetails = ``;
+    addParagraph(driveDetails);
+
+    // renders math expression
+    MathJax.Hub.Typeset(summary);
+}
+
+function lerp(a, b, x) {
+    return a + (b - a) * x;
+}
+
+function linearMap(x, a0, b0, a1, b1) {
+    return lerp(a1, b1, (x - a0) / (b0 - a0));
+}
+
+function lower_bound(array, val) {
+    let idx = 0;
+    let step = array.length;
+
+    while (step > 0) {
+        const half = Math.floor(step / 2);
+        if (array[idx + half] > val) {
+            step = half;
+        } else {
+            idx = idx + half + 1;
+            step = step - half - 1;
+        }
+    }
+
+    return idx;
+}
+
+function interpolationDerivative(x, xs, ys) {
+    const idx = lower_bound(xs, x) - 1;
+
+    let d = 0;
+    if (idx == 0 || idx == xs.length - 2) {
+        d = (ys[idx + 1] - ys[idx]) / (xs[idx + 1] - xs[idx]);
+    } else {
+        const threePairSum = (a, b, c) => {
+            return a * b + b * c + c * a;
+        };
+        const x3 = 3 * x * x;
+        const xSum = xs[idx - 1] + xs[idx] + xs[idx + 1] + xs[idx + 2];
+        for (let i = 0; i < 4; ++i) {
+            const localXS = xs.slice(idx - 1, idx + 3);
+            const [localX] = localXS.splice(i, 1);
+            let coef = x3 - 2 * x * (xSum - localX) + threePairSum(...localXS);
+            coef /= localXS.reduce((acc, val) => acc * (localX - val), 1);
+            d += coef * ys[idx - 1 + i];
+        }
+    }
+
+    return d;
 }
