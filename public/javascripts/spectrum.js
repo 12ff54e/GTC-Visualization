@@ -92,17 +92,38 @@ export function cal_omega_r(yReals, yImages, dt, interval = [0.43, 0.98]) {
  * @returns {{x: Array<Number>, y: Array<Number>}} power spectrum
  */
 export function cal_spectrum(reals, images, timeStep) {
-    const fft = window.GTCGlobal.Fourier.spectrum(reals, images);
+    const plan = new fftw['c2c']['fft1d'](reals.length);
+
+    const spectrum = unInterleave(plan.forward(interleave(reals, images))).map(
+        ([re, im]) => Math.sqrt(re * re + im * im)
+    );
+
+    plan.dispose();
 
     const len = reals.length;
     const halfLen = Math.floor(len / 2);
 
     return {
         x: [...Array(len).keys()].map(
-            (i) => ((2 * Math.PI) / (len * timeStep)) * (i - halfLen)
+            i => ((2 * Math.PI) / (len * timeStep)) * (i - halfLen)
         ),
-        y: Array.from(fft.slice(len - halfLen)).concat(
-            Array.from(fft.slice(0, len - halfLen))
+        y: Array.from(spectrum.slice(len - halfLen)).concat(
+            Array.from(spectrum.slice(0, len - halfLen))
         ),
     };
+}
+
+function interleave(as, bs) {
+    return as.flatMap((val, idx) => [val, bs[idx]]);
+}
+
+function unInterleave(cs) {
+    return cs.reduce((arr, val, idx) => {
+        if (idx % 2 == 0) {
+            arr.push([val]);
+        } else {
+            arr.at(-1).push(val);
+        }
+        return arr;
+    }, []);
 }
