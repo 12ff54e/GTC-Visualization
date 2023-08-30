@@ -130,7 +130,7 @@ function registerButtons(buttons) {
 
 async function getBasicParameters() {
     if (!window.GTCGlobal.basicParameters) {
-        let res = await fetch(`data/basicParameters`);
+        let res = await fetch(`data/basicParameters?dir=${document.querySelector("#outputTag").innerText}`);
         window.GTCGlobal.basicParameters = await res.json();
     }
 }
@@ -155,7 +155,7 @@ async function openPanel() {
     panel.style.zIndex = 2;
 
     // inform the server about which .out file should be parsed
-    let res = await fetch(`plotType/${this.id}`);
+    let res = await fetch(`plotType/${this.id}?dir=${document.querySelector("#outputTag").innerText}`);
     // wait for the response, then create buttons for plotting
     if (res.ok) {
         await getBasicParameters();
@@ -277,7 +277,7 @@ async function addLoadingIndicator(func) {
 async function getDataThenPlot() {
     cleanPlot();
 
-    let figObj = await fetch(`data/${this.id}`);
+    let figObj = await fetch(`data/${this.id}?dir=${document.querySelector("#outputTag").innerText}`);
     let figures = await figObj.json();
 
     // some figures need some local calculation
@@ -430,7 +430,7 @@ async function generateSummary() {
     }
 
     await getBasicParameters();
-    const res = await fetch('Summary');
+    const res = await fetch(`Summary?dir=${document.querySelector("#outputTag").innerText}`);
     if (!res.ok) {
         throw `ERROR, CODE: ${res.status}`;
     }

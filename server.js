@@ -18,7 +18,7 @@ validateInputSchema().catch(err => {
     console.log(err);
 });
 
-let output;
+let output={};
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -28,6 +28,7 @@ app.disable('x-powered-by');
 app.listen(port);
 
 console.log(`Server is running at http://127.0.0.1:${port}`);
+console.log(`Server is running`,host_dir);
 
 function pugView(fileBasename) {
     return path.join(__dirname, 'views', `${fileBasename}.pug`);
@@ -45,19 +46,21 @@ app.post('/', async (req, res) => {
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
         );
-        output = new GTCOutput(GTC_outputDir);
+	const currentOutput = output[req.body.gtc_output] = new GTCOutput(GTC_outputDir);
         console.log(`path set to ${GTC_outputDir}`);
+	console.log(`output`,req.body.gtc_output);
 
-        await output.getSnapshotFileList();
-        await output.check_tracking();
+        await currentOutput.getSnapshotFileList();
+        await currentOutput.check_tracking();
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
             pug.renderFile(pugView('plot'), {
+		outputTag: req.body.gtc_output,
                 dir: GTC_outputDir,
-                types: output.particleTrackingExist
+                types: currentOutput.particleTrackingExist
                     ? plotTypes
                     : plotTypes.filter(e => e !== 'Tracking'),
-                snapFiles: output.snapshotFiles,
+                snapFiles: currentOutput.snapshotFiles,
             })
         );
     } catch (err) {
@@ -68,10 +71,12 @@ app.post('/', async (req, res) => {
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
     let type = req.params.type;
+    console.log("this is",req.params.type)
     try {
-        await output.readData(type);
+	console.log(req.query.dir)
+        await output[req.query.dir].readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
-        const data = output.data[type];
+        const data = output[req.query.dir].data[type];
 
         const status = {
             info: `${type} file read`,
@@ -99,12 +104,12 @@ app.get('/plotType/:type', async (req, res) => {
 });
 
 app.get('/Summary', (req, res) => {
-    generateSummary().then(res.json.bind(res));
+    generateSummary(output[req.query.dir]).then(res.json.bind(res));
 });
 
 app.get('/data/basicParameters', (req, res) => {
-    output.read_para().then(() => {
-        res.json(output.parameters);
+    output[req.query.dir].read_para().then(() => {
+        res.json(output[req.query.dir].parameters);
     });
 });
 
@@ -114,7 +119,7 @@ app.get('/data/:type-:id', (req, res) => {
     console.log(plotId);
 
     try {
-        res.json(output.getPlotData(plotType, plotId));
+        res.json(output[req.query.dir].getPlotData(plotType, plotId));
     } catch (e) {
         console.log(e);
         res.status(404).end();
@@ -202,10 +207,10 @@ async function validateInputSchema() {
     }
 }
 
-async function generateSummary() {
-    await output.readData('Equilibrium');
+async function generateSummary(outputCurrent) {
+    await outputCurrent.readData('Equilibrium');
     return {
-        rg: output.data['Equilibrium'].radialData['rg'],
-        q: output.data['Equilibrium'].radialData['q'],
+        rg: outputCurrent.data['Equilibrium'].radialData['rg'],
+        q: outputCurrent.data['Equilibrium'].radialData['q'],
     };
 }
