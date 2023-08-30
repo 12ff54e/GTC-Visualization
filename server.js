@@ -12,6 +12,7 @@ const input_schema = require('./input-parameters-schema.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const processLimit = process.env.LIMIT || 50;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
 
 validateInputSchema().catch(err => {
@@ -45,13 +46,20 @@ app.post('/', async (req, res) => {
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
         );
-        const currentOutput = (output[req.body.gtc_output] = new GTCOutput(
-            GTC_outputDir
-        ));
-        console.log(`path set to ${GTC_outputDir}`);
+        let currentOutput;
+        if (output[req.body.gtc_output] === undefined) {
+            currentOutput = output[req.body.gtc_output] = new GTCOutput(
+                GTC_outputDir
+            );
+            const outputKeys = Object.keys(output);
+            delete output[outputKeys[outputKeys.length - processLimit - 1]];
+            console.log(`path set to ${GTC_outputDir}`);
 
-        await currentOutput.getSnapshotFileList();
-        await currentOutput.check_tracking();
+            await currentOutput.getSnapshotFileList();
+            await currentOutput.check_tracking();
+        } else {
+            currentOutput = output[req.body.gtc_output];
+        }
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
             pug.renderFile(pugView('plot'), {
