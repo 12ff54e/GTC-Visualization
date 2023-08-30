@@ -18,7 +18,7 @@ validateInputSchema().catch(err => {
     console.log(err);
 });
 
-let output={};
+let output = {};
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -28,7 +28,6 @@ app.disable('x-powered-by');
 app.listen(port);
 
 console.log(`Server is running at http://127.0.0.1:${port}`);
-console.log(`Server is running`,host_dir);
 
 function pugView(fileBasename) {
     return path.join(__dirname, 'views', `${fileBasename}.pug`);
@@ -46,16 +45,17 @@ app.post('/', async (req, res) => {
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
         );
-	const currentOutput = output[req.body.gtc_output] = new GTCOutput(GTC_outputDir);
+        const currentOutput = (output[req.body.gtc_output] = new GTCOutput(
+            GTC_outputDir
+        ));
         console.log(`path set to ${GTC_outputDir}`);
-	console.log(`output`,req.body.gtc_output);
 
         await currentOutput.getSnapshotFileList();
         await currentOutput.check_tracking();
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
             pug.renderFile(pugView('plot'), {
-		outputTag: req.body.gtc_output,
+                outputTag: req.body.gtc_output,
                 dir: GTC_outputDir,
                 types: currentOutput.particleTrackingExist
                     ? plotTypes
@@ -71,9 +71,7 @@ app.post('/', async (req, res) => {
 // router for user checking one tab, the server will read corresponding files
 app.get('/plotType/:type', async (req, res) => {
     let type = req.params.type;
-    console.log("this is",req.params.type)
     try {
-	console.log(req.query.dir)
         await output[req.query.dir].readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
         const data = output[req.query.dir].data[type];
