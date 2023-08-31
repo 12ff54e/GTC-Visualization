@@ -207,5 +207,6 @@ async function generateSummary() {
     return {
         rg: output.data['Equilibrium'].radialData['rg'],
         q: output.data['Equilibrium'].radialData['q'],
+        dq: output.data['Equilibrium'].radialData['dlnq_dpsi'],
     };
 }

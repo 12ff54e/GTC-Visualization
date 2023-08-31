@@ -160,25 +160,20 @@ input.eq-1d-y:checked + label {
     height: 75px;
 }
 
-:root {
-    --bg-color: rgba(45, 45, 45, 0.8);
-}
-
 #container {
+    --bg-color: rgba(45, 45, 45, 0.8);
+
     left: 16%;
     width: 83%;
     height: 90%;
     top: 5rem;
     position: absolute;
     visibility: hidden;
+    overflow-x: hidden;
     z-index: 99;
     background-color: var(--bg-color);
 }
-#container:target {
-    visibility: visible;
-    display: block;
-}
-#summary-page {
+#container > #summary-page {
     position: relative;
     margin: 0 2rem;
     padding: 1rem 2rem;
@@ -186,4 +181,45 @@ input.eq-1d-y:checked + label {
     font-size: large;
     background-color: lightblue;
     box-shadow: 0px 0px 5px 5px color-mix(in srgb, lightblue, var(--bg-color));
+}
+#summary-page > p {
+    height: auto;
+    line-height: 150%;
+}
+#summary-page > * {
+    display: inline-block;
+}
+
+#summary-page .summary-jump-button {
+    cursor: alias;
+}
+#summary-page .summary-figure-button {
+    border: none;
+    padding: 0;
+    font: inherit;
+    background: inherit;
+    text-decoration: underline;
+}
+#summary-page .summary-figure-button:hover {
+    text-decoration: underline wavy;
+}
+
+#summary-page > .summary-figure-container {
+    height: 0;
+    width: 100%;
+    overflow-y: hidden;
+    transition: 0.3s ease-in-out;
+}
+#summary-page > .summary-figure-container-show {
+    height: 400px;
+}
+.summary-figure-wrapper {
+    width: 600px;
+    margin: 0 auto;
+    position: relative;
+}
+.summary-figure-button-div {
+    position: absolute;
+    top: 0.5rem;
+    left: 1rem;
 }

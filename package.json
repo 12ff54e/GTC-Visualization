@@ -19,7 +19,7 @@
     "ify-loader": "^1.1.0",
     "mathjax": "^2.7.7",
     "nodemon": "^2.0.2",
-    "plotly.js": "^1.58.4",
+    "plotly.js": "2.26",
     "transform-loader": "^0.2.4",
     "webpack": "^4.42.0",
     "webpack-cli": "^3.3.11"
