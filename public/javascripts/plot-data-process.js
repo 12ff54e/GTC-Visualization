@@ -82,24 +82,26 @@ export async function historyMode(figures, interval1, interval2) {
 }
 
 export async function snapshotSpectrum(figures) {
-    let field = figures.pop().extraData;
-    let torNum = field.length;
-    let polNum = field[0].length;
+    const field = figures.pop().extraData;
+    const torNum = field.length;
+    const polNum = field[0].length;
 
-    let mmode = Math.floor(polNum / 5);
-    let pmode = Math.floor(torNum / 5);
+    const mmode = Math.floor(polNum / 5);
+    const pmode = Math.floor(torNum / 5);
 
-    let poloidalSpectrum = Array(mmode).fill(0);
+    const modulo = (re, im) => Math.sqrt(re * re + im * im);
+
+    const poloidalSpectrum = Array(mmode).fill(0);
+    const planPol = new fftw['r2c']['fft1d'](polNum);
     for (let section of field) {
-        let powerSpectrum = window.GTCGlobal.Fourier.spectrum(section);
+        const powerSpectrum = planPol.forward(section);
         poloidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < mmode; i++) {
-            poloidalSpectrum[i] += powerSpectrum[i] + powerSpectrum[polNum - i];
+            poloidalSpectrum[i] +=
+                2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
         }
     }
-    poloidalSpectrum = poloidalSpectrum.map(
-        v => Math.sqrt(v / torNum) / polNum
-    );
+    planPol.dispose();
 
     function transpose(matrix) {
         let result = new Array(matrix[0].length);
@@ -109,23 +111,27 @@ export async function snapshotSpectrum(figures) {
         return result;
     }
 
-    let toroidalSpectrum = Array(pmode).fill(0);
+    const toroidalSpectrum = Array(pmode).fill(0);
+    const planTor = new fftw['r2c']['fft1d'](torNum);
     for (let section of transpose(field)) {
-        let powerSpectrum = window.GTCGlobal.Fourier.spectrum(section);
+        const powerSpectrum = planTor.forward(section);
         toroidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < pmode; i++) {
-            toroidalSpectrum[i] += powerSpectrum[i] + powerSpectrum[torNum - i];
+            toroidalSpectrum[i] +=
+                2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
         }
     }
-    toroidalSpectrum = toroidalSpectrum.map(
-        v => Math.sqrt(v / polNum) / torNum
-    );
+    planTor.dispose();
 
     figures[0].data[0].x = [...Array(mmode).keys()];
-    figures[0].data[0].y = poloidalSpectrum;
+    figures[0].data[0].y = poloidalSpectrum.map(
+        v => Math.sqrt(v / torNum) / polNum
+    );
 
     figures[1].data[0].x = [...Array(pmode).keys()];
-    figures[1].data[0].y = toroidalSpectrum;
+    figures[1].data[0].y = toroidalSpectrum.map(
+        v => Math.sqrt(v / polNum) / torNum
+    );
 }
 
 export function snapshotPoloidal(figures) {
