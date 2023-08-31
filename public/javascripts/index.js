@@ -294,7 +294,7 @@ function cleanPanel() {
     }
 
     const summary = document.querySelector('#container');
-    summary.style.left = '101%';
+    summary.style.display = 'none';
 }
 
 async function addLoadingIndicator(func) {

@@ -1,7 +1,6 @@
 export async function generateSummary() {
     const container = document.querySelector('#container');
-    container.style.visibility = 'visible';
-    container.style.left = '16%';
+    container.style.display = 'initial';
     const summary = container.firstElementChild;
     if (summary.childElementCount != 0) {
         return;
