@@ -7,7 +7,7 @@ export async function generateSummary() {
     }
 
     const res = await fetch(
-        `Summary?dir=${document.querySelector('#outputTag').innerText}`
+        `plot/Summary?dir=${document.querySelector('#outputTag').innerText}`
     );
     if (!res.ok) {
         throw `ERROR, CODE: ${res.status}`;

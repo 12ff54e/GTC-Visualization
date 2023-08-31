@@ -80,14 +80,28 @@ app.post('/', (req, res) => {
     });
 });
 
+app.use('/plot', (req, res, next) => {
+    const currentDirKey = encodeURI(req.query.dir);
+    if (currentDirKey in output) {
+        req.body.dirKey = currentDirKey;
+        next();
+    } else {
+        // requested GTFOutput instance being deleted already
+        res.status(410).send(
+            'The GTC folder you requested has been closed due to server resource limit.'
+        );
+    }
+});
+
 // router for user checking one tab, the server will read corresponding files
-app.get('/plotType/:type', (req, res) => {
+app.get('/plot/plotType/:type', (req, res) => {
     let type = req.params.type;
+    const key = req.body.dirKey;
 
     (async () => {
-        await output[encodeURI(req.query.dir)].readData(type);
+        await output[key].readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
-        const data = output[encodeURI(req.query.dir)].data[type];
+        const data = output[key].data[type];
 
         const status = {
             info: `${type} file read`,
@@ -114,25 +128,24 @@ app.get('/plotType/:type', (req, res) => {
     });
 });
 
-app.get('/Summary', (req, res) => {
-    generateSummary(output[encodeURI(req.query.dir)]).then(res.json.bind(res));
+app.get('/plot/Summary', (req, res) => {
+    generateSummary(output[req.body.dirKey]).then(res.json.bind(res));
 });
 
-app.get('/data/basicParameters', (req, res) => {
-    output[encodeURI(req.query.dir)].read_para().then(() => {
-        res.json(output[encodeURI(req.query.dir)].parameters);
+app.get('/plot/data/basicParameters', (req, res) => {
+    const gtcOutput = output[req.body.dirKey];
+    gtcOutput.read_para().then(() => {
+        res.json(gtcOutput.parameters);
     });
 });
 
-app.get('/data/:type-:id', (req, res) => {
+app.get('/plot/data/:type-:id', (req, res) => {
     let plotType = req.params.type;
     let plotId = req.params.id;
     console.log(plotId);
 
     try {
-        res.json(
-            output[encodeURI(req.query.dir)].getPlotData(plotType, plotId)
-        );
+        res.json(output[req.body.dirKey].getPlotData(plotType, plotId));
     } catch (e) {
         console.log(e);
         res.status(404).end();

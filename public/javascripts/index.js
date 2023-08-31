@@ -128,7 +128,7 @@ function registerButtons(buttons) {
 async function getBasicParameters() {
     if (!window.GTCGlobal.basicParameters) {
         let res = await fetch(
-            `data/basicParameters?dir=${
+            `plot/data/basicParameters?dir=${
                 document.querySelector('#outputTag').innerText
             }`
         );
@@ -183,7 +183,7 @@ async function openPanel() {
 
     // inform the server about which .out file should be parsed
     let res = await fetch(
-        `plotType/${this.id}?dir=${
+        `plot/plotType/${this.id}?dir=${
             document.querySelector('#outputTag').innerText
         }`
     );
@@ -310,7 +310,9 @@ async function getDataThenPlot() {
     cleanPlot();
 
     let figObj = await fetch(
-        `data/${this.id}?dir=${document.querySelector('#outputTag').innerText}`
+        `plot/data/${this.id}?dir=${
+            document.querySelector('#outputTag').innerText
+        }`
     );
     let figures = await figObj.json();
 
