@@ -54,7 +54,6 @@ app.post('/', async (req, res) => {
             const outputKeys = Object.keys(output);
             delete output[outputKeys[outputKeys.length - processLimit - 1]];
             console.log(`path set to ${GTC_outputDir}`);
-
             await currentOutput.getSnapshotFileList();
             await currentOutput.check_tracking();
         } else {
@@ -80,9 +79,9 @@ app.post('/', async (req, res) => {
 app.get('/plotType/:type', async (req, res) => {
     let type = req.params.type;
     try {
-        await output[req.query.dir].readData(type);
+        await output[encodeURI(req.query.dir)].readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
-        const data = output[req.query.dir].data[type];
+        const data = output[encodeURI(req.query.dir)].data[type];
 
         const status = {
             info: `${type} file read`,
@@ -110,12 +109,12 @@ app.get('/plotType/:type', async (req, res) => {
 });
 
 app.get('/Summary', (req, res) => {
-    generateSummary(output[req.query.dir]).then(res.json.bind(res));
+    generateSummary(output[encodeURI(req.query.dir)]).then(res.json.bind(res));
 });
 
 app.get('/data/basicParameters', (req, res) => {
-    output[req.query.dir].read_para().then(() => {
-        res.json(output[req.query.dir].parameters);
+    output[encodeURI(req.query.dir)].read_para().then(() => {
+        res.json(output[encodeURI(req.query.dir)].parameters);
     });
 });
 
@@ -125,7 +124,9 @@ app.get('/data/:type-:id', (req, res) => {
     console.log(plotId);
 
     try {
-        res.json(output[req.query.dir].getPlotData(plotType, plotId));
+        res.json(
+            output[encodeURI(req.query.dir)].getPlotData(plotType, plotId)
+        );
     } catch (e) {
         console.log(e);
         res.status(404).end();
