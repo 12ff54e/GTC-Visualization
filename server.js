@@ -34,14 +34,18 @@ function pugView(fileBasename) {
     return path.join(__dirname, 'views', `${fileBasename}.pug`);
 }
 
-app.get('/', async (req, res) => {
-    const html = await getFolderStructure(path.normalize(host_dir));
-    await fs.writeFile(path.join(__dirname, 'views', 'files.html'), html);
-    res.send(pug.renderFile(pugView('index')));
+app.get('/', (req, res) => {
+    (async () => {
+        const html = await getFolderStructure(path.normalize(host_dir));
+        await fs.writeFile(path.join(__dirname, 'views', 'files.html'), html);
+        res.send(pug.renderFile(pugView('index')));
+    })().catch(err => {
+        console.error(err);
+    });
 });
 
-app.post('/', async (req, res) => {
-    try {
+app.post('/', (req, res) => {
+    (async () => {
         const GTC_outputDir = path.join(
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
@@ -59,6 +63,7 @@ app.post('/', async (req, res) => {
         } else {
             currentOutput = output[req.body.gtc_output];
         }
+
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
             pug.renderFile(pugView('plot'), {
@@ -70,15 +75,16 @@ app.post('/', async (req, res) => {
                 snapFiles: currentOutput.snapshotFiles,
             })
         );
-    } catch (err) {
+    })().catch(err => {
         console.log(err);
-    }
+    });
 });
 
 // router for user checking one tab, the server will read corresponding files
-app.get('/plotType/:type', async (req, res) => {
+app.get('/plotType/:type', (req, res) => {
     let type = req.params.type;
-    try {
+
+    (async () => {
         await output[encodeURI(req.query.dir)].readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
         const data = output[encodeURI(req.query.dir)].data[type];
@@ -100,12 +106,12 @@ app.get('/plotType/:type', async (req, res) => {
             )}`;
         }
         res.send(JSON.stringify(status));
-    } catch (err) {
+    })().catch(err => {
         console.log(err);
         res.json({
             err: `Error happens when reading <b>${type}</b> file, this folder may be corrupted!`,
         });
-    }
+    });
 });
 
 app.get('/Summary', (req, res) => {
