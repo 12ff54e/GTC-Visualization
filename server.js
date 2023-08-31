@@ -86,8 +86,8 @@ app.use('/plot', (req, res, next) => {
         req.body.dirKey = currentDirKey;
         next();
     } else {
-        // requested GTFOutput instance being deleted already
-        res.status(410).send(
+        // requested GTFOutput instance being deleted from memory already
+        res.status(404).send(
             'The GTC folder you requested has been closed due to server resource limit.'
         );
     }

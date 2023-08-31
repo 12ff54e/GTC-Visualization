@@ -127,11 +127,12 @@ function registerButtons(buttons) {
 
 async function getBasicParameters() {
     if (!window.GTCGlobal.basicParameters) {
-        let res = await fetch(
+        const res = await fetch(
             `plot/data/basicParameters?dir=${
                 document.querySelector('#outputTag').innerText
             }`
         );
+        await propagateFetchError(res);
         window.GTCGlobal.basicParameters = await res.json();
     }
 }
@@ -187,91 +188,85 @@ async function openPanel() {
             document.querySelector('#outputTag').innerText
         }`
     );
+    await propagateFetchError(res);
     // wait for the response, then create buttons for plotting
-    if (res.ok) {
-        await getBasicParameters();
+    await getBasicParameters();
 
-        let { info, warn, err, id: btn_id_array } = await res.json();
-        statusBar.info = info ? info : '';
-        statusBar.warn = warn ? warn : '';
-        if (err) {
-            statusBar.err = err;
-            return;
+    let { info, warn, err, id: btn_id_array } = await res.json();
+    statusBar.info = info ? info : '';
+    statusBar.warn = warn ? warn : '';
+    if (err) {
+        statusBar.err = err;
+        return;
+    }
+
+    // add buttons
+    const node =
+        this.localName === 'input'
+            ? this.parentNode
+            : this.parentNode.parentNode;
+    if (node.visited) {
+        return;
+    } else {
+        node.visited = true;
+    }
+
+    // Equilibrium panel needs special care
+    if (this.id === 'Equilibrium') {
+        let { x, y, poloidalPlane, others } = btn_id_array;
+        btn_id_array = [poloidalPlane, others];
+        createEqPanel1D(x, y);
+    }
+    btn_id_array.map(type => {
+        let subDiv = document.createElement('div');
+        const btns = type.map(btnID => {
+            let btn = document.createElement('button');
+            btn.setAttribute('id', `${majorType}-${btnID}`);
+            btn.setAttribute('class', 'tab-l1-btn');
+            btn.innerText = btnID;
+            subDiv.appendChild(btn);
+
+            return btn;
+        });
+        registerButtons(btns);
+        panel.appendChild(subDiv);
+    });
+
+    if (this.id === 'History') {
+        if (!window.GTCGlobal.timeStep) {
+            window.GTCGlobal.timeStep =
+                window.GTCGlobal.basicParameters.ndiag *
+                window.GTCGlobal.basicParameters.tstep;
         }
 
-        // add buttons
-        const node =
-            this.localName === 'input'
-                ? this.parentNode
-                : this.parentNode.parentNode;
-        if (node.visited) {
-            return;
-        } else {
-            node.visited = true;
-        }
+        const div = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.innerText =
+            'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+        btn.classList.add('tab-l1-btn');
+        btn.addEventListener('click', async function () {
+            const figures = [1, 2, 3, 4].map(i =>
+                document.getElementById(`figure-${i}`)
+            );
+            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
+            await historyMode(
+                figures,
+                window.GTCGlobal.hist_mode_range.growthRate &&
+                    window.GTCGlobal.hist_mode_range.growthRate.map(
+                        i => i / len
+                    ),
+                window.GTCGlobal.hist_mode_range.frequency &&
+                    window.GTCGlobal.hist_mode_range.frequency.map(i => i / len)
+            );
 
-        // Equilibrium panel needs special care
-        if (this.id === 'Equilibrium') {
-            let { x, y, poloidalPlane, others } = btn_id_array;
-            btn_id_array = [poloidalPlane, others];
-            createEqPanel1D(x, y);
-        }
-        btn_id_array.map(type => {
-            let subDiv = document.createElement('div');
-            const btns = type.map(btnID => {
-                let btn = document.createElement('button');
-                btn.setAttribute('id', `${majorType}-${btnID}`);
-                btn.setAttribute('class', 'tab-l1-btn');
-                btn.innerText = btnID;
-                subDiv.appendChild(btn);
-
-                return btn;
+            figures.forEach(figure => {
+                Plotly.react(figure, figure.data, figure.layout);
             });
-            registerButtons(btns);
-            panel.appendChild(subDiv);
         });
 
-        if (this.id === 'History') {
-            if (!window.GTCGlobal.timeStep) {
-                window.GTCGlobal.timeStep =
-                    window.GTCGlobal.basicParameters.ndiag *
-                    window.GTCGlobal.basicParameters.tstep;
-            }
-
-            const div = document.createElement('div');
-            const btn = document.createElement('button');
-            btn.innerText =
-                'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
-            btn.classList.add('tab-l1-btn');
-            btn.addEventListener('click', async function () {
-                const figures = [1, 2, 3, 4].map(i =>
-                    document.getElementById(`figure-${i}`)
-                );
-                const len =
-                    figures[0].data[0].x[figures[0].data[0].x.length - 1];
-                await historyMode(
-                    figures,
-                    window.GTCGlobal.hist_mode_range.growthRate &&
-                        window.GTCGlobal.hist_mode_range.growthRate.map(
-                            i => i / len
-                        ),
-                    window.GTCGlobal.hist_mode_range.frequency &&
-                        window.GTCGlobal.hist_mode_range.frequency.map(
-                            i => i / len
-                        )
-                );
-
-                figures.forEach(figure => {
-                    Plotly.react(figure, figure.data, figure.layout);
-                });
-            });
-
-            div.classList.add('dropdown');
-            div.append(btn);
-            panel.prepend(div);
-        }
-    } else {
-        alert(`ERROR, CODE: ${res.status}`);
+        div.classList.add('dropdown');
+        div.append(btn);
+        panel.prepend(div);
     }
 }
 
@@ -309,12 +304,13 @@ async function addLoadingIndicator(func) {
 async function getDataThenPlot() {
     cleanPlot();
 
-    let figObj = await fetch(
+    const res = await fetch(
         `plot/data/${this.id}?dir=${
             document.querySelector('#outputTag').innerText
         }`
     );
-    let figures = await figObj.json();
+    await propagateFetchError(res);
+    let figures = await res.json();
 
     // some figures need some local calculation
     const recal = document.getElementById('History-panel').firstElementChild;
@@ -453,4 +449,10 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
                 getStatusBar().err = StatusBar.DEFAULT_ERROR;
             });
     });
+}
+
+async function propagateFetchError(res) {
+    if (!res.ok) {
+        throw await res.text();
+    }
 }
