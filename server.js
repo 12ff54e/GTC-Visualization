@@ -12,13 +12,14 @@ const input_schema = require('./input-parameters-schema.json');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const processLimit = process.env.LIMIT || 50;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
 
 validateInputSchema().catch(err => {
     console.log(err);
 });
 
-let output;
+let output = {};
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -45,19 +46,28 @@ app.post('/', async (req, res) => {
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
         );
-        output = new GTCOutput(GTC_outputDir);
-        console.log(`path set to ${GTC_outputDir}`);
-
-        await output.getSnapshotFileList();
-        await output.check_tracking();
+        let currentOutput;
+        if (output[req.body.gtc_output] === undefined) {
+            currentOutput = output[req.body.gtc_output] = new GTCOutput(
+                GTC_outputDir
+            );
+            const outputKeys = Object.keys(output);
+            delete output[outputKeys[outputKeys.length - processLimit - 1]];
+            console.log(`path set to ${GTC_outputDir}`);
+            await currentOutput.getSnapshotFileList();
+            await currentOutput.check_tracking();
+        } else {
+            currentOutput = output[req.body.gtc_output];
+        }
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
             pug.renderFile(pugView('plot'), {
+                outputTag: req.body.gtc_output,
                 dir: GTC_outputDir,
-                types: output.particleTrackingExist
+                types: currentOutput.particleTrackingExist
                     ? plotTypes
                     : plotTypes.filter(e => e !== 'Tracking'),
-                snapFiles: output.snapshotFiles,
+                snapFiles: currentOutput.snapshotFiles,
             })
         );
     } catch (err) {
@@ -69,9 +79,9 @@ app.post('/', async (req, res) => {
 app.get('/plotType/:type', async (req, res) => {
     let type = req.params.type;
     try {
-        await output.readData(type);
+        await output[encodeURI(req.query.dir)].readData(type);
         type = type.startsWith('snap') ? 'Snapshot' : type;
-        const data = output.data[type];
+        const data = output[encodeURI(req.query.dir)].data[type];
 
         const status = {
             info: `${type} file read`,
@@ -99,12 +109,12 @@ app.get('/plotType/:type', async (req, res) => {
 });
 
 app.get('/Summary', (req, res) => {
-    generateSummary().then(res.json.bind(res));
+    generateSummary(output[encodeURI(req.query.dir)]).then(res.json.bind(res));
 });
 
 app.get('/data/basicParameters', (req, res) => {
-    output.read_para().then(() => {
-        res.json(output.parameters);
+    output[encodeURI(req.query.dir)].read_para().then(() => {
+        res.json(output[encodeURI(req.query.dir)].parameters);
     });
 });
 
@@ -114,7 +124,9 @@ app.get('/data/:type-:id', (req, res) => {
     console.log(plotId);
 
     try {
-        res.json(output.getPlotData(plotType, plotId));
+        res.json(
+            output[encodeURI(req.query.dir)].getPlotData(plotType, plotId)
+        );
     } catch (e) {
         console.log(e);
         res.status(404).end();
@@ -202,11 +214,11 @@ async function validateInputSchema() {
     }
 }
 
-async function generateSummary() {
-    await output.readData('Equilibrium');
+async function generateSummary(outputCurrent) {
+    await outputCurrent.readData('Equilibrium');
     return {
-        rg: output.data['Equilibrium'].radialData['rg'],
-        q: output.data['Equilibrium'].radialData['q'],
-        dq: output.data['Equilibrium'].radialData['dlnq_dpsi'],
+        rg: outputCurrent.data['Equilibrium'].radialData['rg'],
+        q: outputCurrent.data['Equilibrium'].radialData['q'],
+        dq: outputCurrent.data['Equilibrium'].radialData['dlnq_dpsi'],
     };
 }

@@ -9,6 +9,7 @@ html(lang="en")
         script(src="libs/mathjax/MathJax.js?config=TeX-AMS-MML_SVG" defer)
         script(src="libs/fftw-js/bundle.js" defer) 
     body
+        code(id='outputTag' style="display:none")= outputTag
         p(id='status')= `Current GTC output folder set to ${dir}`
         div(id="tabs")
             each panel in types
