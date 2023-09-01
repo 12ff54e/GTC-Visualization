@@ -174,6 +174,15 @@ app.post('/plot/data/download', (req, res, next) => {
         return;
     }
 
+    if (!Array.isArray(fileList)) {
+        res.set({
+            'Content-Disposition': `attachment; filename="${fileList}"`,
+            'Content-Type': 'text/plain',
+        }).sendFile(path.join(currentDir, fileList));
+        return;
+    }
+
+    // multiple files need to be packed before send to client
     const ps = spawn('tar', [
         '-caf',
         tarFilePath,
