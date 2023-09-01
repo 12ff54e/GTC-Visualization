@@ -139,12 +139,14 @@ export function snapshotPoloidal(figures) {
 
     // draw diagnostic flux indicator
 
-    const diag_flux = GTCGlobal.basicParameters.diag_flux;
+    const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
+
+    const diagFlux = GTCGlobal.basicParameters.diag_flux;
     const diagnostic_flux_line = {
         name: 'Diagnostic Flux',
         mode: 'lines',
         line: {
-            color: 'rgba(142.846, 176.35, 49.6957, 0.9)',
+            color: diagFluxLineColor,
             width: 3,
             shape: 'spline',
             smoothing: 1,
@@ -153,12 +155,12 @@ export function snapshotPoloidal(figures) {
         type: 'scatter',
         showlegend: true,
         x: figures[0].data[0].x.slice(
-            diag_flux * (polNum + 1),
-            (diag_flux + 1) * (polNum + 1)
+            diagFlux * (polNum + 1),
+            (diagFlux + 1) * (polNum + 1)
         ),
         y: figures[0].data[0].y.slice(
-            diag_flux * (polNum + 1),
-            (diag_flux + 1) * (polNum + 1)
+            diagFlux * (polNum + 1),
+            (diagFlux + 1) * (polNum + 1)
         ),
     };
 
@@ -169,14 +171,16 @@ export function snapshotPoloidal(figures) {
     const flattenedField = figures[0].data[1].z;
     const modeNum = Math.floor(polNum / 10);
 
-    const spectrum_figure_data = figures[1].data;
+    const spectrumFigureData = figures[1].data;
     for (let i = 0; i < modeNum; i++) {
-        spectrum_figure_data.push({
+        spectrumFigureData.push({
             y: [],
             name: `m = ${i}`,
             showlegend: false,
+            legendgroup: 'lg2',
             hoverinfo: 'none',
-            total: 0,
+            total_: 0,
+            max_: -Infinity,
         });
     }
 
@@ -188,27 +192,47 @@ export function snapshotPoloidal(figures) {
         plan.forward(circle)
             .slice(0, 2 * modeNum)
             .forEach((amp, i) => {
+                const trace = spectrumFigureData[Math.floor(i / 2)];
                 if (i % 2 == 0) {
-                    spectrum_figure_data[i / 2].y.push(amp);
+                    spectrumFigureData[i / 2].y.push(amp);
                 } else {
-                    let p = spectrum_figure_data[(i - 1) / 2].y.pop();
+                    let p = trace.y.pop();
                     p = Math.sqrt(p * p + amp * amp);
-                    spectrum_figure_data[(i - 1) / 2].total += p;
-                    spectrum_figure_data[(i - 1) / 2].y.push(p);
+                    trace.y.push(p);
+                    trace.total_ += p;
+                    trace.max_ = p > trace.max_ ? p : trace.max_;
                 }
             });
     }
 
     plan.dispose();
 
-    spectrum_figure_data
+    spectrumFigureData
         .sort((u, v) => {
-            return v.total - u.total;
+            return v.total_ - u.total_;
         })
         .some((d, i) => {
             d.showlegend = true;
             return i > 6;
         });
+
+    // add diag flux indicator
+
+    spectrumFigureData.unshift({
+        name: 'Diagnostic Flux',
+        x: [
+            GTCGlobal.basicParameters.diag_flux,
+            GTCGlobal.basicParameters.diag_flux,
+        ],
+        y: [0, spectrumFigureData[0].max_ * 1.1],
+        mode: 'lines',
+        legendgroup: 'lg1',
+        showlegend: true,
+        line: {
+            color: diagFluxLineColor,
+            width: 3,
+        },
+    });
 }
 
 export async function trackingPlot(figures) {
