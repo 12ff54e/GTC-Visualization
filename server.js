@@ -34,18 +34,22 @@ function pugView(fileBasename) {
     return path.join(__dirname, 'views', `${fileBasename}.pug`);
 }
 
-app.get('/', (req, res) => {
-    (async () => {
+function wrap(func) {
+    return (...args) => func(...args).catch(args[2]);
+}
+
+app.get(
+    '/',
+    wrap(async (req, res) => {
         const html = await getFolderStructure(path.normalize(host_dir));
         await fs.writeFile(path.join(__dirname, 'views', 'files.html'), html);
         res.send(pug.renderFile(pugView('index')));
-    })().catch(err => {
-        console.error(err);
-    });
-});
+    })
+);
 
-app.post('/', (req, res) => {
-    (async () => {
+app.post(
+    '/',
+    wrap(async (req, res) => {
         const GTC_outputDir = path.join(
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
@@ -75,15 +79,12 @@ app.post('/', (req, res) => {
                 snapFiles: currentOutput.snapshotFiles,
             })
         );
-    })().catch(err => {
-        console.log(err);
-    });
-});
+    })
+);
 
 app.use('/plot', (req, res, next) => {
-    const currentDirKey = encodeURI(req.query.dir);
-    if (currentDirKey in output) {
-        req.body.dirKey = currentDirKey;
+    req.body.gtcOutput = output[encodeURI(req.query.dir)];
+    if (req.body.gtcOutput) {
         next();
     } else {
         // requested GTFOutput instance being deleted from memory already
@@ -94,46 +95,48 @@ app.use('/plot', (req, res, next) => {
 });
 
 // router for user checking one tab, the server will read corresponding files
-app.get('/plot/plotType/:type', (req, res) => {
-    let type = req.params.type;
-    const key = req.body.dirKey;
+app.get(
+    '/plot/plotType/:type',
+    wrap(async (req, res) => {
+        let type = req.params.type;
+        const currentOutput = req.body.gtcOutput;
+        try {
+            await currentOutput.readData(type);
+            type = type.startsWith('snap') ? 'Snapshot' : type;
+            const data = currentOutput.data[type];
 
-    (async () => {
-        await output[key].readData(type);
-        type = type.startsWith('snap') ? 'Snapshot' : type;
-        const data = output[key].data[type];
-
-        const status = {
-            info: `${type} file read`,
-            id: data.plotTypes,
-        };
-        if (!data.isCompleted) {
-            status.warn =
-                `${path.basename(
+            const status = {
+                info: `${type} file read`,
+                id: data.plotTypes,
+            };
+            if (!data.isCompleted) {
+                status.warn =
+                    `${path.basename(
+                        data.path
+                    )} is not completed. It should have ` +
+                    `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
+            }
+            if (type === 'Snapshot') {
+                status.info = `Currently selection of Snapshot file: ${path.basename(
                     data.path
-                )} is not completed. It should have ` +
-                `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
+                )}`;
+            }
+            res.send(JSON.stringify(status));
+        } catch (err) {
+            console.log(err);
+            res.json({
+                err: `Error happens when reading <b>${type}</b> file, this folder may be corrupted!`,
+            });
         }
-        if (type === 'Snapshot') {
-            status.info = `Currently selection of Snapshot file: ${path.basename(
-                data.path
-            )}`;
-        }
-        res.send(JSON.stringify(status));
-    })().catch(err => {
-        console.log(err);
-        res.json({
-            err: `Error happens when reading <b>${type}</b> file, this folder may be corrupted!`,
-        });
-    });
-});
+    })
+);
 
 app.get('/plot/Summary', (req, res) => {
-    generateSummary(output[req.body.dirKey]).then(res.json.bind(res));
+    generateSummary(req.body.gtcOutput).then(res.json.bind(res));
 });
 
 app.get('/plot/data/basicParameters', (req, res) => {
-    const gtcOutput = output[req.body.dirKey];
+    const gtcOutput = req.body.gtcOutput;
     gtcOutput.read_para().then(() => {
         res.json(gtcOutput.parameters);
     });
@@ -145,7 +148,7 @@ app.get('/plot/data/:type-:id', (req, res) => {
     console.log(plotId);
 
     try {
-        res.json(output[req.body.dirKey].getPlotData(plotType, plotId));
+        res.json(req.body.gtcOutput.getPlotData(plotType, plotId));
     } catch (e) {
         console.log(e);
         res.status(404).end();
@@ -158,6 +161,11 @@ app.post('/input/download', (req, res) => {
         'Content-Type': 'text/plain',
     });
     res.send(generateInput(req.body));
+});
+
+// error logging
+app.use((err, req, res, next) => {
+    console.error(err);
 });
 
 async function getFolderStructure(dir) {
