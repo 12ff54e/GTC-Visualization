@@ -267,6 +267,9 @@ export function addSimulationRegion(fig) {
             y_max = y;
         }
     });
+    if (y_min == y_max) {
+        y_max = y_min + 1;
+    }
     const sep_props = {
         y: [y_min - 0.2 * (y_max - y_min), y_max + 0.2 * (y_max - y_min)],
         mode: 'lines',
