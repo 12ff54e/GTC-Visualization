@@ -2,6 +2,30 @@ p {
     height: 3rem;
 }
 
+#download-output {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+
+    border-radius: 2px;
+}
+
+#download-output > select {
+    overflow-y: auto;
+    height: 0;
+    border-top: 0;
+    border-bottom: 0;
+}
+#download-output > select.select-show {
+    height: fit-content;
+}
+#download-output > button {
+    margin-top: .5em;
+}
+
 #tabs {
     float: left;
     width: 15%;

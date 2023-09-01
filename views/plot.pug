@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+doctype html
 html(lang="en")
     head
         meta(charset="UTF-8")
@@ -11,6 +11,13 @@ html(lang="en")
     body
         code(id='outputTag' style="display:none")= outputTag
         p(id='status')= `Current GTC output folder set to ${dir}`
+        form(id='download-output' method='POST')
+            input(type="submit" value="Download all files")
+            button Expand/Collapse file list
+            select(name="file-list" size=fileList.length multiple) 
+                each file in fileList
+                    option(value=file)= file
+            input(type="submit" value="Download selected file(s)")
         div(id="tabs")
             each panel in types
                 div

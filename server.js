@@ -9,6 +9,9 @@ const Ajv = require('ajv');
 const pug = require('pug');
 
 const input_schema = require('./input-parameters-schema.json');
+const { spawn } = require('child_process');
+const { tmpdir } = require('os');
+const { unlink, readdir } = require('fs/promises');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -55,7 +58,7 @@ app.post(
             decodeURI(req.body.gtc_output)
         );
         let currentOutput;
-        if (output[req.body.gtc_output] === undefined) {
+        if ((currentOutput = output[req.body.gtc_output]) === undefined) {
             currentOutput = output[req.body.gtc_output] = new GTCOutput(
                 GTC_outputDir
             );
@@ -64,9 +67,10 @@ app.post(
             console.log(`path set to ${GTC_outputDir}`);
             await currentOutput.getSnapshotFileList();
             await currentOutput.check_tracking();
-        } else {
-            currentOutput = output[req.body.gtc_output];
         }
+        currentOutput.fileList = (await readdir(currentOutput.dir, 'utf-8'))
+            .map(filename => filename.toLowerCase())
+            .filter(filename => filename.endsWith('.out'));
 
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
@@ -77,6 +81,7 @@ app.post(
                     ? plotTypes
                     : plotTypes.filter(e => e !== 'Tracking'),
                 snapFiles: currentOutput.snapshotFiles,
+                fileList: currentOutput.fileList,
             })
         );
     })
@@ -155,6 +160,59 @@ app.get('/plot/data/:type-:id', (req, res) => {
     }
 });
 
+app.post('/plot/data/download', (req, res, next) => {
+    const currentDir = req.body.gtcOutput.dir;
+    const tarFilePath = path.join(
+        tmpdir(),
+        path.basename(currentDir) + '.tar.gz'
+    );
+    const fileList =
+        'all' in req.query
+            ? req.body.gtcOutput.fileList
+            : req.body['file-list'];
+    if (fileList === undefined) {
+        return;
+    }
+
+    const ps = spawn('tar', [
+        '-caf',
+        tarFilePath,
+        '-C',
+        path.dirname(currentDir),
+        ...fileList.map(filename =>
+            path.join(path.basename(currentDir), filename)
+        ),
+    ]);
+    ps.on('close', code => {
+        if (code !== 0) {
+            console.error(`Tar failed with exit code = ${code}`);
+            return;
+        }
+        res.set({
+            'Content-Disposition': `attachment; filename="${path.basename(
+                tarFilePath
+            )}"`,
+            'Content-Type': 'application/gzip',
+        }).sendFile(tarFilePath, err => {
+            if (err) {
+                next(err);
+            } else {
+                unlink(tarFilePath).catch(err => {
+                    next(err);
+                });
+                console.log(
+                    `${req.ip} has just downloaded files from${currentDir}:`
+                );
+                console.group();
+                console.table(
+                    fileList.map(filename => ({ filename: filename }))
+                );
+                console.groupEnd();
+            }
+        });
+    });
+});
+
 app.post('/input/download', (req, res) => {
     res.set({
         'Content-Disposition': 'attachment; filename="gtc.in"',
@@ -165,6 +223,7 @@ app.post('/input/download', (req, res) => {
 
 // error logging
 app.use((err, req, res, next) => {
+    res.status(500).end();
     console.error(err);
 });
 

@@ -108,6 +108,19 @@ window.addEventListener('load', async function () {
             });
         });
     }
+
+    // add GTC output file download cb
+    const downloadForm = document.querySelector('#download-output');
+    downloadForm.action = `/plot/data/download?dir=${
+        document.querySelector('#outputTag').innerText
+    }`;
+    downloadForm.firstElementChild.formAction = `/plot/data/download?dir=${
+        document.querySelector('#outputTag').innerText
+    }&all`;
+    downloadForm.querySelector('button').addEventListener('click', e => {
+        e.preventDefault();
+        downloadForm.querySelector('select').classList.toggle('select-show');
+    });
 });
 
 window.addEventListener('error', () => {
