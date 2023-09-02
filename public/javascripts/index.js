@@ -79,34 +79,34 @@ window.addEventListener('load', async function () {
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
         swc.visited = false;
         if (swc.id === 'Snapshot') {
-            swc.onchange = function () {
+            swc.addEventListener('change', e => {
                 // expand snapshot file list
                 let div = document.getElementById('files');
                 div.style.height = `${div.childElementCount * 1.3 + 0.2}rem`;
                 cleanPlot();
                 cleanPanel();
-            };
+            });
         } else {
-            swc.onchange = function () {
-                // collapse snapshot file list
-                let div = document.getElementById('files');
-                div.style.height = '';
-                addLoadingIndicator.call(swc, openPanel).catch(err => {
-                    console.error(err);
-                    getStatusBar().err = StatusBar.DEFAULT_ERROR;
-                });
-            };
+            swc.addEventListener(
+                'change',
+                wrap(async e => {
+                    // collapse snapshot file list
+                    let div = document.getElementById('files');
+                    div.style.height = '';
+                    await addLoadingIndicator(openPanel.bind(e.target))();
+                })
+            );
         }
     }
 
     // snapshot file name buttons
     for (let btn of document.getElementById('files').children) {
-        btn.addEventListener('click', e => {
-            addLoadingIndicator.call(e.target, openPanel).catch(err => {
-                console.error(err);
-                getStatusBar().err = StatusBar.DEFAULT_ERROR;
-            });
-        });
+        btn.addEventListener(
+            'click',
+            wrap(async e => {
+                await addLoadingIndicator(openPanel.bind(e.target))();
+            })
+        );
     }
 
     addDownloadFunction();
@@ -116,6 +116,7 @@ window.addEventListener('error', () => {
     getStatusBar().err = StatusBar.DEFAULT_ERROR;
 });
 
+// wrap async function for error handling
 function wrap(func) {
     return (...args) =>
         func(...args).catch(err => {
@@ -187,12 +188,12 @@ function addDownloadFunction() {
 
 function registerButtons(buttons) {
     buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            addLoadingIndicator.call(btn, getDataThenPlot).catch(err => {
-                console.error(err);
-                getStatusBar().err = StatusBar.DEFAULT_ERROR;
-            });
-        });
+        btn.addEventListener(
+            'click',
+            wrap(async e => {
+                await addLoadingIndicator(getDataThenPlot.bind(e.target))();
+            })
+        );
     });
 }
 
@@ -222,20 +223,21 @@ async function openPanel() {
         summaryContainer
             .querySelectorAll('.summary-jump-button')
             .forEach(btn => {
-                btn.addEventListener('click', e => {
-                    e.preventDefault();
-                    const panelSwitch = document.querySelector(
-                        `#${btn.id.split('-')[1]}`
-                    );
-                    addLoadingIndicator
-                        .call(panelSwitch, openPanel)
-                        .then(() => {
-                            panelSwitch.checked = true;
-                            document
-                                .querySelector(`#${btn.id.slice(8)}`)
-                                .click();
-                        });
-                });
+                btn.addEventListener(
+                    'click',
+                    wrap(async e => {
+                        e.preventDefault();
+                        const panelSwitch = document.querySelector(
+                            `#${btn.id.split('-')[1]}`
+                        );
+                        await addLoadingIndicator(
+                            openPanel.bind(panelSwitch)
+                        )();
+
+                        panelSwitch.checked = true;
+                        document.querySelector(`#${btn.id.slice(8)}`).click();
+                    })
+                );
             });
         return;
     }
@@ -363,13 +365,15 @@ function cleanPanel() {
     summary.style.display = 'none';
 }
 
-async function addLoadingIndicator(func) {
-    const loading = document.querySelector('#loading');
-    loading.style.visibility = 'visible';
+function addLoadingIndicator(func) {
+    return async function (...args) {
+        const loading = document.querySelector('#loading');
+        loading.style.visibility = 'visible';
 
-    await func.call(this);
+        await func(...args);
 
-    loading.style.visibility = 'hidden';
+        loading.style.visibility = 'hidden';
+    };
 }
 
 async function getDataThenPlot() {
@@ -494,32 +498,29 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
 
     // register form submit behaviour
     const form = document.getElementById('Equilibrium-panel').firstElementChild;
-    form.addEventListener('submit', event => {
-        event.preventDefault();
+    form.addEventListener(
+        'submit',
+        wrap(async e => {
+            e.preventDefault();
 
-        const data = new FormData(form);
-        const type = 'Equilibrium';
+            const data = new FormData(form);
+            const type = 'Equilibrium';
 
-        const xType = data.get('x');
-        const yType = data.get('y');
+            const xType = data.get('x');
+            const yType = data.get('y');
 
-        if (!xType || !yType) {
-            alert('Choose X and Y');
-            return;
-        }
+            if (!xType || !yType) {
+                alert('Choose X and Y');
+                return;
+            }
 
-        addLoadingIndicator
-            .call(
-                {
+            await addLoadingIndicator(
+                getDataThenPlot.bind({
                     id: `${type}-1D-${xType}-${yType}`,
-                },
-                getDataThenPlot
-            )
-            .catch(err => {
-                console.log(err);
-                getStatusBar().err = StatusBar.DEFAULT_ERROR;
-            });
-    });
+                })
+            )();
+        })
+    );
 }
 
 async function propagateFetchError(res) {
