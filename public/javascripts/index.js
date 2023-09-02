@@ -109,23 +109,81 @@ window.addEventListener('load', async function () {
         });
     }
 
-    // add GTC output file download cb
-    const downloadForm = document.querySelector('#download-output');
-    downloadForm.action = `/plot/data/download?dir=${
-        document.querySelector('#outputTag').innerText
-    }`;
-    downloadForm.firstElementChild.formAction = `/plot/data/download?dir=${
-        document.querySelector('#outputTag').innerText
-    }&all`;
-    downloadForm.querySelector('button').addEventListener('click', e => {
-        e.preventDefault();
-        downloadForm.querySelector('select').classList.toggle('select-show');
-    });
+    addDownloadFunction();
 });
 
 window.addEventListener('error', () => {
     getStatusBar().err = StatusBar.DEFAULT_ERROR;
 });
+
+function wrap(func) {
+    return (...args) =>
+        func(...args).catch(err => {
+            console.log(err);
+            getStatusBar().err = StatusBar.DEFAULT_ERROR;
+        });
+}
+
+function addDownloadFunction() {
+    // add GTC output file download cb
+    const downloadForm = document.querySelector('#download-output');
+    // button for expand/collapse file list
+    downloadForm.querySelector('button').addEventListener('click', e => {
+        e.preventDefault();
+        e.target.nextSibling.classList.toggle('select-show');
+    });
+    // submit file list for download
+    downloadForm.querySelectorAll('input').forEach(btn =>
+        btn.addEventListener(
+            'click',
+            wrap(async e => {
+                e.preventDefault();
+                const loading = downloadForm.querySelector('#download-overlay');
+                loading.style.visibility = 'initial';
+                const url = `/plot/data/download?dir=${
+                    document.querySelector('#outputTag').innerText
+                }${e.target.id.endsWith('all') ? '&all' : ''}`;
+
+                const data = new URLSearchParams();
+                for (const [key, val] of new FormData(downloadForm).entries()) {
+                    data.append(key, val);
+                }
+
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/x-www-form-urlencoded',
+                    },
+                    body: data,
+                });
+                if (!res.ok) {
+                    console.error('File download failed');
+                    throw `Server return ${res.status}:${res.statusText} upon requesting GTC output files`;
+                }
+                const blob = await res.blob();
+
+                // create link for downloading file
+                const a = document.body.appendChild(
+                    document.createElement('a')
+                );
+                a.href = window.URL.createObjectURL(blob);
+
+                // forward filename, if exist
+                let match;
+                if (
+                    (match = res.headers
+                        .get('Content-Disposition')
+                        .match(/filename="(.*)"/))
+                ) {
+                    a.download = match[1];
+                }
+                a.click();
+                a.remove();
+                loading.style.visibility = 'hidden';
+            })
+        )
+    );
+}
 
 function registerButtons(buttons) {
     buttons.forEach(btn => {

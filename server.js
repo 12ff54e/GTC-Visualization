@@ -210,7 +210,7 @@ app.post('/plot/data/download', (req, res, next) => {
                     next(err);
                 });
                 console.log(
-                    `${req.ip} has just downloaded files from${currentDir}:`
+                    `${req.ip} has just downloaded files from ${currentDir}:`
                 );
                 console.group();
                 console.table(

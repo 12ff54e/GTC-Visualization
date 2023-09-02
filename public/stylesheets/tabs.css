@@ -13,6 +13,16 @@ p {
     border-radius: 2px;
 }
 
+#download-overlay {
+    position: absolute;
+    top: 1em;
+    left: 0;
+    visibility: hidden;
+}
+#download-overlay img {
+    width: 80%;
+}
+
 #download-output > select {
     overflow-y: auto;
     height: 0;
@@ -23,7 +33,7 @@ p {
     height: fit-content;
 }
 #download-output > button {
-    margin-top: .5em;
+    margin-top: 0.5em;
 }
 
 #tabs {
