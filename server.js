@@ -58,7 +58,10 @@ app.post(
             decodeURI(req.body.gtc_output)
         );
         let currentOutput;
-        if ((currentOutput = output[req.body.gtc_output]) === undefined) {
+        if (
+            (currentOutput = output[req.body.gtc_output]) === undefined ||
+            !currentOutput.data['History'].isCompleted
+        ) {
             currentOutput = output[req.body.gtc_output] = new GTCOutput(
                 GTC_outputDir
             );
