@@ -58,9 +58,20 @@ app.post(
             decodeURI(req.body.gtc_output)
         );
         let currentOutput;
+
+        // function checkSnapshot(){
+        //     const snapFilesLength = currentOutput.snapshotFiles.length;
+        //     if (snapFilesLength > 2){
+
+        //     }
+        // }
+
         if (
             (currentOutput = output[req.body.gtc_output]) === undefined ||
-            !currentOutput.data['History'].isCompleted
+            // Check whether gtcoutput is completed using snapshotFiles.length, But there may be a bug here, since the last step is not ensured to be output in gtc, so it's possible that all the snapshotFiles has been ouputed but gtc is still running.
+            (await currentOutput.read_para(),
+            currentOutput.parameters.msnap + 2 >
+                currentOutput.snapshotFiles.length)
         ) {
             currentOutput = output[req.body.gtc_output] = new GTCOutput(
                 GTC_outputDir
@@ -71,6 +82,7 @@ app.post(
             await currentOutput.getSnapshotFileList();
             await currentOutput.check_tracking();
         }
+
         currentOutput.fileList = (await readdir(currentOutput.dir, 'utf-8'))
             .map(filename => filename.toLowerCase())
             .filter(filename => filename.endsWith('.out'));
