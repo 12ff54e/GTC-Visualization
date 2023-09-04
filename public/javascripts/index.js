@@ -93,7 +93,7 @@ window.addEventListener('load', async function () {
                     // collapse snapshot file list
                     let div = document.getElementById('files');
                     div.style.height = '';
-                    await addLoadingIndicator(openPanel.bind(e.target))();
+                    await addLoadingIndicator(callEventTarget(openPanel))(e);
                 })
             );
         }
@@ -103,9 +103,7 @@ window.addEventListener('load', async function () {
     for (let btn of document.getElementById('files').children) {
         btn.addEventListener(
             'click',
-            wrap(async e => {
-                await addLoadingIndicator(openPanel.bind(e.target))();
-            })
+            wrap(addLoadingIndicator(callEventTarget(openPanel)))
         );
     }
 
@@ -123,6 +121,10 @@ function wrap(func) {
             console.log(err);
             getStatusBar().err = StatusBar.DEFAULT_ERROR;
         });
+}
+
+function callEventTarget(func, transform = e => e.target) {
+    return e => func.call(transform(e));
 }
 
 function addDownloadFunction() {
@@ -190,9 +192,7 @@ function registerButtons(buttons) {
     buttons.forEach(btn => {
         btn.addEventListener(
             'click',
-            wrap(async e => {
-                await addLoadingIndicator(getDataThenPlot.bind(e.target))();
-            })
+            wrap(addLoadingIndicator(callEventTarget(getDataThenPlot)))
         );
     });
 }
@@ -366,7 +366,7 @@ function cleanPanel() {
 }
 
 function addLoadingIndicator(func) {
-    return async function (...args) {
+    return async (...args) => {
         const loading = document.querySelector('#loading');
         loading.style.visibility = 'visible';
 
