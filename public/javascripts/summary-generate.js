@@ -77,78 +77,34 @@ export async function generateSummary() {
     }" class="summary-jump-button">History > phi-mode${
         properModeIndex + 1
     }</button>.`;
-    const diagFluxParagraph = addParagraph(diagFluxProp);
+    addParagraph(diagFluxProp);
 
-    const safetyFactorContainer = summary.appendChild(
-        document.createElement('div')
+    const normalizedMinorRadius = {
+        tag: '$r$',
+        data: data.rg.map(r => r / minorRadius),
+    };
+    multipleTraceFigure(
+        summary,
+        summary.querySelector('#summary-safety-factor'),
+        normalizedMinorRadius,
+        [
+            {
+                title: 'Safety Factor',
+                tag: '$q$',
+                data: data.q,
+            },
+            {
+                title: 'Shear',
+                tag: '$\\hat{s}$',
+                data: zip(
+                    (dq, r, q) => (dq * r * r) / q,
+                    data['dlnq_dpsi'],
+                    data.rg,
+                    data.q
+                ),
+            },
+        ]
     );
-    safetyFactorContainer.classList.add('summary-figure-container');
-    safetyFactorContainer.id = 'summary-safety-factor-figure';
-    const safetyFactorWrapper = safetyFactorContainer.appendChild(
-        document.createElement('div')
-    );
-    safetyFactorWrapper.classList.add('summary-figure-wrapper');
-    const safetyFactorPlotDiv = safetyFactorWrapper.appendChild(
-        document.createElement('div')
-    );
-    safetyFactorPlotDiv.classList.add('summary-figure-plot-div');
-    summary
-        .querySelector('#summary-safety-factor')
-        .addEventListener('click', e => {
-            e.preventDefault();
-            //create figure if not exist
-            if (safetyFactorPlotDiv.classList.length == 1) {
-                const x = data.rg.map(r => r / minorRadius);
-                Plotly.newPlot(
-                    safetyFactorPlotDiv,
-                    [{ x: x, y: data.q, line: { simplify: false } }],
-                    {
-                        xaxis: { title: '$r$' },
-                        yaxis: { title: '$q$' },
-                        height: 400,
-                        title: 'Safety Factor',
-                        paper_bgcolor: 'rgb(227,248,241)',
-                        plot_bgcolor: 'rgb(227,248,241)',
-                    }
-                );
-            }
-
-            // safetyFactorContainer.style.height = '400px';
-            safetyFactorContainer.classList.toggle(
-                'summary-figure-container-show'
-            );
-        });
-
-    const safetyFactorButtonDiv = safetyFactorWrapper.appendChild(
-        document.createElement('div')
-    );
-    safetyFactorButtonDiv.classList.add('summary-figure-button-div');
-    const safetyFactorButtonQ = safetyFactorButtonDiv.appendChild(
-        document.createElement('button')
-    );
-    const safetyFactorButtonS = safetyFactorButtonDiv.appendChild(
-        document.createElement('button')
-    );
-    safetyFactorButtonQ.innerText = 'safety factor';
-
-    safetyFactorButtonQ.addEventListener('click', e => {
-        e.preventDefault();
-        transitionTo(safetyFactorPlotDiv, data.q, '$q$', 'Safety Factor');
-    });
-    let shear;
-    safetyFactorButtonS.innerText = 'shear';
-    safetyFactorButtonS.addEventListener('click', e => {
-        e.preventDefault();
-        if (shear === undefined) {
-            shear = zip(
-                (dq, r, q) => (dq * r * r) / q,
-                data.dq,
-                data.rg,
-                data.q
-            );
-        }
-        transitionTo(safetyFactorPlotDiv, shear, '$\\hat{s}$', 'Shear');
-    });
 
     const particleLoading = (varName, pload) =>
         pload == 1
@@ -177,11 +133,81 @@ export async function generateSummary() {
             : ''
     }`;
     addParagraph(particleProp);
+    // summary.appendChild(document.createElement('ul'))
 
-    const driveDetails = ``;
+    const driveDetails = `Density and temperature gradients are shown as follows (<button id="summary-gradients" class="summary-figure-button">show/hide figure</button>)`;
     addParagraph(driveDetails);
 
-    const gridFormation = ``;
+    const rescale = df => zip((v, r, q) => (v * r) / q, df, data.rg, data.q);
+    multipleTraceFigure(
+        summary,
+        summary.querySelector('#summary-gradients'),
+        normalizedMinorRadius,
+        [
+            {
+                title: 'Electron Temperature',
+                tag: '$T_\\text{e}$',
+                buttonText: '\\(T_\\text{e}\\)',
+                data: data['Te'],
+            },
+            {
+                title: 'Electron Temperature Gradient',
+                tag: '$\\frac{R_0}{L_\\text{T}}$',
+                buttonText: '\\(R_0/L_\\text{T}\\)<code>(e)</code>',
+                data: rescale(data['dlnTe_dpsi']),
+            },
+            {
+                title: 'Electron Density',
+                tag: '$n_\\text{e}$',
+                buttonText: '\\(n_\\text{e}\\)',
+                data: data['ne'],
+            },
+
+            {
+                title: 'Electron Density Gradient',
+                tag: '$\\frac{R_0}{L_\\text{n}}$',
+                buttonText: '\\(R_0/L_\\text{n}\\)<code>(e)</code>',
+                data: rescale(data['dlnne_dpsi']),
+            },
+            {
+                title: 'Ion Temperature',
+                tag: '$T_\\text{i}$',
+                buttonText: '\\(T_\\text{i}\\)',
+                data: data['Ti'],
+            },
+            {
+                title: 'Ion Temperature Gradient',
+                tag: '$\\frac{R_0}{L_\\text{T}}$',
+                buttonText: '\\(R_0/L_\\text{T}\\)<code>(i)</code>',
+                data: rescale(data['dlnTi_dpsi']),
+            },
+            {
+                title: 'Ion Density',
+                tag: '$n_\\text{i}$',
+                buttonText: '\\(n_\\text{i}\\)',
+                data: data['ni'],
+            },
+            {
+                title: 'Ion Density Gradient',
+                tag: '$\\frac{R_0}{L_\\text{n}}$',
+                buttonText: '\\(R_0/L_\\text{n}\\)<code>(i)</code>',
+                data: rescale(data['dlnni_dpsi']),
+            },
+        ]
+    );
+
+    const ptPerPeriod = bp.mthetamax / Math.max(...bp.mmodes);
+    const gridFormation = `In the simulation setup, a \\(${bp.mgrid}\\times${
+        bp.mtoroidal
+    }\\) mesh grid is used. On each poloidal plane, the unstructured grid has ${
+        bp.mpsi + 1
+    } circles with grid point number ranging from ${bp.mtheta0} to ${
+        bp.mtheta1
+    }. (<span class="${
+        ptPerPeriod < 15 ? 'error' : ptPerPeriod > 20 ? 'good' : 'warn'
+    }">Note: Number of points per poloidal period for the maximum mode number you choose in mid-plane is about ${ptPerPeriod.toPrecision(
+        2
+    )}.</span>)`;
     addParagraph(gridFormation);
 
     // renders math expression
@@ -224,6 +250,52 @@ async function transitionTo(root, data, label, title) {
         { layout: { yaxis: { range: dataRange } } },
         transitionLayout
     );
+}
+
+function multipleTraceFigure(container, button, abscissa, ordinates) {
+    const figureContainer = container.appendChild(
+        document.createElement('div')
+    );
+    figureContainer.classList.add('summary-figure-container');
+    const figureWrapper = figureContainer.appendChild(
+        document.createElement('div')
+    );
+    figureWrapper.classList.add('summary-figure-wrapper');
+    const plotlyRoot = figureWrapper.appendChild(document.createElement('div'));
+    plotlyRoot.classList.add('summary-figure-plot-div');
+    button.addEventListener('click', e => {
+        e.preventDefault();
+
+        //create figure if not exist
+        if (plotlyRoot.childElementCount == 0) {
+            const { title, tag, data } = ordinates[0];
+            Plotly.newPlot(
+                plotlyRoot,
+                [{ x: abscissa.data, y: data, line: { simplify: false } }],
+                {
+                    xaxis: { title: abscissa.tag },
+                    yaxis: { title: { text: tag } },
+                    height: 400,
+                    title: title,
+                    paper_bgcolor: 'rgb(227,248,241)',
+                    plot_bgcolor: 'rgb(227,248,241)',
+                }
+            );
+        }
+
+        figureContainer.classList.toggle('summary-figure-container-show');
+    });
+
+    const buttonDiv = figureWrapper.appendChild(document.createElement('div'));
+    buttonDiv.classList.add('summary-figure-button-div');
+    for (const { title, tag, data, buttonText } of ordinates) {
+        const btn = buttonDiv.appendChild(document.createElement('button'));
+        btn.innerHTML = buttonText ?? title;
+        btn.addEventListener('click', e => {
+            e.preventDefault();
+            transitionTo(plotlyRoot, data, tag, title);
+        });
+    }
 }
 
 function lerp(a, b, x) {

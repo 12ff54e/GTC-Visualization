@@ -256,4 +256,21 @@ input.eq-1d-y:checked + label {
     position: absolute;
     top: 0.5rem;
     left: 1rem;
+    width: 7em;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+.summary-figure-button-div > button{
+    padding-block: 0;
+}
+
+#summary-page span.good {
+    color: chartreuse;
+}
+#summary-page span.warn {
+    color: darkorange;
+}
+#summary-page span.bad {
+    color: crimson;
 }

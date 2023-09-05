@@ -137,7 +137,7 @@ app.get(
 );
 
 app.get('/plot/Summary', (req, res) => {
-    generateSummary(req.body.gtcOutput).then(res.json.bind(res));
+    prepareSummaryData(req.body.gtcOutput).then(res.json.bind(res));
 });
 
 app.get('/plot/data/basicParameters', (req, res) => {
@@ -309,11 +309,27 @@ async function validateInputSchema() {
     }
 }
 
-async function generateSummary(outputCurrent) {
-    await outputCurrent.readData('Equilibrium');
-    return {
-        rg: outputCurrent.data['Equilibrium'].radialData['rg'],
-        q: outputCurrent.data['Equilibrium'].radialData['q'],
-        dq: outputCurrent.data['Equilibrium'].radialData['dlnq_dpsi'],
-    };
+async function prepareSummaryData(currentOutput) {
+    await currentOutput.readData('Equilibrium');
+    const data = {};
+    [
+        'rg',
+        'q',
+        'dlnq_dpsi',
+        'Te',
+        'dlnTe_dpsi',
+        'ne',
+        'dlnne_dpsi',
+        'Ti',
+        'dlnTi_dpsi',
+        'ni',
+        'dlnni_dpsi',
+        'Tf',
+        'dlnTf_dpsi',
+        'nf',
+        'dlnnf_dpsi',
+    ].forEach(key => {
+        data[key] = currentOutput.data['Equilibrium'].radialData[key];
+    });
+    return data;
 }
