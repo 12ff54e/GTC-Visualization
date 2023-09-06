@@ -1,12 +1,11 @@
 'use strict';
-import * as spectrum from './spectrum.js';
 
 export async function historyMode(figures, interval1, interval2) {
     // deconstructing figures
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
     // growth rate figure
-    let { gamma, measurePts } = spectrum.cal_gamma(
+    let { gamma, measurePts } = cal_gamma(
         growthFig.data[0].y,
         window.GTCGlobal.timeStep,
         interval1
@@ -35,7 +34,7 @@ export async function historyMode(figures, interval1, interval2) {
             y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0)
     );
     let omega;
-    ({ omega, measurePts } = spectrum.cal_omega_r(
+    ({ omega, measurePts } = cal_omega_r(
         yReals,
         yImages,
         window.GTCGlobal.timeStep,
@@ -70,7 +69,7 @@ export async function historyMode(figures, interval1, interval2) {
     };
 
     // spectral figure
-    let powerSpectrum = spectrum.cal_spectrum(
+    let powerSpectrum = cal_spectrum(
         yReals,
         yImages,
         window.GTCGlobal.timeStep
@@ -296,4 +295,134 @@ export function addSimulationRegion(fig) {
         y_max + 0.1 * (y_max - y_min),
     ];
     fig.layout.showlegend = false;
+}
+
+/**
+ * Calculate the growth rate of the time series array
+ *
+ * @param {Array<Number>} ys a series of data
+ * @param {number} dt time step
+ * @param {Array<Number>} interval
+ *
+ * @returns {{gamma: number, measurePts:{x:number, y:number}[]}}} growth rate
+ */
+export function cal_gamma(ys, dt, interval = [0.43, 0.98]) {
+    let [tIni, tEnd] = interval;
+
+    let tIniIndex = Math.floor(tIni * ys.length);
+    let tEndIndex = Math.floor(tEnd * ys.length);
+
+    let gamma =
+        (Math.log(ys[tEndIndex]) - Math.log(ys[tIniIndex])) /
+        ((tEndIndex - tIniIndex) * dt);
+
+    let p1 = { x: (tIniIndex + 1) * dt, y: ys[tIniIndex] };
+    let p2 = { x: (tEndIndex + 1) * dt, y: ys[tEndIndex] };
+
+    return {
+        gamma: gamma,
+        measurePts: [p1, p2],
+    };
+}
+
+/**
+ * Calculate the frequency of the array
+ *
+ * @param {Array<Number>} yReals
+ * @param {number} dt time step
+ * @param {Array<Number>} interval
+ *
+ * @returns {{omega:number, measurePts:{x:number, y:number}[]}}
+ */
+export function cal_omega_r(yReals, yImages, dt, interval = [0.43, 0.98]) {
+    let [tIni, tEnd] = interval;
+
+    let tIniIndex = Math.floor(tIni * yReals.length);
+    let tEndIndex = Math.floor(tEnd * yReals.length);
+
+    // let maximums = ys.slice(tIniIndex, tEndIndex).filter((y, i, yn) => {
+    //     return i > 0 && i < yn.length - 1
+    //         && y[1] > yn[i - 1][1] && y[1] > yn[i + 1][1];
+    // })
+    let maximums = new Array();
+    // yReals.slice(tIniIndex, tEndIndex).forEach((y, i, arr) => {
+    //     if (i > 0 && i < arr.length - 1 && y > arr[i - 1] && y > arr[i + 1]) {
+    //         maximums.push([i + tIniIndex, y]);
+    //     }
+    // });
+
+    const section = [];
+    for (let i = tIniIndex; i < tEndIndex; ++i) {
+        section.push((yReals[i - 1] + yReals[i] + yReals[i + 1]) / 3);
+    }
+    section.forEach((y, i, arr) => {
+        if (i > 0 && i < arr.length - 1 && y > arr[i - 1] && y > arr[i + 1]) {
+            maximums.push([i + tIniIndex, y]);
+        }
+    });
+
+    let omega;
+    let periodNum = maximums.length - 1;
+    let p1 = { x: null, y: null };
+    let p2 = { x: null, y: null };
+    if (periodNum < 1) {
+        omega = 0;
+    } else {
+        p1.x = (maximums[0][0] + 1) * dt;
+        p1.y = maximums[0][1];
+        p2.x = (maximums[maximums.length - 1][0] + 1) * dt;
+        p2.y = maximums[maximums.length - 1][1];
+        omega = (2 * Math.PI * periodNum) / (p2.x - p1.x);
+    }
+
+    return {
+        omega: omega,
+        measurePts: [p1, p2],
+    };
+}
+
+/**
+ * Calculate power spectrum, asynchronously
+ *
+ * @param {Array<Number>} reals
+ * @param {Array<Number>} images
+ * @param {number} timeStep
+ *
+ * @returns {{x: Array<Number>, y: Array<Number>}} power spectrum
+ */
+export function cal_spectrum(reals, images, timeStep) {
+    const plan = new fftw['c2c']['fft1d'](reals.length);
+
+    const spectrum = unInterleave(plan.forward(interleave(reals, images))).map(
+        ([re, im]) => Math.sqrt(re * re + im * im)
+    );
+
+    plan.dispose();
+
+    const len = reals.length;
+    const halfLen = Math.floor(len / 2);
+
+    return {
+        x: [...Array(len).keys()].map(
+            i => ((2 * Math.PI) / (len * timeStep)) * (i - halfLen)
+        ),
+        y: Array.from(spectrum.slice(len - halfLen)).concat(
+            Array.from(spectrum.slice(0, len - halfLen))
+        ),
+    };
+}
+
+function interleave(as, bs) {
+    return as.flatMap((val, idx) => [val, bs[idx]]);
+}
+
+function unInterleave(cs) {
+    return cs.reduce((arr, val, idx) => {
+        if (idx % 2 == 0) {
+            arr.push([val]);
+        } else {
+            arr.at(-1).push(val);
+        }
+        return arr;
+    }, []);
 }
