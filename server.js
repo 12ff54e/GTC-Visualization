@@ -51,20 +51,13 @@ app.get(
 );
 
 app.post(
-    '/',
+    '/plot',
     wrap(async (req, res) => {
         const GTC_outputDir = path.join(
             path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
             decodeURI(req.body.gtc_output)
         );
         let currentOutput;
-
-        // function checkSnapshot(){
-        //     const snapFilesLength = currentOutput.snapshotFiles.length;
-        //     if (snapFilesLength > 2){
-
-        //     }
-        // }
 
         if (
             (currentOutput = output[req.body.gtc_output]) === undefined ||
