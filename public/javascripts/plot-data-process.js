@@ -141,7 +141,8 @@ export function snapshotPoloidal(figures) {
 
     const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
 
-    const diagFlux = GTCGlobal.basicParameters.diag_flux;
+    const diagFlux =
+        GTCGlobal.basicParameters.diag_flux ?? GTCGlobal.basicParameters.iflux;
     const diagnostic_flux_line = {
         name: 'Diagnostic Flux',
         mode: 'lines',
