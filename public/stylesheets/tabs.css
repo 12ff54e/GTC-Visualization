@@ -266,10 +266,10 @@ input.eq-1d-y:checked + label {
 }
 
 #summary-page span.good {
-    color: chartreuse;
+    color: #468507;
 }
 #summary-page span.warn {
-    color: darkorange;
+    color: #b66400;
 }
 #summary-page span.bad {
     color: crimson;
