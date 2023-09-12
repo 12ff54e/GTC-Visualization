@@ -271,6 +271,6 @@ input.eq-1d-y:checked + label {
 #summary-page span.warn {
     color: #b66400;
 }
-#summary-page span.bad {
+#summary-page span.error {
     color: crimson;
 }
