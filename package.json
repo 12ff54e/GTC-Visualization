@@ -8,7 +8,7 @@
     "start": "node ./server-prod.js",
     "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
     "pack-server": "webpack --config webpack.config.js",
-    "pack": "npm install && npm run pack-server && cd .. && zip -9rFS GTC-Visualization/GTC-Visualization.zip GTC-Visualization/public GTC-Visualization/views GTC-Visualization/.env_example GTC-Visualization/LICENSE GTC-Visualization/package.json GTC-Visualization/README.md GTC-Visualization/server-prod.js"
+    "pack": "npm install && npm run pack-server && tar -caf GTC-Visualization.tar.gz public views .env_example LICENSE package.json README.md server-prod.js --transform 's,^,GTC-Visualization/,'"
   },
   "keywords": [
     "Visualization"
