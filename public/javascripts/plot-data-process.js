@@ -177,7 +177,6 @@ export function snapshotPoloidal(figures) {
             y: [],
             name: `m = ${i}`,
             showlegend: false,
-            legendgroup: 'lg2',
             hoverinfo: 'none',
             total_: 0,
             max_: -Infinity,
@@ -226,7 +225,6 @@ export function snapshotPoloidal(figures) {
         ],
         y: [0, spectrumFigureData[0].max_ * 1.1],
         mode: 'lines',
-        legendgroup: 'lg1',
         showlegend: true,
         line: {
             color: diagFluxLineColor,
