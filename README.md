@@ -19,7 +19,7 @@ Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
     ```
 **Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run `npm pack` and all necessary files are packed into a compressed file, which you can upload to your server. Then you can unpack files and start the server by
    ```bash
-   unzip GTC-Visualization
+   tar -xf GTC-Visualization.tar.gz
    cd GTC-Visualization
    mv .env_example .env
    # change .env file as you wish
