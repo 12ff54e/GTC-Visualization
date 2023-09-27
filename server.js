@@ -59,16 +59,23 @@ app.post(
         );
         let currentOutput;
 
+        const modificationCheck = async gtc_output => {
+            return (
+                gtc_output.timestamp !=
+                (await fs.stat(path.join(GTC_outputDir, 'gtc.out'))).mtimeMs
+            );
+        };
+
         if (
             (currentOutput = output[req.body.gtc_output]) === undefined ||
-            // Check whether gtcoutput is completed using snapshotFiles.length, But there may be a bug here, since the last step is not ensured to be output in gtc, so it's possible that all the snapshotFiles has been ouputed but gtc is still running.
-            (await currentOutput.read_para(),
-            currentOutput.parameters.msnap + 2 >
-                currentOutput.snapshotFiles.length)
+            (await modificationCheck(currentOutput))
         ) {
             currentOutput = output[req.body.gtc_output] = new GTCOutput(
                 GTC_outputDir
             );
+            currentOutput.timestamp = (
+                await fs.stat(path.join(GTC_outputDir, 'gtc.out'))
+            ).mtimeMs;
             const outputKeys = Object.keys(output);
             delete output[outputKeys[outputKeys.length - processLimit - 1]];
             console.log(`path set to ${GTC_outputDir}`);

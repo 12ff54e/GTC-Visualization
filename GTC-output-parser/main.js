@@ -20,6 +20,7 @@ class GTCOutput {
      */
     async read_para() {
         if (!this.parameters) this.parameters = await read_para(this.dir);
+        return this.parameters;
     }
 
     async check_tracking() {
