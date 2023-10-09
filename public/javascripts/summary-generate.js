@@ -135,7 +135,7 @@ export async function generateSummary() {
     addParagraph(particleProp);
     // summary.appendChild(document.createElement('ul'))
 
-    const driveDetails = `Density and temperature gradients are shown as follows (<button id="summary-gradients" class="summary-figure-button">show/hide figure</button>)`;
+    const driveDetails = ` Density and temperature gradients are shown as follows (<button id="summary-gradients" class="summary-figure-button">show/hide figure</button>)`;
     addParagraph(driveDetails);
 
     const rescale = df => zip((v, r, q) => (v * r) / q, df, data.rg, data.q);
@@ -193,6 +193,16 @@ export async function generateSummary() {
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(i)</code>',
                 data: rescale(data['dlnni_dpsi']),
             },
+            {
+                title: 'Eta',
+                tag: '$\\eta_i$',
+                buttonText: '\\(\\eta\\)',
+                data: zip(
+                    (a, b) => a / b,
+                    rescale(data['dlnTi_dpsi']),
+                    rescale(data['dlnni_dpsi'])
+                ),
+            },
         ]
     );
 
@@ -207,7 +217,9 @@ export async function generateSummary() {
         ptPerPeriod < 15 ? 'error' : ptPerPeriod > 20 ? 'good' : 'warn'
     }">Note: Number of points per poloidal period for the maximum mode number you choose in mid-plane is about ${ptPerPeriod.toPrecision(
         2
-    )}.</span>)`;
+    )}.</span>) At diagnostic surface \\(\\Delta r/\\rho_\\text{i}=${bp.delr.toPrecision(
+        4
+    )}\\), \\(\\Delta\\theta*r/\\rho_\\text{i}=${bp.delt.toPrecision(4)}\\).`;
     addParagraph(gridFormation);
 
     // renders math expression
