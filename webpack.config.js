@@ -6,7 +6,7 @@ crypto.createHash = algorithm =>
 
 module.exports = {
     mode: 'production',
-    entry: './server.js',
+    entry: './server/server.js',
     target: 'node',
     output: {
         path: __dirname,
