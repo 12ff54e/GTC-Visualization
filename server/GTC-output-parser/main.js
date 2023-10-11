@@ -1,49 +1,109 @@
-const fs = require('fs').promises;
-const path = require('path');
 const read_para = require('./read_para.js');
 
 /**
  * GTC output data parser class
- * 
+ *
+ * This class is designed to be used on both server and client side (workers, to be specific).
+ * Care must be taken when reading files. Codes dealing with differences of host mainly reside in
+ * reading file contents, also in the treatment of file path.
+ *
+ * - Read file content: Use fs.createReadStream and fs.readFile at server side,
+ *      stream or text method of File interface at client side.
+ * - Match file path: We have `node:path` at server side. And everything is done by hand at client side.
+ *
  */
 class GTCOutput {
     /**
      * @param {String} dir - GTC output data directory path
+     * @param {FileList} fileList - file list from input[type="file"]
      */
-    constructor(dir) {
+    constructor(dir, fileList) {
         this.dir = dir;
-        this.data = {}
+        this.data = {};
+        this.serverSide = fileList === undefined;
+        this._fileList = this.serverSide ? [] : [...fileList];
+    }
+
+    getFileByPath(...paths) {
+        return this._fileList.find(file =>
+            file.webkitRelativePath.endsWith(paths.join('/'))
+        );
+    }
+
+    /**
+     * Create a stream of given file
+     * @returns {ReadStream|ReadableStream<Uint8Array>}
+     */
+    createReadStreamFromFile(...paths) {
+        return this.serverSide
+            ? require('fs').createReadStream(
+                  require('path').join(this.dir, ...paths)
+              )
+            : this.getFileByPath(...paths).stream();
+    }
+
+    /**
+     *
+     * @param {string} filePath
+     * @returns {Promise<string>}
+     */
+    async readFileContent(...paths) {
+        return this.serverSide
+            ? require('fs/promises').readFile(
+                  require('path').join(this.dir, ...paths),
+                  { encoding: 'utf-8' }
+              )
+            : this.getFileByPath(...paths).text();
     }
 
     /**
      * read gtc.out
      */
-    async read_para() {
-        if (!this.parameters) this.parameters = await read_para(this.dir);
+    async get_para() {
+        if (!this.parameters)
+            this.parameters = await read_para(
+                await this.readFileContent('gtc.out')
+            );
         return this.parameters;
     }
 
     async check_tracking() {
         if (this.particleTrackingExist === undefined) {
-            try {
-                const dir = await fs.readdir(
-                    path.join(this.dir, this.constructor.index['Tracking'].fileName)
-                );
-                this.particleTrackingExist = dir.length !== 0;
-            } catch (err) {
-                this.particleTrackingExist = false;
+            if (this.serverSide) {
+                try {
+                    const dir = await require('fs/promises').readdir(
+                        require('path').join(
+                            this.dir,
+                            this.constructor.index['Tracking'].fileName
+                        )
+                    );
+                    this.particleTrackingExist = dir.length !== 0;
+                } catch (err) {
+                    this.particleTrackingExist = false;
+                }
+            } else {
+                this.particleTrackingExist =
+                    this._fileList.findIndex(file =>
+                        file.webkitRelativePath.includes(
+                            this.constructor.index['Tracking'].fileName
+                        )
+                    ) > -1;
             }
         }
     }
 
     /**
      * get snapshot file name
-     * 
+     *
      * it is also possible to get snapshot file name from gtc.out,
      *  but one must consider the case when the gtc task still running
      */
     async getSnapshotFileList() {
-        let files = await fs.readdir(this.dir, 'utf8');
+        let files = this.serverSide
+            ? await require('fs/promises').readdir(this.dir, 'utf8')
+            : this._fileList.map(file =>
+                  file.webkitRelativePath.split('/').at(-1)
+              );
         this.snapshotFiles = files
             .map(name => name.toLowerCase())
             .filter(name => name.startsWith('snap') && name.endsWith('.out'));
@@ -59,7 +119,7 @@ class GTCOutput {
             this.snapshotFileName = type;
             type = 'Snapshot';
             let snap = this.data[type];
-            if (snap && path.basename(snap.path) === this.snapshotFileName) {
+            if (snap && snap.path === this.snapshotFileName) {
                 return;
             }
         } else if (this.data[type]) {
@@ -67,15 +127,19 @@ class GTCOutput {
             return;
         }
 
-        await this.read_para();
+        await this.get_para();
         if (type === 'Tracking') {
             await this.readData('Equilibrium');
         }
         let { classConstructor, fileName } = GTCOutput.index[type];
-        this.data[type] =
-            await classConstructor.readDataFile(
-                path.join(this.dir, fileName ? fileName : this.snapshotFileName),
-                this.parameters);
+        fileName = fileName ? fileName : this.snapshotFileName;
+        // FIXME: tracking plot is broken
+        this.data[type] = await classConstructor.readDataFile(
+            fileName,
+            this.createReadStreamFromFile(fileName),
+            this.parameters,
+            this.serverSide
+        );
     }
 
     getPlotData(type, id) {
@@ -88,28 +152,26 @@ class GTCOutput {
 }
 
 GTCOutput.index = {
-    'History': {
+    History: {
         classConstructor: require('./history.js'),
-        fileName: 'history.out'
+        fileName: 'history.out',
     },
-    'Snapshot': {
+    Snapshot: {
         classConstructor: require('./snapshot.js'),
-        fileName: ''
+        fileName: '',
     },
-    'Equilibrium': {
+    Equilibrium: {
         classConstructor: require('./equilibrium.js'),
-        fileName: 'equilibrium.out'
+        fileName: 'equilibrium.out',
     },
-    'RadialTime': {
+    RadialTime: {
         classConstructor: require('./radialTime.js'),
-        fileName: 'data1d.out'
+        fileName: 'data1d.out',
     },
-    'Tracking': {
+    Tracking: {
         classConstructor: require('./tracking.js'),
-        fileName: 'trackp_dir'
-    }
-}
-
-
+        fileName: 'trackp_dir',
+    },
+};
 
 module.exports = GTCOutput;

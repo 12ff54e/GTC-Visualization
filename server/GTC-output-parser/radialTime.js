@@ -7,24 +7,28 @@ const fieldPlotTypes = ['zonal', 'rms'];
 
 class RadialTime extends PlotType {
     /**
-     * 
-     * @param {string} filePath 
+     *
+     * @param {string} filePath
      */
-    constructor(filePath, basicParams) {
-        super(filePath, basicParams);
+    constructor(...args) {
+        super(...args);
         this.isTimeSeriesData = true;
 
         this.plotTypes = [
-            ...this.existingParticles.map(t => particlePlotTypes
-                .slice(0, this.particlePlotTypeNumber)
-                .map(p => t + '-' + p)),
-            ...PlotType.fieldID.map(f => fieldPlotTypes
-                .slice(0, this.fieldPlotTypeNumber)
-                .map(p => f + '-' + p))
+            ...this.existingParticles.map(t =>
+                particlePlotTypes
+                    .slice(0, this.particlePlotTypeNumber)
+                    .map(p => t + '-' + p)
+            ),
+            ...PlotType.fieldID.map(f =>
+                fieldPlotTypes
+                    .slice(0, this.fieldPlotTypeNumber)
+                    .map(p => f + '-' + p)
+            ),
         ];
     }
 
-    * parseLine() {
+    *parseLine() {
         this.expectedStepNumber = parseInt(yield);
         this.radialGridPtNumber = parseInt(yield);
         this.speciesNumber = parseInt(yield);
@@ -34,9 +38,10 @@ class RadialTime extends PlotType {
         this.fieldPlotTypeNumber = parseInt(yield);
 
         this.initBlockSize = 7;
-        this.entryPerStep = this.radialGridPtNumber *
+        this.entryPerStep =
+            this.radialGridPtNumber *
             (this.speciesNumber * this.particlePlotTypeNumber +
-                this.fieldNumber * this.fieldPlotTypeNumber)
+                this.fieldNumber * this.fieldPlotTypeNumber);
 
         // Initialize
         this.data = new Object();
@@ -60,7 +65,7 @@ class RadialTime extends PlotType {
                     const rl = [];
                     this.data[particle][type].push(rl);
                     for (let r = 0; r < this.radialGridPtNumber; r++) {
-                        rl.push(parseFloat(yield))
+                        rl.push(parseFloat(yield));
                     }
                 }
             }
@@ -69,7 +74,7 @@ class RadialTime extends PlotType {
                     const rl = [];
                     this.data[field][type].push(rl);
                     for (let r = 0; r < this.radialGridPtNumber; r++) {
-                        rl.push(parseFloat(yield))
+                        rl.push(parseFloat(yield));
                     }
                 }
             }
@@ -77,8 +82,8 @@ class RadialTime extends PlotType {
     }
 
     /**
-     * 
-     * @param {string} id 
+     *
+     * @param {string} id
      */
     plotData(id) {
         let [cat, type] = id.split('-');
@@ -89,15 +94,19 @@ class RadialTime extends PlotType {
             z: this.data[cat][type],
             type: 'heatmap',
             colorbar: {
-                tickformat: '.4e'
+                tickformat: '.4e',
             },
             transpose: true,
-            zhoverformat: '.4g'
-        })
+            zhoverformat: '.4g',
+        });
 
         figure.axesLabel = { x: '$\\text{time step}$', y: '$\\text{mpsi}$' };
-        figure.plotLabel = `$${PlotType.fieldID.includes(cat) ? PlotType.fieldDisplayName[cat] : `\\mathrm{${cat}}`}\\;`
-            + `\\text{${type.replace('_',' ')}}$`;
+        figure.plotLabel =
+            `$${
+                PlotType.fieldID.includes(cat)
+                    ? PlotType.fieldDisplayName[cat]
+                    : `\\mathrm{${cat}}`
+            }\\;` + `\\text{${type.replace('_', ' ')}}$`;
 
         return [figure];
     }

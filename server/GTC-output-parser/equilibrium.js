@@ -72,11 +72,8 @@ const displayName = {
  * Equilibrium class contains all data from equilibrium.out
  */
 class Equilibrium extends PlotType {
-    /**
-     * @param {string} filePath
-     */
-    constructor(filePath) {
-        super(filePath);
+    constructor(...args) {
+        super(...args);
 
         this.plotTypes = {
             x: ['psi', 'minor', 'torpsi', 'rg'],

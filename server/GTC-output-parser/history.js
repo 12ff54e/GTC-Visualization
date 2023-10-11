@@ -10,20 +10,20 @@ const particlePlotTypes =
  * 
  */
 class History extends PlotType {
-    /**
-     * 
-     * @param {string} filePath 
-     * @param {object} basicParams GTCOutput.parameters
-     */
-    constructor(filePath, basicParams) {
-        super(filePath, basicParams);
+    constructor(...args) {
+        super(...args);
         this.isTimeSeriesData = true;
 
         this.fieldTypes = PlotType.fieldID;
         this.plotTypes = [
-            ...this.fieldTypes.map(f =>
-                [f, f + '-RMS', ...range(1, 9).map(i => `${f}-mode${i}`)]),
-            ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
+            ...this.fieldTypes.map(f => [
+                f,
+                f + '-RMS',
+                ...range(1, 9).map(i => `${f}-mode${i}`),
+            ]),
+            ...this.existingParticles.map(t =>
+                particlePlotTypes.map(p => t + '-' + p)
+            ),
         ];
 
         // pre-allocate data containers
@@ -33,11 +33,9 @@ class History extends PlotType {
         this.particleData = new Object();
         this.fieldTimeSeriesData = new Object();
         this.fieldModeData = new Object();
-
     }
 
-    * parseLine() {
-
+    *parseLine() {
         // basic parameters
         this.expectedStepNumber = parseInt(yield);
         this.speciesNumber = parseInt(yield);
@@ -47,25 +45,33 @@ class History extends PlotType {
         this.fieldDiagnosticNumber = parseInt(yield);
         this.timeStep = parseFloat(yield);
         this.initBlockSize = 7;
-        this.entryPerStep = this.speciesNumber * this.particleDiagnosticNumber +
-            this.fieldNumber * (this.fieldDiagnosticNumber + 2 * this.fieldModeNumber);
+        this.entryPerStep =
+            this.speciesNumber * this.particleDiagnosticNumber +
+            this.fieldNumber *
+                (this.fieldDiagnosticNumber + 2 * this.fieldModeNumber);
 
         // Initialize
         this.existingParticles.forEach(particle => {
-            this.particleData[particle] =
-                Array.from({ length: this.particleDiagnosticNumber }, _ => []);
-        })
+            this.particleData[particle] = Array.from(
+                { length: this.particleDiagnosticNumber },
+                _ => []
+            );
+        });
         this.fieldTypes.forEach(field => {
-            this.fieldTimeSeriesData[field] =
-                Array.from({ length: this.fieldDiagnosticNumber }, _ => [])
-            this.fieldModeData[field] =
-                Array.from({ length: this.fieldModeNumber }, _ => {
+            this.fieldTimeSeriesData[field] = Array.from(
+                { length: this.fieldDiagnosticNumber },
+                _ => []
+            );
+            this.fieldModeData[field] = Array.from(
+                { length: this.fieldModeNumber },
+                _ => {
                     return {
                         real: [],
-                        imag: []
-                    }
-                })
-        })
+                        imag: [],
+                    };
+                }
+            );
+        });
 
         while (true) {
             for (let particle of this.existingParticles) {
@@ -91,7 +97,7 @@ class History extends PlotType {
      * Slice history data and return it encapsulated in an array.
      *  Each element of the array is an object with data plot options,
      *  as per specifications of Plotly library.
-     * 
+     *
      * @param {String} id the figure(s) being requested
      * @param {Object} basicParams GTCOutput.parameters
      */
@@ -110,22 +116,29 @@ class History extends PlotType {
                 for (let i = 0; i < 2; i++) {
                     let figure = new PlotlyData();
                     figure.data.push({
-                        y: this.fieldTimeSeriesData[cat][i + plotType].slice(0, this.stepNumber),
+                        y: this.fieldTimeSeriesData[cat][i + plotType].slice(
+                            0,
+                            this.stepNumber
+                        ),
                         mode: 'lines',
                     });
                     figure.addX(timeStep);
-                    figure.plotLabel = type === 'point'
-                        ? (i == 0
-                            ? `$${PlotType.fieldDisplayName[cat]} (\\theta=\\zeta=0)$`
-                            : `$${PlotType.fieldDisplayName[cat]}_{00} (\\text{iflux@diag})$`)
-                        : (`$${i == 0 ? '\\text{ZF}' : PlotType.fieldDisplayName[cat]}\\text{ RMS}$`)
+                    figure.plotLabel =
+                        type === 'point'
+                            ? i == 0
+                                ? `$${PlotType.fieldDisplayName[cat]} (\\theta=\\zeta=0)$`
+                                : `$${PlotType.fieldDisplayName[cat]}_{00} (\\text{iflux@diag})$`
+                            : `$${
+                                  i == 0
+                                      ? '\\text{ZF}'
+                                      : PlotType.fieldDisplayName[cat]
+                              }\\text{ RMS}$`;
                     figure.axesLabel = {
                         x: tu,
-                        y: ''
+                        y: '',
                     };
                     figureContainer.push(figure);
                 }
-
             } else {
                 // mode value
                 let modeIndex = parseInt(type.replace('mode', '')) - 1;
@@ -135,27 +148,28 @@ class History extends PlotType {
                 figure.data.push({
                     y: fieldMode.real.slice(0, this.stepNumber),
                     mode: 'lines',
-                    name: 'real'
+                    name: 'real',
                 });
                 figure.data.push({
                     y: fieldMode.imag.slice(0, this.stepNumber),
                     mode: 'lines',
-                    name: 'imaginary'
+                    name: 'imaginary',
                 });
                 figure.addX(timeStep);
-                figure.plotLabel =
-                    `$n=${basicParams.nmodes[modeIndex]},\\;m=${basicParams.mmodes[modeIndex]}$`;
+                figure.plotLabel = `$n=${basicParams.nmodes[modeIndex]},\\;m=${basicParams.mmodes[modeIndex]}$`;
                 figure.axesLabel = { x: tu, y: '' };
                 figureContainer.push(figure);
 
                 // growth rate
                 figure = new PlotlyData();
                 figure.data.push({
-                    y: fieldMode.real.slice(0, this.stepNumber).map((re, ind) => {
-                        let im = fieldMode.imag[ind]
-                        return Math.sqrt(re * re + im * im);
-                    }),
-                    mode: 'lines'
+                    y: fieldMode.real
+                        .slice(0, this.stepNumber)
+                        .map((re, ind) => {
+                            let im = fieldMode.imag[ind];
+                            return Math.sqrt(re * re + im * im);
+                        }),
+                    mode: 'lines',
                 });
                 figure.addX(timeStep);
                 figure.axesLabel = { x: tu, y: '' };
@@ -182,17 +196,40 @@ class History extends PlotType {
             for (let i = 0; i < 2; i++) {
                 let figure = new PlotlyData();
                 figure.data.push({
-                    y: this.particleData[cat][i + 2 * plotType].slice(0, this.stepNumber)
+                    y: this.particleData[cat][i + 2 * plotType].slice(
+                        0,
+                        this.stepNumber
+                    ),
                 });
                 figure.addX(timeStep);
                 figure.axesLabel = { x: tu, y: '' };
                 switch (plotType) {
-                    case 0: figure.plotLabel = i == 0 ? '$\\delta f$' : '$\\delta f^2$'; break;
-                    case 1: figure.plotLabel = i == 0 ? '$u_{\\parallel}$' : '$\\delta u_{\\parallel}$'; break;
-                    case 2: figure.plotLabel = i == 0 ? '$\\text{Energy}$' : '$\\delta E$'; break;
-                    case 3: figure.plotLabel = i == 0 ? '$\\text{Particle flow}$' : '$\\text{Momentum flow}$'; break;
-                    case 4: figure.plotLabel = i == 0 ? '$\\text{Energy flow}$' : '$\\text{Total density}$';
-                };
+                    case 0:
+                        figure.plotLabel =
+                            i == 0 ? '$\\delta f$' : '$\\delta f^2$';
+                        break;
+                    case 1:
+                        figure.plotLabel =
+                            i == 0
+                                ? '$u_{\\parallel}$'
+                                : '$\\delta u_{\\parallel}$';
+                        break;
+                    case 2:
+                        figure.plotLabel =
+                            i == 0 ? '$\\text{Energy}$' : '$\\delta E$';
+                        break;
+                    case 3:
+                        figure.plotLabel =
+                            i == 0
+                                ? '$\\text{Particle flow}$'
+                                : '$\\text{Momentum flow}$';
+                        break;
+                    case 4:
+                        figure.plotLabel =
+                            i == 0
+                                ? '$\\text{Energy flow}$'
+                                : '$\\text{Total density}$';
+                }
                 figureContainer.push(figure);
             }
         }

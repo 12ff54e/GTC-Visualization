@@ -1,7 +1,7 @@
 /**
  * Multi Dimension slice of array, similar to that in Mathematica.
  *  Recursive implementation.
- * 
+ *
  * @param {Array} arr the array to be sliced
  * @param {Array} ijk Specifies part of each dimension to be extracted,
  *  could be integers, tuple of Integers or 'All', with negative number
@@ -18,7 +18,7 @@ function part(arr, ijk) {
         return part(arr[index >= 0 ? index : arr.length + index], ijk.slice());
     } else if (Array.isArray(index)) {
         // range
-        index = index.map(i => i >= 0 ? i : (i + arr.length));
+        index = index.map(i => (i >= 0 ? i : i + arr.length));
         if (index.length !== 2 || index[0] >= index[1]) {
             throw new Error('Invalid range');
         }
@@ -31,7 +31,7 @@ function part(arr, ijk) {
 
 /**
  * Home-made flat method
- * 
+ *
  * @returns {Array} the flattened array
  */
 function flat(array) {
@@ -45,13 +45,13 @@ function flat(array) {
 }
 
 /**
- * This function return an integer sequence 
+ * This function return an integer sequence
  *  range(n) => [0 .. n-1], or
  *  range(m, n) => [m .. n-1]
- * 
+ *
  * @param {Number} initOrLen when this function is given one parameter,
  *  this parameter will be array length
- * @param {Number} end 
+ * @param {Number} end
  */
 function range(initOrLen, end) {
     if (end === undefined) {
@@ -61,7 +61,50 @@ function range(initOrLen, end) {
     }
 }
 
+async function parseWebStreamByLine(stream, parser) {
+    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    let { value, done } = await reader.read();
+    let lineNum = 0;
+    let prevStr = '';
+    while (!done) {
+        // process current chunk
+        let lineBegin = 0;
+        let lineEnd;
+        while ((lineEnd = value.indexOf('\n', lineBegin)) != -1) {
+            parser.next(
+                (lineBegin == 0 ? '' : prevStr) +
+                    value.slice(lineBegin, lineEnd)
+            );
+            lineNum++;
+            lineBegin = lineEnd + 1;
+        }
+        prevStr = value.slice(lineBegin);
 
-module.exports.part = part;
-module.exports.flat = flat;
-module.exports.range = range;
+        ({ value, done } = await reader.read());
+    }
+    return lineNum;
+}
+
+async function parseStreamByLine(stream, parser) {
+    const rl = require('readline').createInterface({
+        input: stream,
+        ctrlDelay: Infinity,
+    });
+    let lineNum = 0;
+    rl.on('line', line => {
+        parser.next(line);
+        lineNum++;
+    });
+
+    await require('events').once(rl, 'close');
+
+    return lineNum;
+}
+
+module.exports = {
+    part,
+    flat,
+    range,
+    parseWebStreamByLine,
+    parseStreamByLine,
+};

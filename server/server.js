@@ -134,14 +134,12 @@ app.get(
             };
             if (!data.isCompleted) {
                 status.warn =
-                    `${path.basename(
-                        data.path
-                    )} is not completed. It should have ` +
+                    `${data.filename} is not completed. It should have ` +
                     `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
             }
             if (type === 'Snapshot') {
                 status.info = `Currently selection of Snapshot file: ${path.basename(
-                    data.path
+                    data.filename
                 )}`;
             }
             res.send(JSON.stringify(status));
@@ -160,7 +158,7 @@ app.get('/plot/Summary', (req, res) => {
 
 app.get('/plot/data/basicParameters', (req, res) => {
     const gtcOutput = req.body.gtcOutput;
-    gtcOutput.read_para().then(() => {
+    gtcOutput.get_para().then(() => {
         res.json(gtcOutput.parameters);
     });
 });
