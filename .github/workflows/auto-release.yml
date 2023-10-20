@@ -13,6 +13,8 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v3
@@ -24,7 +26,7 @@ jobs:
             
       - name: Build
         run: |
-          npm pack
+          npm run pack
 
       - uses: marvinpinto/action-automatic-releases@latest
         with:
