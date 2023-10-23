@@ -130,6 +130,10 @@ function callEventTarget(func, transform = e => e.target) {
 function addDownloadFunction() {
     // add GTC output file download cb
     const downloadForm = document.querySelector('#download-output');
+    if (window.location.pathname.startsWith('/local')) {
+        downloadForm.style.visibility = 'hidden';
+        return;
+    }
     // button for expand/collapse file list
     downloadForm.querySelector('button').addEventListener('click', e => {
         e.preventDefault();
@@ -524,6 +528,7 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
 }
 
 async function propagateFetchError(res) {
+    // propagates error event to window
     if (!res.ok) {
         throw await res.text();
     }

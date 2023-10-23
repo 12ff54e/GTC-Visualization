@@ -108,6 +108,23 @@ app.post(
     })
 );
 
+app.get('/local/plot', (req, res) => {
+    console.log(req.query);
+    const { hasTracking, snapFiles } = req.query;
+    const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
+    res.send(
+        pug.renderFile(pugView('plot'), {
+            outputTag: '',
+            dir: '',
+            types: hasTracking
+                ? plotTypes
+                : plotTypes.filter(e => e !== 'Tracking'),
+            snapFiles: atob(snapFiles).split(','),
+            fileList: [],
+        })
+    );
+});
+
 app.use('/plot', (req, res, next) => {
     req.body.gtcOutput = output[encodeURI(req.query.dir)];
     if (req.body.gtcOutput) {

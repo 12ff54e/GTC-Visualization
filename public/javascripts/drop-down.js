@@ -92,6 +92,7 @@ function registerServiceWorker() {
     });
 
     navigator.serviceWorker.ready.then(reg => {
+        // TODO: Use auto submitting form instead of a bare input
         folderPicker.addEventListener('change', e => {
             const files = [];
             const streams = [];
@@ -102,7 +103,26 @@ function registerServiceWorker() {
                 });
                 streams.push(files.at(-1).stream);
             }
-            reg.active.postMessage(files, streams);
+            if (
+                files.some(file =>
+                    file.webkitRelativePath.match(/[^\/]+\/gtc.out/)
+                )
+            ) {
+                reg.active.postMessage(files, streams);
+                const snapFiles = files
+                    .map(({ webkitRelativePath }) => {
+                        const match = webkitRelativePath.match(
+                            /[^\/]+\/(snap[\d]+.out)/
+                        );
+                        return match ? match[1] : '';
+                    })
+                    .filter(name => name.length > 0);
+                window.location.href = `/local/plot?snapFiles=${encodeURIComponent(
+                    btoa(snapFiles)
+                )}`;
+            } else {
+                alert('No gtc.out in this folder!');
+            }
         });
         folderPicker.disabled = false;
     });

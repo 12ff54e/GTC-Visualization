@@ -3,17 +3,17 @@ html(lang="en")
     head
         meta(charset="UTF-8")
         title GTC-Visualization
-        link(rel="stylesheet" href="stylesheets/tabs.css")
-        script(src="javascripts/plotly-custom.min.js" defer)
-        script(type="module" src="javascripts/index.js" defer)
-        script(src="libs/mathjax/MathJax.js?config=TeX-AMS-MML_SVG" defer)
-        script(src="libs/fftw-js/bundle.js" defer) 
+        link(rel="stylesheet" href="/stylesheets/tabs.css")
+        script(src="/javascripts/plotly-custom.min.js" defer)
+        script(type="module" src="/javascripts/index.js" defer)
+        script(src="/libs/mathjax/MathJax.js?config=TeX-AMS-MML_SVG" defer)
+        script(src="/libs/fftw-js/bundle.js" defer) 
     body
         code(id='outputTag' style="display:none")= outputTag
         p(id='status')= `Current GTC output folder set to ${dir}`
         form(id='download-output')
             div(id="download-overlay")
-                img(src="loading.gif", alt="loading")
+                img(src="/loading.gif", alt="loading")
             input(type="submit" id="download-all" value="Download all files")
             button Expand/Collapse file list
             select(name="file-list" size=fileList.length multiple) 
@@ -47,7 +47,7 @@ html(lang="en")
                 div(id=`figure-${i}`)
 
         div(id='loading')
-            img(src="loading.gif", alt="loading")
+            img(src="/loading.gif", alt="loading")
 
         div(id='container')
             div(id='summary-page')
