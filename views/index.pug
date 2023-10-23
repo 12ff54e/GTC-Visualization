@@ -7,13 +7,19 @@ html(lang="en")
         link(rel="stylesheet", href="stylesheets/drop-down.css")
         title GTC-Visualization
     body
-        form(method="POST" id="folder_form" action="plot")
+        form(method="POST" id="folder_form" class="top_container" action="plot")
             div(id="folder_list")
                 div(class="ctrl")
                     button Expand All
                     button Collapse All
                 ul(id="outer_ul")
                     include files.html
-            div(id="submit_area")
+            div(id="submit_area" class="submit_area")
+                p Pick a folder at server
                 button(type="submit") Choose this folder
+        div(class="top_container")
+            div(class="submit_area")
+                p OR select local folder containing GTC output
+                input(type="file" id="local_file_picker" webkitdirectory)
+                p Your browser might remind you files would be uploaded, that's not the case. All the data are processed in your local machine.
         

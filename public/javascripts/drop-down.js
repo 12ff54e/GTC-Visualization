@@ -1,4 +1,6 @@
-window.onload = _ => {
+window.addEventListener('load', () => {
+    registerServiceWorker();
+
     const listButtons = document.getElementsByClassName('collapsible');
     for (let btn of listButtons) {
         btn.addEventListener('click', function (event) {
@@ -49,7 +51,7 @@ window.onload = _ => {
     const outer_ul = document.querySelector('#outer_ul');
     outer_ul.classList.add('active_list');
     outer_ul.style.height = `${calcListHeight(outer_ul)}em`;
-}
+});
 
 function calcListHeight(ul) {
     return ul.classList.contains('active_list')
@@ -62,7 +64,7 @@ function calcListHeight(ul) {
               );
           }, 0)
         : 0;
-} 
+}
 
 function setHeight(elem, height) {
     if (elem.localName === 'ul') {
@@ -74,4 +76,34 @@ function setHeight(elem, height) {
     } else if (elem.localName === 'li') {
         setHeight(elem.parentElement, height);
     }
+}
+
+function registerServiceWorker() {
+    const folderPicker = document.querySelector('#local_file_picker');
+    folderPicker.disabled = true;
+    if (!('serviceWorker' in navigator)) {
+        document.querySelector('#local_file_picker').disabled = true;
+        console.log('Your browser do not support service worker!');
+        return;
+    }
+
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.error(`Service Worker registration failed with ${err}`);
+    });
+
+    navigator.serviceWorker.ready.then(reg => {
+        folderPicker.addEventListener('change', e => {
+            const files = [];
+            const streams = [];
+            for (const file of e.target.files) {
+                files.push({
+                    webkitRelativePath: file.webkitRelativePath,
+                    stream: file.stream(),
+                });
+                streams.push(files.at(-1).stream);
+            }
+            reg.active.postMessage(files, streams);
+        });
+        folderPicker.disabled = false;
+    });
 }

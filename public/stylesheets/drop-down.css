@@ -3,8 +3,8 @@ body {
     font-size: 1.2em;
 }
 
-#folder_form {
-    width: 50%;
+.top_container {
+    width: 75%;
     margin: 1em auto;
 }
 
@@ -83,7 +83,7 @@ input:checked ~ .mod {
     color: black;
 }
 
-form > div#submit_area {
+div.submit_area {
     background: linear-gradient(
         90deg,
         rgba(240, 255, 255, 0.7),
@@ -92,10 +92,15 @@ form > div#submit_area {
     );
     position: sticky;
     bottom: 1px;
-    height: 5rem;
+    height: min-content;
+    width: 50%;
+    margin: 0 auto;
+
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    text-align: center;
 }
 
 button[type="submit"] {

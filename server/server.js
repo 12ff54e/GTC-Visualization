@@ -21,6 +21,9 @@ const host_dir = process.env.HOST_DIR || require('os').homedir();
 validateInputSchema().catch(err => {
     console.log(err);
 });
+updateServiceWorker().catch(err => {
+    console.log(err);
+});
 
 let output = {};
 
@@ -348,4 +351,17 @@ async function prepareSummaryData(currentOutput) {
         data[key] = currentOutput.data['Equilibrium'].radialData[key];
     });
     return data;
+}
+
+async function updateServiceWorker() {
+    const sw = await fs.readFile(
+        path.join(__dirname, 'service-worker-template.js'),
+        { encoding: 'utf-8' }
+    );
+    // TODO: calculate hash
+    const hash = '';
+    await fs.writeFile(
+        path.join(process.cwd(), 'public', 'sw.js'),
+        sw.replace('|@_@|/', `GTC-Visualization-${hash}`)
+    );
 }

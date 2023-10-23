@@ -3,3 +3,4 @@ node_modules
 .vscode
 views/files.html
 server-prod.js
+public/sw.js
