@@ -274,3 +274,9 @@ input.eq-1d-y:checked + label {
 #summary-page span.error {
     color: crimson;
 }
+
+#close-button {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+}

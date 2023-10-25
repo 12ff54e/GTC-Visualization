@@ -109,21 +109,26 @@ function registerServiceWorker() {
                 )
             ) {
                 reg.active.postMessage(files, streams);
-                const snapFiles = files
-                    .map(({ webkitRelativePath }) => {
-                        const match = webkitRelativePath.match(
-                            /[^\/]+\/(snap[\d]+.out)/
-                        );
-                        return match ? match[1] : '';
-                    })
-                    .filter(name => name.length > 0);
-                window.location.href = `/local/plot?snapFiles=${encodeURIComponent(
-                    btoa(snapFiles)
-                )}`;
             } else {
                 alert('No gtc.out in this folder!');
             }
         });
+
         folderPicker.disabled = false;
     });
+
+    // Upon receiving this message, GTCOutput is initialized
+    // and we can jump to the plot page
+    navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data?.done) {
+            const plotURL = `/local/plot?snapshotFiles=${encodeURIComponent(
+                btoa(e.data.snapshotFiles)
+            )}`;
+            const iframe = document.createElement('iframe');
+            iframe.src = plotURL;
+            document.body.append(iframe);
+        }
+    });
+    // TODO: Sending data to server is not necessary, the plot page should be
+    // rendered locally in service worker (`pug.compileFileClient` might be helpful)
 }

@@ -41,10 +41,13 @@ class PlotType {
      * @param {string} filename
      * @param {object} basicParams GTCOutput.parameters
      */
-    static async readDataFile(filename, stream, basicParams, serverSide) {
-        // For error handling
-        // await require('fs/promise').stat(filePath);
-
+    static async readDataFile(
+        filename,
+        stream,
+        basicParams,
+        serverSide,
+        nodeModules
+    ) {
         const data = new this(filename, basicParams);
 
         const parser = data.parseLine();
@@ -52,7 +55,7 @@ class PlotType {
         parser.next();
 
         const lineNum = await (serverSide
-            ? parseStreamByLine(stream, parser)
+            ? parseStreamByLine(stream, parser, nodeModules)
             : parseWebStreamByLine(stream, parser));
 
         // formal way to check the length of time series data

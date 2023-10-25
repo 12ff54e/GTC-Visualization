@@ -1,11 +1,14 @@
-// import GTCOutput from './libs/GTC-output-parser/main.js';
+importScripts('javascripts/gtc-output-parser.min.js'); // expose GTCOutput
 
 const cacheName = '|@_@|/'; // name to be replaced by hash
 const staticFiles = [];
+let currentOutput;
 
 addEventListener('install', event => {
+    skipWaiting();
     event.waitUntil(updateCache());
-    console.log('Service worker installed.');
+
+    console.log('A new version of service worker is installed.');
 });
 
 addEventListener('activate', event => {
@@ -28,9 +31,21 @@ addEventListener('fetch', event => {
     }
 });
 
-addEventListener('message', event => {
-    const files = event.data;
-});
+addEventListener(
+    'message',
+    wrap(async event => {
+        const files = event.data;
+        const outputFiles = files.filter(file =>
+            inTopLevelFolder(file.webkitRelativePath)
+        );
+
+        currentOutput = new GTCOutput('', outputFiles);
+        event.source.postMessage({
+            done: true,
+            snapshotFiles: await currentOutput.getSnapshotFileList(),
+        });
+    })
+);
 
 async function updateCache() {
     return (await caches.open(cacheName)).addAll(staticFiles);
@@ -54,19 +69,41 @@ async function clearCache() {
  * @param {Event} event
  */
 async function processLocalRequest(event) {
-    console.log('local file processing');
-    // TODO: implement this function
-    const pathname = new URL(event.request.url).pathname.slice(6); // truncate the leading /local/
-    // const gtcOutput = new GTCOutput((await event.request.body.json()).dirname, );
+    const pathname = new URL(event.request.url).pathname.slice(7); // truncate the leading /local/
     let match;
-    if ((match = pathname.match(/^plot\/plotType\/(?<type>\w+)/))) {
-        const type = match.groups.type;
+    if ((match = pathname.match(/^plot\/plotType\/(?<type>[\w\.]+)/))) {
+        const filename = match.groups.type;
+        await currentOutput.readData(filename);
+        const type = filename.startsWith('snap') ? 'Snapshot' : filename;
+        const data = currentOutput.data[type];
+
+        const status = {
+            info: `${type} file read`,
+            id: data.plotTypes,
+        };
+        if (!data.isCompleted) {
+            status.warn =
+                `${data.filename} is not completed. It should have ` +
+                `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
+        }
+        if (type === 'Snapshot') {
+            status.info = `Currently selection of Snapshot file: ${filename}`;
+        }
+        return Response.json(status);
     } else if (
-        (match = pathname.match(/^plot\/data\/(?<type>\w+)-(?<id>\w+)/))
+        (match = pathname.match(/^plot\/data\/(?<type>\w+)-(?<id>[\w_-]+)/))
     ) {
         const { type, id } = match.groups;
+        try {
+            return Response.json(currentOutput.getPlotData(type, id));
+        } catch (e) {
+            console.error(e);
+            return new Response('Not found!', { status: 404 });
+        }
     } else if (pathname.match(/^plot\/data\/basicParameters/)) {
+        return Response.json(await currentOutput.getParameters());
     } else if (pathname.match(/^plot\/Summary/)) {
+        // TODO: Finish it!
     }
 }
 
@@ -77,4 +114,15 @@ async function cacheFirst(event) {
         response = await fetch(event.request);
     }
     return response;
+}
+
+function inTopLevelFolder(pathname) {
+    return !pathname.match(/[^\/]+\/[^\/]+\//);
+}
+
+function wrap(func) {
+    return (...args) =>
+        func(...args).catch(err => {
+            console.error(err);
+        });
 }

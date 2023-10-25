@@ -77,7 +77,13 @@ app.post(
             (await modificationCheck(currentOutput))
         ) {
             currentOutput = output[req.body.gtc_output] = new GTCOutput(
-                GTC_outputDir
+                GTC_outputDir,
+                {
+                    path,
+                    fs: require('fs'),
+                    readline: require('readline'),
+                    events: require('events'),
+                }
             );
             currentOutput.timestamp = (
                 await fs.stat(path.join(GTC_outputDir, 'gtc.out'))
@@ -109,8 +115,7 @@ app.post(
 );
 
 app.get('/local/plot', (req, res) => {
-    console.log(req.query);
-    const { hasTracking, snapFiles } = req.query;
+    const { hasTracking, snapshotFiles } = req.query;
     const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
     res.send(
         pug.renderFile(pugView('plot'), {
@@ -119,7 +124,7 @@ app.get('/local/plot', (req, res) => {
             types: hasTracking
                 ? plotTypes
                 : plotTypes.filter(e => e !== 'Tracking'),
-            snapFiles: atob(snapFiles).split(','),
+            snapFiles: atob(snapshotFiles).split(','),
             fileList: [],
         })
     );
@@ -178,7 +183,7 @@ app.get('/plot/Summary', (req, res) => {
 
 app.get('/plot/data/basicParameters', (req, res) => {
     const gtcOutput = req.body.gtcOutput;
-    gtcOutput.get_para().then(() => {
+    gtcOutput.getParameters().then(() => {
         res.json(gtcOutput.parameters);
     });
 });

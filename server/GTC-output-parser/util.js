@@ -63,7 +63,7 @@ function range(initOrLen, end) {
 
 async function parseWebStreamByLine(stream, parser) {
     const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
-    let { value, done } = await reader.read();
+    let { done, value } = await reader.read();
     let lineNum = 0;
     let prevStr = '';
     while (!done) {
@@ -72,7 +72,7 @@ async function parseWebStreamByLine(stream, parser) {
         let lineEnd;
         while ((lineEnd = value.indexOf('\n', lineBegin)) != -1) {
             parser.next(
-                (lineBegin == 0 ? '' : prevStr) +
+                (lineBegin == 0 ? prevStr : '') +
                     value.slice(lineBegin, lineEnd)
             );
             lineNum++;
@@ -80,13 +80,26 @@ async function parseWebStreamByLine(stream, parser) {
         }
         prevStr = value.slice(lineBegin);
 
-        ({ value, done } = await reader.read());
+        ({ done, value } = await reader.read());
     }
     return lineNum;
 }
 
-async function parseStreamByLine(stream, parser) {
-    const rl = require('readline').createInterface({
+async function webStreamToText(stream) {
+    const reader = stream.pipeThrough(new TextDecoderStream()).getReader();
+    const chunks = [];
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+            break;
+        }
+        chunks.push(value);
+    }
+    return chunks.join('');
+}
+
+async function parseStreamByLine(stream, parser, nodeModules) {
+    const rl = nodeModules.readline.createInterface({
         input: stream,
         ctrlDelay: Infinity,
     });
@@ -96,7 +109,7 @@ async function parseStreamByLine(stream, parser) {
         lineNum++;
     });
 
-    await require('events').once(rl, 'close');
+    await nodeModules.events.once(rl, 'close');
 
     return lineNum;
 }
@@ -106,5 +119,6 @@ module.exports = {
     flat,
     range,
     parseWebStreamByLine,
+    webStreamToText,
     parseStreamByLine,
 };

@@ -107,3 +107,13 @@ button[type="submit"] {
     border-radius: 10px;
     font-size: 1.2rem;
 }
+
+iframe {
+    position: absolute;
+    left: 2%;
+    top: 1%;
+    width: 95%;
+    height: 98%;
+    background: white;
+    border: 2px solid black;
+}

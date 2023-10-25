@@ -1,4 +1,5 @@
 const read_para = require('./read_para.js');
+const { webStreamToText } = require('./util');
 
 /**
  * GTC output data parser class
@@ -15,13 +16,13 @@ const read_para = require('./read_para.js');
 class GTCOutput {
     /**
      * @param {String} dir - GTC output data directory path
-     * @param {FileList} fileList - file list from input[type="file"]
      */
-    constructor(dir, fileList) {
+    constructor(dir, fileListOrNodeModules) {
         this.dir = dir;
         this.data = {};
-        this.serverSide = fileList === undefined;
-        this._fileList = this.serverSide ? [] : [...fileList];
+        this.serverSide = !Array.isArray(fileListOrNodeModules);
+        this._fileList = this.serverSide ? [] : fileListOrNodeModules;
+        this._nodeModules = this.serverSide ? fileListOrNodeModules : {};
     }
 
     getFileByPath(...paths) {
@@ -36,10 +37,10 @@ class GTCOutput {
      */
     createReadStreamFromFile(...paths) {
         return this.serverSide
-            ? require('fs').createReadStream(
-                  require('path').join(this.dir, ...paths)
+            ? this._nodeModules.fs.createReadStream(
+                  this._nodeModules.path.join(this.dir, ...paths)
               )
-            : this.getFileByPath(...paths).stream();
+            : this.getFileByPath(...paths).stream;
     }
 
     /**
@@ -49,17 +50,19 @@ class GTCOutput {
      */
     async readFileContent(...paths) {
         return this.serverSide
-            ? require('fs/promises').readFile(
-                  require('path').join(this.dir, ...paths),
-                  { encoding: 'utf-8' }
+            ? this._nodeModules.fs.promises.readFile(
+                  this._nodeModules.path.join(this.dir, ...paths),
+                  {
+                      encoding: 'utf-8',
+                  }
               )
-            : this.getFileByPath(...paths).text();
+            : webStreamToText(this.getFileByPath(...paths).stream);
     }
 
     /**
      * read gtc.out
      */
-    async get_para() {
+    async getParameters() {
         if (!this.parameters)
             this.parameters = await read_para(
                 await this.readFileContent('gtc.out')
@@ -71,8 +74,8 @@ class GTCOutput {
         if (this.particleTrackingExist === undefined) {
             if (this.serverSide) {
                 try {
-                    const dir = await require('fs/promises').readdir(
-                        require('path').join(
+                    const dir = await this._nodeModules.fs.promises.readdir(
+                        this._nodeModules.path.join(
                             this.dir,
                             this.constructor.index['Tracking'].fileName
                         )
@@ -100,13 +103,13 @@ class GTCOutput {
      */
     async getSnapshotFileList() {
         let files = this.serverSide
-            ? await require('fs/promises').readdir(this.dir, 'utf8')
+            ? await this._nodeModules.fs.promises.readdir(this.dir)
             : this._fileList.map(file =>
                   file.webkitRelativePath.split('/').at(-1)
               );
-        this.snapshotFiles = files
+        return (this.snapshotFiles = files
             .map(name => name.toLowerCase())
-            .filter(name => name.startsWith('snap') && name.endsWith('.out'));
+            .filter(name => name.startsWith('snap') && name.endsWith('.out')));
     }
 
     /**
@@ -127,7 +130,7 @@ class GTCOutput {
             return;
         }
 
-        await this.get_para();
+        await this.getParameters();
         if (type === 'Tracking') {
             await this.readData('Equilibrium');
         }
@@ -138,7 +141,8 @@ class GTCOutput {
             fileName,
             this.createReadStreamFromFile(fileName),
             this.parameters,
-            this.serverSide
+            this.serverSide,
+            this._nodeModules
         );
     }
 

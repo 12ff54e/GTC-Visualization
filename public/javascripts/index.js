@@ -72,8 +72,9 @@ window.GTCGlobal.hist_mode_range = {
     frequency: undefined,
 };
 
-window.addEventListener('load', async function () {
+window.addEventListener('load', function () {
     new StatusBar(document.getElementById('status'));
+    addClosingX();
 
     // register plot type tabs
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
@@ -532,4 +533,27 @@ async function propagateFetchError(res) {
     if (!res.ok) {
         throw await res.text();
     }
+}
+
+function addClosingX() {
+    const isTopLevel = () => {
+        try {
+            return window.self === window.top;
+        } catch (e) {
+            return false;
+        }
+    };
+    // top level window, do nothing
+    if (isTopLevel()) {
+        return;
+    }
+    const x = document.createElement('button');
+    x.id = 'close-button';
+    x.innerText = 'X';
+    x.addEventListener('click', () => {
+        window.parent.document.body.removeChild(
+            window.parent.document.getElementsByTagName('iframe')[0]
+        );
+    });
+    document.body.append(x);
 }
