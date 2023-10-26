@@ -117,38 +117,39 @@ class GTCOutput {
      * @param {string} type could be 'History', 'Equilibrium', 'RadialTime' or one of the snapshot files
      */
     async readData(type) {
-        if (type.startsWith('snap')) {
-            // check if the requested snapshot file is read
-            this.snapshotFileName = type;
-            type = 'Snapshot';
-            let snap = this.data[type];
-            if (snap && snap.path === this.snapshotFileName) {
-                return;
+        // read corresponding data file
+        if (this.data[type] === undefined) {
+            await this.getParameters();
+            if (type === 'Tracking') {
+                await this.readData('Equilibrium');
             }
-        } else if (this.data[type]) {
-            // check if the requested file (except for snapshot) is read
-            return;
+            let { classConstructor, fileName } =
+                GTCOutput.index[type.startsWith('snap') ? 'Snapshot' : type];
+            if (type.startsWith('snap')) {
+                fileName = type;
+                this.snapshotFileName = type;
+            }
+            // FIXME: tracking plot is broken
+            this.data[type] = await classConstructor.readDataFile(
+                fileName,
+                this.createReadStreamFromFile(fileName),
+                this.parameters,
+                this.serverSide,
+                this._nodeModules
+            );
         }
 
-        await this.getParameters();
-        if (type === 'Tracking') {
-            await this.readData('Equilibrium');
-        }
-        let { classConstructor, fileName } = GTCOutput.index[type];
-        fileName = fileName ? fileName : this.snapshotFileName;
-        // FIXME: tracking plot is broken
-        this.data[type] = await classConstructor.readDataFile(
-            fileName,
-            this.createReadStreamFromFile(fileName),
-            this.parameters,
-            this.serverSide,
-            this._nodeModules
-        );
+        return this.data[type];
     }
 
     getPlotData(type, id) {
         if (type === 'Tracking') {
             return this.data[type].plotData(id, this.data['Equilibrium']);
+        } else if (type === 'Snapshot') {
+            return this.data[this.snapshotFileName].plotData(
+                id,
+                this.parameters
+            );
         } else {
             return this.data[type].plotData(id, this.parameters);
         }

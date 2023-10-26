@@ -146,12 +146,11 @@ app.use('/plot', (req, res, next) => {
 app.get(
     '/plot/plotType/:type',
     wrap(async (req, res) => {
-        let type = req.params.type;
         const currentOutput = req.body.gtcOutput;
+        const filename = req.params.type;
+        const type = filename.startsWith('snap') ? 'Snapshot' : filename;
         try {
-            await currentOutput.readData(type);
-            type = type.startsWith('snap') ? 'Snapshot' : type;
-            const data = currentOutput.data[type];
+            const data = await currentOutput.readData(filename);
 
             const status = {
                 info: `${type} file read`,
@@ -163,9 +162,7 @@ app.get(
                     `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
             }
             if (type === 'Snapshot') {
-                status.info = `Currently selection of Snapshot file: ${path.basename(
-                    data.filename
-                )}`;
+                status.info = `Currently selection of Snapshot file: ${filename}`;
             }
             res.send(JSON.stringify(status));
         } catch (err) {

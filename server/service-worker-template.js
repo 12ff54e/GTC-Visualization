@@ -79,9 +79,8 @@ async function processLocalRequest(event) {
     let match;
     if ((match = pathname.match(/^plot\/plotType\/(?<type>[\w\.]+)/))) {
         const filename = match.groups.type;
-        await currentOutput.readData(filename);
         const type = filename.startsWith('snap') ? 'Snapshot' : filename;
-        const data = currentOutput.data[type];
+        const data = await currentOutput.readData(filename);
 
         const status = {
             info: `${type} file read`,
