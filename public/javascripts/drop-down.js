@@ -108,7 +108,7 @@ function registerServiceWorker() {
                     file.webkitRelativePath.match(/[^\/]+\/gtc.out/)
                 )
             ) {
-                reg.active.postMessage(files, streams);
+                reg.active.postMessage({ opening: true, files }, streams);
             } else {
                 alert('No gtc.out in this folder!');
             }

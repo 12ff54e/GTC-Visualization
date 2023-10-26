@@ -551,9 +551,16 @@ function addClosingX() {
     x.id = 'close-button';
     x.innerText = 'X';
     x.addEventListener('click', () => {
-        window.parent.document.body.removeChild(
-            window.parent.document.getElementsByTagName('iframe')[0]
+        const topWindow = window.top;
+        topWindow.navigator.serviceWorker.ready.then(reg => {
+            reg.active.postMessage({ opening: false });
+        });
+        // close iframe
+        topWindow.document.body.removeChild(
+            topWindow.document.getElementsByTagName('iframe')[0]
         );
+        // clear file input
+        topWindow.document.querySelector('#local_file_picker').value = '';
     });
     document.body.append(x);
 }

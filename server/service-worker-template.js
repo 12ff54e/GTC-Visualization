@@ -34,7 +34,13 @@ addEventListener('fetch', event => {
 addEventListener(
     'message',
     wrap(async event => {
-        const files = event.data;
+        const { opening, files } = event.data;
+        if (!opening) {
+            currentOutput = undefined;
+            console.log('Closing folder...');
+            return;
+        }
+
         const outputFiles = files.filter(file =>
             inTopLevelFolder(file.webkitRelativePath)
         );
