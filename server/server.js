@@ -146,25 +146,8 @@ app.use('/plot', (req, res, next) => {
 app.get(
     '/plot/plotType/:type',
     wrap(async (req, res) => {
-        const currentOutput = req.body.gtcOutput;
-        const filename = req.params.type;
-        const type = filename.startsWith('snap') ? 'Snapshot' : filename;
         try {
-            const data = await currentOutput.readData(filename);
-
-            const status = {
-                info: `${type} file read`,
-                id: data.plotTypes,
-            };
-            if (!data.isCompleted) {
-                status.warn =
-                    `${data.filename} is not completed. It should have ` +
-                    `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
-            }
-            if (type === 'Snapshot') {
-                status.info = `Currently selection of Snapshot file: ${filename}`;
-            }
-            res.send(JSON.stringify(status));
+            res.json(await req.body.gtcOutput.getData(req.params.type));
         } catch (err) {
             console.log(err);
             res.json({
@@ -178,25 +161,30 @@ app.get('/plot/Summary', (req, res) => {
     prepareSummaryData(req.body.gtcOutput).then(res.json.bind(res));
 });
 
-app.get('/plot/data/basicParameters', (req, res) => {
-    const gtcOutput = req.body.gtcOutput;
-    gtcOutput.getParameters().then(() => {
-        res.json(gtcOutput.parameters);
-    });
-});
+app.get(
+    '/plot/data/basicParameters',
+    wrap(async (req, res) => {
+        res.json(await req.body.gtcOutput.getParameters());
+    })
+);
 
-app.get('/plot/data/:type-:id', (req, res) => {
-    let plotType = req.params.type;
-    let plotId = req.params.id;
-    console.log(plotId);
-
-    try {
-        res.json(req.body.gtcOutput.getPlotData(plotType, plotId));
-    } catch (e) {
-        console.log(e);
-        res.status(404).end();
-    }
-});
+app.get(
+    '/plot/data/:type-:id',
+    wrap(async (req, res) => {
+        console.log(req.params.id);
+        try {
+            res.json(
+                await req.body.gtcOutput.getPlotData(
+                    req.params.type,
+                    req.params.id
+                )
+            );
+        } catch (e) {
+            console.log(e);
+            res.status(404).end();
+        }
+    })
+);
 
 app.post('/plot/data/download', (req, res, next) => {
     const currentDir = req.body.gtcOutput.dir;

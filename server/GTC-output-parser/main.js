@@ -154,6 +154,33 @@ class GTCOutput {
             return this.data[type].plotData(id, this.parameters);
         }
     }
+
+    /**
+     * Unified interface for retrieving data
+     */
+    async getData(type, id) {
+        if (id) {
+            return this.getPlotData(type, id);
+        } else if (type === 'basicParameters') {
+            return this.getParameters();
+        } else {
+            const data = await this.readData(type);
+
+            const status = {
+                info: `${type} file read`,
+                id: data.plotTypes,
+            };
+            if (!data.isCompleted) {
+                status.warn =
+                    `${data.filename} is not completed. It should have ` +
+                    `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
+            }
+            if (type.startsWith('snap')) {
+                status.info = `Currently selection of Snapshot file: ${type}`;
+            }
+            return status;
+        }
+    }
 }
 
 GTCOutput.index = {

@@ -78,29 +78,13 @@ async function processLocalRequest(event) {
     const pathname = new URL(event.request.url).pathname.slice(7); // truncate the leading /local/
     let match;
     if ((match = pathname.match(/^plot\/plotType\/(?<type>[\w\.]+)/))) {
-        const filename = match.groups.type;
-        const type = filename.startsWith('snap') ? 'Snapshot' : filename;
-        const data = await currentOutput.readData(filename);
-
-        const status = {
-            info: `${type} file read`,
-            id: data.plotTypes,
-        };
-        if (!data.isCompleted) {
-            status.warn =
-                `${data.filename} is not completed. It should have ` +
-                `${data.expectedStepNumber} steps, but only contains ${data.stepNumber} step.`;
-        }
-        if (type === 'Snapshot') {
-            status.info = `Currently selection of Snapshot file: ${filename}`;
-        }
-        return Response.json(status);
+        return Response.json(await currentOutput.getData(match.groups.type));
     } else if (
         (match = pathname.match(/^plot\/data\/(?<type>\w+)-(?<id>[\w_-]+)/))
     ) {
         const { type, id } = match.groups;
         try {
-            return Response.json(currentOutput.getPlotData(type, id));
+            return Response.json(await currentOutput.getData(type, id));
         } catch (e) {
             console.error(e);
             return new Response('Not found!', { status: 404 });
