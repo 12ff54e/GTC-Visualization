@@ -8,7 +8,8 @@
     "start": "node ./server-prod.js",
     "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
     "pack-server": "webpack --config webpack.config.js",
-    "pack": "npm install && npm run pack-server && node ./util/pack.js"
+    "pack-gtc-output-parser": "webpack --config ./server/GTC-output-parser/webpack.config.js",
+    "pack": "npm install && npm run pack-server && npm run pack-gtc-output-parser && node ./util/pack.js"
   },
   "keywords": [
     "Visualization"

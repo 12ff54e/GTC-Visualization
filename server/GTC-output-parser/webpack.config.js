@@ -8,18 +8,18 @@ const path = require('path');
 module.exports = [
     {
         mode: 'production',
-        entry: './server/server.js',
-        target: 'node',
-        externals: {
-            gtcOutputParser: { commonjs: './GTC-output-parser/main.js' },
+        entry: './server/GTC-output-parser/main.js',
+        target: 'webworker',
+        watch: true,
+        watchOptions: {
+            aggregateTimeout: 500,
+            poll: 1200,
         },
         output: {
-            path: __dirname,
-            filename: 'server-prod.js',
-        },
-        node: {
-            __dirname: false,
-            __filename: false,
+            library: 'GTCOutput',
+            libraryTarget: 'var',
+            path: path.join(__dirname, '..', '..', 'public', 'javascripts'),
+            filename: 'gtc-output-parser.min.js',
         },
     },
 ];
