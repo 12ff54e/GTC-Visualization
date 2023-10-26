@@ -115,12 +115,12 @@ app.post(
 );
 
 app.get('/local/plot', (req, res) => {
-    const { hasTracking, snapshotFiles } = req.query;
+    const { hasTracking, snapshotFiles, dir } = req.query;
     const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
     res.send(
         pug.renderFile(pugView('plot'), {
             outputTag: '',
-            dir: '',
+            dir: dir,
             types: hasTracking
                 ? plotTypes
                 : plotTypes.filter(e => e !== 'Tracking'),
@@ -336,28 +336,7 @@ async function validateInputSchema() {
 }
 
 async function prepareSummaryData(currentOutput) {
-    await currentOutput.readData('Equilibrium');
-    const data = {};
-    [
-        'rg',
-        'q',
-        'dlnq_dpsi',
-        'Te',
-        'dlnTe_dpsi',
-        'ne',
-        'dlnne_dpsi',
-        'Ti',
-        'dlnTi_dpsi',
-        'ni',
-        'dlnni_dpsi',
-        'Tf',
-        'dlnTf_dpsi',
-        'nf',
-        'dlnnf_dpsi',
-    ].forEach(key => {
-        data[key] = currentOutput.data['Equilibrium'].radialData[key];
-    });
-    return data;
+    return (await currentOutput.readData('Equilibrium')).radialData;
 }
 
 async function updateServiceWorker() {

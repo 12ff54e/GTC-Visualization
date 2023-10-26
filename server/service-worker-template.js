@@ -14,6 +14,7 @@ addEventListener('install', event => {
 addEventListener('activate', event => {
     // The deletion of old caches must be done before worker can handle any fetch
     // in case obsolete caches being provided for response
+    console.log('A new version of service worker is activated.');
     event.waitUntil(clearCache());
 });
 
@@ -45,10 +46,14 @@ addEventListener(
             inTopLevelFolder(file.webkitRelativePath)
         );
 
-        currentOutput = new GTCOutput('', outputFiles);
+        currentOutput = new GTCOutput(
+            outputFiles[0].webkitRelativePath.split('/')[0],
+            outputFiles
+        );
         event.source.postMessage({
             done: true,
             snapshotFiles: await currentOutput.getSnapshotFileList(),
+            dir: currentOutput.dir,
         });
     })
 );
@@ -92,7 +97,9 @@ async function processLocalRequest(event) {
     } else if (pathname.match(/^plot\/data\/basicParameters/)) {
         return Response.json(await currentOutput.getParameters());
     } else if (pathname.match(/^plot\/Summary/)) {
-        // TODO: Finish it!
+        return Response.json(
+            (await currentOutput.readData('Equilibrium')).radialData
+        );
     }
 }
 

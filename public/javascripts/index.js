@@ -131,8 +131,8 @@ function callEventTarget(func, transform = e => e.target) {
 function addDownloadFunction() {
     // add GTC output file download cb
     const downloadForm = document.querySelector('#download-output');
-    if (window.location.pathname.startsWith('/local')) {
-        downloadForm.style.visibility = 'hidden';
+    if (!window.location.pathname.startsWith('/local')) {
+        downloadForm.style.visibility = 'inherit';
         return;
     }
     // button for expand/collapse file list
