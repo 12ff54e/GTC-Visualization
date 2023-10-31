@@ -88,7 +88,9 @@ app.post(
 
         currentOutput.fileList = (await readdir(currentOutput.dir, 'utf-8'))
             .map(filename => filename.toLowerCase())
-            .filter(filename => filename.endsWith('.out'));
+            .filter(
+                filename => filename.endsWith('.out') || filename === 'gtc.in'
+            );
 
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
