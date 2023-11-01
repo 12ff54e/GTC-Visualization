@@ -115,11 +115,11 @@ app.post(
 );
 
 app.get('/local/plot', (req, res) => {
-    const { hasTracking, snapshotFiles, dir } = req.query;
+    const { hasTracking, snapshotFiles, dir, outputTag } = req.query;
     const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
     res.send(
         pug.renderFile(pugView('plot'), {
-            outputTag: '',
+            outputTag: outputTag,
             dir: dir,
             types: hasTracking
                 ? plotTypes

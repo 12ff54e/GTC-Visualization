@@ -556,9 +556,14 @@ function addClosingX() {
             reg.active.postMessage({ opening: false });
         });
         // close iframe
-        topWindow.document.body.removeChild(
-            topWindow.document.getElementsByTagName('iframe')[0]
-        );
+        for (const iframe of topWindow.document.getElementsByTagName(
+            'iframe'
+        )) {
+            if (iframe.id === document.querySelector('#outputTag').innerText) {
+                topWindow.document.body.removeChild(iframe);
+                break;
+            }
+        }
         // clear file input
         topWindow.document.querySelector('#local_file_picker').value = '';
     });

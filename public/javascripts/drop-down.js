@@ -120,13 +120,14 @@ function registerServiceWorker() {
     // Upon receiving this message, GTCOutput is initialized
     // and we can jump to the plot page
     navigator.serviceWorker.addEventListener('message', e => {
-        const { done, snapshotFiles, dir } = e.data;
+        const { done, snapshotFiles, dir, outputTag } = e.data;
         if (done) {
             const plotURL = `/local/plot?snapshotFiles=${encodeURIComponent(
                 btoa(snapshotFiles)
-            )}&dir=${dir}`;
+            )}&dir=${dir}&outputTag=${outputTag}`;
             const iframe = document.createElement('iframe');
             iframe.src = plotURL;
+            iframe.id = outputTag;
             document.body.append(iframe);
         }
     });
