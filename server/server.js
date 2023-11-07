@@ -23,6 +23,7 @@ validateInputSchema().catch(err => {
 });
 
 let output = {};
+let currentFileTree = new FileTree();
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -41,23 +42,15 @@ function wrap(func) {
     return (...args) => func(...args).catch(args[2]);
 }
 
-app.get(
-    '/',
-    wrap(async (req, res) => {
-        const html = await getFolderStructure(path.normalize(host_dir));
-        await fs.writeFile(
-            path.join(process.cwd(), 'views', 'files.html'),
-            html
-        );
-        res.send(pug.renderFile(pugView('index')));
-    })
-);
+app.get('/', (req, res) => {
+    res.send(pug.renderFile(pugView('index')));
+});
 
 app.post(
     '/plot',
     wrap(async (req, res) => {
         const GTC_outputDir = path.join(
-            path.basename(host_dir) ? path.dirname(host_dir) : host_dir,
+            path.dirname(host_dir),
             decodeURI(req.body.gtc_output)
         );
         let currentOutput;
@@ -104,6 +97,23 @@ app.post(
                 fileList: currentOutput.fileList,
             })
         );
+    })
+);
+
+app.get(
+    '/fileTree',
+    wrap(async (req, res) => {
+        const then = performance.now();
+        currentFileTree = (await getFolderStructure(path.normalize(host_dir)))
+            .data;
+        console.log(
+            `${host_dir} scanned, ${
+                currentFileTree.count.files
+            } gtc output data found using ${(performance.now() - then).toFixed(
+                2
+            )}ms.`
+        );
+        res.json(currentFileTree);
     })
 );
 
@@ -275,11 +285,10 @@ async function getFolderStructure(dir) {
             pos = path.dirname(dir) === dir ? '' : path.dirname(dir);
             const stat = await fs.stat(path.join(pos, filePath));
             folder.mTimeMs = stat.mtimeMs;
-            folder.path = path.dirname(filePath);
+            // folder.path = path.dirname(filePath);
         })
     );
-    console.log(`${host_dir} scanned, ${index.length} gtc output data found.`);
-    return filtered.toHTML2();
+    return { data: filtered, html: filtered.toHTML2() };
 }
 
 function generateInput(params) {
