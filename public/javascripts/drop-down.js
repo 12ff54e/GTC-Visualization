@@ -1,35 +1,33 @@
 window.addEventListener(
     'load',
-    wrap(async event =>
+    wrap(
         addLoadingIndicator(async () => {
             const fileTree = await (await fetch('/fileTree')).json();
             // add root entry
-            document
-                .querySelector('#outer_ul')
-                .append(generateListEntry(fileTree));
-
-            for (let div of document.getElementsByClassName('mod')) {
-                div.addEventListener('click', function (event) {
-                    for (let sub of this.children) {
-                        if (sub.style.display == 'none') {
-                            sub.style.display = 'block';
-                        } else {
-                            sub.style.display = 'none';
-                        }
-                    }
-                });
-            }
+            const rootEntry = generateListEntry(fileTree);
+            document.querySelector('#outer_ul').append(rootEntry);
 
             for (let btn of document.querySelector('.ctrl').children) {
-                btn.addEventListener('click', function (event) {
+                btn.addEventListener('click', event => {
                     event.preventDefault();
-                    for (let btn of listButtons) {
-                        if (
-                            btn.innerHTML ===
-                            (this.innerHTML.includes('Expand') ? '+' : '-')
-                        ) {
-                            btn.click();
+                    if (event.target.innerText.includes('Collapse')) {
+                        for (const btn of document.querySelectorAll(
+                            '.collapsible'
+                        )) {
+                            if (btn.innerText == '-') {
+                                btn.click();
+                            }
                         }
+                    } else {
+                        const expandEntry = li => {
+                            const btn = li.querySelector('.collapsible');
+                            if (btn?.innerText == '+') {
+                                for (const item of toggleList(btn).children) {
+                                    expandEntry(item);
+                                }
+                            }
+                        };
+                        expandEntry(rootEntry);
                     }
                 });
             }
@@ -38,7 +36,7 @@ window.addEventListener(
             const outer_ul = document.querySelector('#outer_ul');
             outer_ul.classList.add('active_list');
             outer_ul.style.height = `${1.3 * calcListHeight(outer_ul)}em`;
-        })(event)
+        })
     )
 );
 
@@ -58,6 +56,9 @@ function calcListHeight(ul) {
 function setHeight(elem, height) {
     if (elem.localName === 'ul') {
         const prevHeight = elem.style.height.split(/[a-zA-Z]/, 1)[0];
+        if (height < 0 && prevHeight.length == 0) {
+            return;
+        }
         elem.style.height = `${
             height + (prevHeight ? parseFloat(prevHeight) : 0)
         }em`;
@@ -72,19 +73,20 @@ function toggleList(btn) {
     if (!dirEntry.nextElementSibling?.classList.contains('content')) {
         dirEntry.after(generateContent(dirEntry));
     }
-    const content = dirEntry.nextElementSibling;
-    content.classList.toggle('active_list');
-    if (content.classList.contains('active_list')) {
-        setHeight(content, 1.3 * calcListHeight(content));
+    const contentUL = dirEntry.nextElementSibling;
+    contentUL.classList.toggle('active_list');
+    if (contentUL.classList.contains('active_list')) {
+        setHeight(contentUL, 1.3 * calcListHeight(contentUL));
         btn.innerText = '-';
     } else {
         setHeight(
-            content.parentElement,
-            -parseFloat(content.style.height.split(/[a-zA-Z]/, 1)[0])
+            contentUL.parentElement,
+            -parseFloat(contentUL.style.height.split(/[a-zA-Z]/, 1)[0])
         );
-        content.style.height = '';
+        contentUL.style.height = '';
         btn.innerText = '+';
     }
+    return contentUL;
 }
 
 function generateContent(dirEntry) {
@@ -129,6 +131,16 @@ function generateListEntry(entry) {
         modTime.innerHTML = `<div style="display:none">${localeISOLikeForm(
             entry.mTimeMs
         )}</div><div>${timeText(entry.mTimeMs)}</div>`;
+
+        modTime.addEventListener('click', function (event) {
+            for (let sub of this.children) {
+                if (sub.style.display == 'none') {
+                    sub.style.display = 'block';
+                } else {
+                    sub.style.display = 'none';
+                }
+            }
+        });
         entryContainer.append(document.createElement('div'), modTime);
         entryContainer.firstElementChild.append(input, label);
     } else {
