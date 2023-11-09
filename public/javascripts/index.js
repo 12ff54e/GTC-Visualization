@@ -117,6 +117,12 @@ window.addEventListener('load', () => {
         ).firstElementChild;
         const [root, ...pathname] = navigationBar.innerText.split('/');
 
+        const constructPath = entry => {
+            return entry
+                ? `${constructPath(entry.parent)}/${entry.dirname}`
+                : '';
+        };
+
         const pathSegments = pathname.map(seg => {
             const span = document.createElement('span');
             span.classList.add('breadcrumb-item');
@@ -130,43 +136,67 @@ window.addEventListener('load', () => {
         navigationBar.after(...pathSegments);
 
         // add drop down list
+        // FIXME: If a folder is a gtc output folder while containing other
+        //  gtc output folders as subfolders, jumping to it is not possible
+        //  since the expand sub list event prioritize the jump event
         let currentEntry = fileTree;
         const dropdown = document.createElement('div');
         dropdown.classList.add('breadcrumb-dropdown');
-        dropdown.appendChild(document.createElement('ul'));
         const clearDropdown = () => {
             pathSegments.forEach(s => {
                 s.lastElementChild.classList.remove('active');
             });
         };
+        const constructFolderContentList = (parent, child, isTop) => {
+            const ul = document.createElement('ul');
+
+            for (const entry of parent.content) {
+                if (typeof entry === 'string') {
+                    continue;
+                }
+                entry.parent = parent;
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.innerText = entry.dirname;
+                li.appendChild(a);
+
+                li.classList.add('breadcrumb-dropdown-item');
+                if (isTop && child.dirname === entry.dirname) {
+                    li.classList.add('current-item');
+                }
+
+                if (
+                    entry.content.length === 1 &&
+                    entry.content[0] === 'gtc.out'
+                ) {
+                    // a gtc output folder that does not contain subfolder
+                    li.addEventListener('click', () => {
+                        postForm('/plot', { gtc_output: constructPath(entry) });
+                    });
+                } else {
+                    // a folder contains subfolders
+                    li.classList.add('folder');
+                    li.appendChild(constructFolderContentList(entry));
+                    li.addEventListener('click', event => {
+                        event.currentTarget.classList.toggle('folder-expand');
+                    });
+                }
+                ul.appendChild(li);
+            }
+
+            return ul;
+        };
+
         pathSegments.forEach(seg => {
             seg.parentEntry = currentEntry;
             currentEntry = currentEntry.content.find(
                 f => f.dirname === seg.firstElementChild.innerText
             );
 
-            seg.appendChild(dropdown.cloneNode(true));
-            const ul = seg.querySelector('ul');
-            for (const entry of seg.parentEntry.content) {
-                if (typeof entry === 'string') {
-                    continue;
-                }
-                const li = document.createElement('li');
-                li.classList.add('breadcrumb-dropdown-item');
-                if (entry.dirname === currentEntry.dirname) {
-                    li.classList.add('current-item');
-                }
-                if (
-                    !(
-                        entry.content.length === 1 &&
-                        entry.content[0] === 'gtc.out'
-                    )
-                ) {
-                    li.classList.add('folder');
-                }
-                li.innerText = entry.dirname;
-                ul.appendChild(li);
-            }
+            seg.appendChild(dropdown.cloneNode());
+            seg.lastElementChild.append(
+                constructFolderContentList(seg.parentEntry, currentEntry, true)
+            );
             seg.addEventListener('click', event => {
                 const elem = event.currentTarget;
                 const list = elem.lastElementChild;
@@ -613,4 +643,24 @@ function parentIs(node, predict) {
     if (parent) {
         return predict(parent) || parentIs(parent, predict);
     }
+}
+
+function postForm(url, content) {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = url;
+
+    for (const key in content) {
+        if (content.hasOwnProperty(key)) {
+            const hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = key;
+            hiddenField.value = content[key];
+
+            form.appendChild(hiddenField);
+        }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }

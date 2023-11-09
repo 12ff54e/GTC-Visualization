@@ -4,7 +4,7 @@
 }
 #breadcrumb-container > span::after {
     /* path separator */
-    content: ' >';
+    content: ' \2BC8';
 }
 #breadcrumb-container > span + span::after {
     /* clickable segment (except first one) is bolder */
@@ -25,34 +25,54 @@
 .breadcrumb-dropdown {
     position: absolute;
     top: 2rem;
+    width: 20em;
     display: none;
     visibility: hidden;
     background-color: aliceblue;
+    z-index: 35;
 }
 .breadcrumb-dropdown.active {
     position: absolute;
     display: initial;
     visibility: initial;
 }
-.breadcrumb-dropdown > ul {
+.breadcrumb-dropdown ul {
     list-style-type: none;
     margin: 0;
     padding: 0;
 }
+
 .breadcrumb-dropdown-item {
     padding-left: 1em;
-    width: 10em;
 }
+.breadcrumb-dropdown-item > a {
+    display: inline-block;
+    width: 98%;
+}
+.breadcrumb-dropdown-item.current-item > a {
+    border: outset 2px black;
+}
+.breadcrumb-dropdown-item > a:hover {
+    background-color: lightgray;
+}
+
 .breadcrumb-dropdown-item.folder::before {
     position: absolute;
     left: 2px;
-    content: '>';
+    content: '\2BC8';
 }
-.breadcrumb-dropdown-item.current-item {
-    border: outset 2px black;
+.breadcrumb-dropdown-item.folder.folder-expand::before {
+    position: absolute;
+    left: 2px;
+    content: '\2BC6';
 }
-.breadcrumb-dropdown-item:hover {
-    background-color: lightgray;
+.breadcrumb-dropdown-item.folder > ul {
+    display: none;
+    visibility: hidden;
+}
+.breadcrumb-dropdown-item.folder.folder-expand > ul {
+    display: initial;
+    visibility: initial;
 }
 
 p {
