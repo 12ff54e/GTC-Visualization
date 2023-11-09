@@ -10,7 +10,9 @@ html(lang="en")
         script(src="libs/fftw-js/bundle.js" defer) 
     body
         code(id='outputTag' style="display:none")= outputTag
-        p(id='status')= `Current GTC output folder set to ${dir}`
+        div(id='breadcrumb-container') Current GTC output folder set to 
+            span= dir
+        p(id='status')
         form(id='download-output')
             div(id="download-overlay")
                 img(src="loading.gif", alt="loading")

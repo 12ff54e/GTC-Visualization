@@ -12,12 +12,10 @@ import { generateSummary } from './summary-generate.js';
 class StatusBar {
     constructor(root) {
         this.parent = root;
-        this.orig = root.innerText;
         root.status = this;
     }
     toString() {
         return (
-            `${this.orig}<br>` +
             (this.information
                 ? `<font color="green">${this.information}</font><br>`
                 : '') +
@@ -72,7 +70,7 @@ window.GTCGlobal.hist_mode_range = {
     frequency: undefined,
 };
 
-window.addEventListener('load', async function () {
+window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
 
     // register plot type tabs
@@ -108,6 +106,87 @@ window.addEventListener('load', async function () {
     }
 
     addDownloadFunction();
+
+    // initial breadcrumb
+    wrap(async () => {
+        const res = await fetch('/fileTree');
+        await propagateFetchError(res);
+        const fileTree = await res.json();
+        const navigationBar = document.querySelector(
+            '#breadcrumb-container'
+        ).firstElementChild;
+        const [root, ...pathname] = navigationBar.innerText.split('/');
+
+        const pathSegments = pathname.map(seg => {
+            const span = document.createElement('span');
+            span.classList.add('breadcrumb-item');
+            const a = document.createElement('a');
+            a.classList.add('breadcrumb-anchor');
+            a.innerText = seg;
+            span.appendChild(a);
+            return span;
+        });
+        navigationBar.innerText = root;
+        navigationBar.after(...pathSegments);
+
+        // add drop down list
+        let currentEntry = fileTree;
+        const dropdown = document.createElement('div');
+        dropdown.classList.add('breadcrumb-dropdown');
+        dropdown.appendChild(document.createElement('ul'));
+        const clearDropdown = () => {
+            pathSegments.forEach(s => {
+                s.lastElementChild.classList.remove('active');
+            });
+        };
+        pathSegments.forEach(seg => {
+            seg.parentEntry = currentEntry;
+            currentEntry = currentEntry.content.find(
+                f => f.dirname === seg.firstElementChild.innerText
+            );
+
+            seg.appendChild(dropdown.cloneNode(true));
+            const ul = seg.querySelector('ul');
+            for (const entry of seg.parentEntry.content) {
+                if (typeof entry === 'string') {
+                    continue;
+                }
+                const li = document.createElement('li');
+                li.classList.add('breadcrumb-dropdown-item');
+                if (entry.dirname === currentEntry.dirname) {
+                    li.classList.add('current-item');
+                }
+                if (
+                    !(
+                        entry.content.length === 1 &&
+                        entry.content[0] === 'gtc.out'
+                    )
+                ) {
+                    li.classList.add('folder');
+                }
+                li.innerText = entry.dirname;
+                ul.appendChild(li);
+            }
+            seg.addEventListener('click', event => {
+                const elem = event.currentTarget;
+                const list = elem.lastElementChild;
+                list.style.left = `${elem.offsetLeft}px`;
+
+                clearDropdown();
+                list.classList.add('active');
+            });
+        });
+        // clear dropdown when clicked on other parts on the page
+        document.addEventListener('click', event => {
+            if (
+                !parentIs(event.target, elem =>
+                    elem.classList.contains('breadcrumb-item')
+                )
+            ) {
+                clearDropdown();
+            }
+        });
+    })();
 });
 
 window.addEventListener('error', () => {
@@ -526,5 +605,12 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
 async function propagateFetchError(res) {
     if (!res.ok) {
         throw await res.text();
+    }
+}
+
+function parentIs(node, predict) {
+    const parent = node.parentElement;
+    if (parent) {
+        return predict(parent) || parentIs(parent, predict);
     }
 }

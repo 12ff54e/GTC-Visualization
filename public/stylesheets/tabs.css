@@ -1,3 +1,60 @@
+#breadcrumb-container {
+    font-size: large;
+    height: 1rem;
+}
+#breadcrumb-container > span::after {
+    /* path separator */
+    content: ' >';
+}
+#breadcrumb-container > span + span::after {
+    /* clickable segment (except first one) is bolder */
+    font-weight: bolder;
+}
+#breadcrumb-container > span:last-child::after {
+    /* No path separator after last segment */
+    content: '';
+}
+.breadcrumb-item {
+    margin-left: 0.2em;
+}
+.breadcrumb-anchor {
+    /* clickable segment is bolder */
+    font-weight: bolder;
+    text-decoration: none;
+}
+.breadcrumb-dropdown {
+    position: absolute;
+    top: 2rem;
+    display: none;
+    visibility: hidden;
+    background-color: aliceblue;
+}
+.breadcrumb-dropdown.active {
+    position: absolute;
+    display: initial;
+    visibility: initial;
+}
+.breadcrumb-dropdown > ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+.breadcrumb-dropdown-item {
+    padding-left: 1em;
+    width: 10em;
+}
+.breadcrumb-dropdown-item.folder::before {
+    position: absolute;
+    left: 2px;
+    content: '>';
+}
+.breadcrumb-dropdown-item.current-item {
+    border: outset 2px black;
+}
+.breadcrumb-dropdown-item:hover {
+    background-color: lightgray;
+}
+
 p {
     height: 3rem;
 }
@@ -44,7 +101,7 @@ p {
 
 #panel {
     position: absolute;
-    top: 5rem;
+    top: 6rem;
     left: 16%;
     width: 18%;
     height: calc(100% - 5rem);
@@ -55,7 +112,7 @@ p {
     float: left;
     position: absolute;
     left: 36%;
-    top: 5rem;
+    top: 6rem;
 }
 
 #tabs > div {
@@ -261,7 +318,7 @@ input.eq-1d-y:checked + label {
     flex-wrap: wrap;
     align-items: stretch;
 }
-.summary-figure-button-div > button{
+.summary-figure-button-div > button {
     padding-block: 0;
 }
 

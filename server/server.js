@@ -89,7 +89,10 @@ app.post(
         res.send(
             pug.renderFile(pugView('plot'), {
                 outputTag: req.body.gtc_output,
-                dir: GTC_outputDir,
+                dir: path
+                    .relative(path.dirname(host_dir), GTC_outputDir)
+                    .split(path.sep)
+                    .join('/'), // use slash as path separator
                 types: currentOutput.particleTrackingExist
                     ? plotTypes
                     : plotTypes.filter(e => e !== 'Tracking'),
