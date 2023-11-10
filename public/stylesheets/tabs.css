@@ -37,6 +37,8 @@
     top: 1.5em;
     left: 0;
     min-width: 20em;
+    max-height: 20em;
+    overflow-y: scroll;
     display: none;
     visibility: hidden;
     background-color: aliceblue;
