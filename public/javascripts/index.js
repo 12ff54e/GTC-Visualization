@@ -136,15 +136,15 @@ window.addEventListener('load', () => {
         navigationBar.after(...pathSegments);
 
         // add drop down list
-        // FIXME: If a folder is a gtc output folder while containing other
-        //  gtc output folders as subfolders, jumping to it is not possible
-        //  since the expand sub list event prioritize the jump event
         let currentEntry = fileTree;
         const dropdown = document.createElement('div');
         dropdown.classList.add('breadcrumb-dropdown');
         const clearDropdown = () => {
             pathSegments.forEach(s => {
-                s.lastElementChild.classList.remove('active');
+                s.classList.remove('active');
+                for (const child of s.children) {
+                    child.classList.remove('active');
+                }
             });
         };
         const constructFolderContentList = (parent, child, isTop) => {
@@ -165,15 +165,14 @@ window.addEventListener('load', () => {
                     li.classList.add('current-item');
                 }
 
-                if (
-                    entry.content.length === 1 &&
-                    entry.content[0] === 'gtc.out'
-                ) {
-                    // a gtc output folder that does not contain subfolder
-                    li.addEventListener('click', () => {
+                if (entry.mTimeMs) {
+                    // a gtc output folder
+                    a.addEventListener('click', () => {
                         postForm('/plot', { gtc_output: constructPath(entry) });
                     });
-                } else {
+                }
+
+                if (entry.count.folders > 1) {
                     // a folder contains subfolders
                     li.classList.add('folder');
                     li.appendChild(constructFolderContentList(entry));
@@ -199,17 +198,19 @@ window.addEventListener('load', () => {
             );
             seg.addEventListener('click', event => {
                 const elem = event.currentTarget;
-                const list = elem.lastElementChild;
+                const list = elem.querySelector('div');
                 list.style.left = `${elem.offsetLeft}px`;
 
                 clearDropdown();
-                list.classList.add('active');
+                for (const child of elem.children) {
+                    child.classList.add('active');
+                }
             });
         });
         // clear dropdown when clicked on other parts on the page
         document.addEventListener('click', event => {
             if (
-                !parentIs(event.target, elem =>
+                !nodeIs(event.target, elem =>
                     elem.classList.contains('breadcrumb-item')
                 )
             ) {
@@ -638,10 +639,9 @@ async function propagateFetchError(res) {
     }
 }
 
-function parentIs(node, predict) {
-    const parent = node.parentElement;
-    if (parent) {
-        return predict(parent) || parentIs(parent, predict);
+function nodeIs(node, predict) {
+    if (node) {
+        return predict(node) || nodeIs(node.parentElement, predict);
     }
 }
 

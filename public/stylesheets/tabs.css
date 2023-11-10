@@ -2,6 +2,9 @@
     font-size: large;
     height: 1rem;
 }
+#breadcrumb-container {
+    color: gray;
+}
 #breadcrumb-container > span::after {
     /* path separator */
     content: ' \2BC8';
@@ -17,10 +20,16 @@
 .breadcrumb-item {
     margin-left: 0.2em;
 }
+.breadcrumb-item:hover {
+    color: black;
+}
 .breadcrumb-anchor {
     /* clickable segment is bolder */
     font-weight: bolder;
     text-decoration: none;
+}
+.breadcrumb-anchor.active {
+    text-decoration: underline;
 }
 .breadcrumb-dropdown {
     position: absolute;
