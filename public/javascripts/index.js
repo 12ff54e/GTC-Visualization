@@ -170,6 +170,10 @@ window.addEventListener('load', () => {
                     a.addEventListener('click', () => {
                         postForm('/plot', { gtc_output: constructPath(entry) });
                     });
+                    const span = document.createElement('span');
+                    span.innerText = 'gtc.out';
+                    span.classList.add('output');
+                    li.appendChild(span);
                 }
 
                 if (entry.count.folders > 1) {
@@ -177,6 +181,7 @@ window.addEventListener('load', () => {
                     li.classList.add('folder');
                     li.appendChild(constructFolderContentList(entry));
                     li.addEventListener('click', event => {
+                        event.stopPropagation();
                         event.currentTarget.classList.toggle('folder-expand');
                     });
                 }

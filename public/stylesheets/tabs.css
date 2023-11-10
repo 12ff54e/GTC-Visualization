@@ -34,7 +34,7 @@
 .breadcrumb-dropdown {
     position: absolute;
     top: 2rem;
-    width: 20em;
+    min-width: 20em;
     display: none;
     visibility: hidden;
     background-color: aliceblue;
@@ -65,14 +65,17 @@
     background-color: lightgray;
 }
 
+.breadcrumb-dropdown-item > .output {
+    position: absolute;
+    top: 0;
+    right: 2%;
+}
 .breadcrumb-dropdown-item.folder::before {
     position: absolute;
     left: 2px;
     content: '\2BC8';
 }
 .breadcrumb-dropdown-item.folder.folder-expand::before {
-    position: absolute;
-    left: 2px;
     content: '\2BC6';
 }
 .breadcrumb-dropdown-item.folder > ul {
@@ -80,8 +83,9 @@
     visibility: hidden;
 }
 .breadcrumb-dropdown-item.folder.folder-expand > ul {
-    display: initial;
+    position: relative;
     visibility: initial;
+    display: block;
 }
 
 p {
