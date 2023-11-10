@@ -202,12 +202,8 @@ window.addEventListener('load', () => {
                 constructFolderContentList(seg.parentEntry, currentEntry, true)
             );
             seg.addEventListener('click', event => {
-                const elem = event.currentTarget;
-                const list = elem.querySelector('div');
-                list.style.left = `${elem.offsetLeft}px`;
-
                 clearDropdown();
-                for (const child of elem.children) {
+                for (const child of event.currentTarget.children) {
                     child.classList.add('active');
                 }
             });

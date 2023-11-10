@@ -34,7 +34,8 @@
 }
 .breadcrumb-dropdown {
     position: absolute;
-    top: 2rem;
+    top: 1.5em;
+    left: 0;
     min-width: 20em;
     display: none;
     visibility: hidden;
@@ -53,6 +54,7 @@
 }
 
 .breadcrumb-dropdown-item {
+    position: relative;
     padding-left: 1em;
 }
 .breadcrumb-dropdown-item > a {
