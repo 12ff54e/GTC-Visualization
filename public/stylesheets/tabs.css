@@ -1,3 +1,98 @@
+#breadcrumb-container {
+    font-size: large;
+    height: 1rem;
+}
+#breadcrumb-container {
+    color: gray;
+}
+#breadcrumb-container > span::after {
+    /* path separator */
+    content: ' \2BC8';
+}
+#breadcrumb-container > span + span::after {
+    /* clickable segment (except first one) is bolder */
+    font-weight: bolder;
+}
+#breadcrumb-container > span:last-child::after {
+    /* No path separator after last segment */
+    content: '';
+}
+.breadcrumb-item {
+    position: relative;
+    margin-left: 0.2em;
+}
+.breadcrumb-item:hover {
+    color: black;
+}
+.breadcrumb-anchor {
+    /* clickable segment is bolder */
+    font-weight: bolder;
+    text-decoration: none;
+}
+.breadcrumb-anchor.active {
+    text-decoration: underline;
+}
+.breadcrumb-dropdown {
+    position: absolute;
+    top: 1.5em;
+    left: 0;
+    min-width: 20em;
+    max-height: 20em;
+    overflow-y: scroll;
+    display: none;
+    visibility: hidden;
+    background-color: aliceblue;
+    z-index: 35;
+}
+.breadcrumb-dropdown.active {
+    position: absolute;
+    display: initial;
+    visibility: initial;
+}
+.breadcrumb-dropdown ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+.breadcrumb-dropdown-item {
+    position: relative;
+    padding-left: 1em;
+}
+.breadcrumb-dropdown-item > a {
+    display: inline-block;
+    width: 98%;
+}
+.breadcrumb-dropdown-item.current-item > a {
+    border: outset 2px black;
+}
+.breadcrumb-dropdown-item > a:hover {
+    background-color: lightgray;
+}
+
+.breadcrumb-dropdown-item > .output {
+    position: absolute;
+    top: 0;
+    right: 2%;
+}
+.breadcrumb-dropdown-item.folder::before {
+    position: absolute;
+    left: 2px;
+    content: '\2BC8';
+}
+.breadcrumb-dropdown-item.folder.folder-expand::before {
+    content: '\2BC6';
+}
+.breadcrumb-dropdown-item.folder > ul {
+    display: none;
+    visibility: hidden;
+}
+.breadcrumb-dropdown-item.folder.folder-expand > ul {
+    position: relative;
+    visibility: initial;
+    display: block;
+}
+
 p {
     height: 3rem;
 }
@@ -44,7 +139,7 @@ p {
 
 #panel {
     position: absolute;
-    top: 5rem;
+    top: 6rem;
     left: 16%;
     width: 18%;
     height: calc(100% - 5rem);
@@ -55,7 +150,7 @@ p {
     float: left;
     position: absolute;
     left: 36%;
-    top: 5rem;
+    top: 6rem;
 }
 
 #tabs > div {
@@ -261,7 +356,7 @@ input.eq-1d-y:checked + label {
     flex-wrap: wrap;
     align-items: stretch;
 }
-.summary-figure-button-div > button{
+.summary-figure-button-div > button {
     padding-block: 0;
 }
 

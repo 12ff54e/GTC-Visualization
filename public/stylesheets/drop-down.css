@@ -102,3 +102,16 @@ button[type="submit"] {
     border-radius: 10px;
     font-size: 1.2rem;
 }
+
+#loading {
+    position: absolute;
+    left: 5px;
+    bottom: 5px;
+    z-index: 100;
+    visibility: hidden;
+}
+
+#loading img {
+    width: 75px;
+    height: 75px;
+}

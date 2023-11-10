@@ -12,12 +12,10 @@ import { generateSummary } from './summary-generate.js';
 class StatusBar {
     constructor(root) {
         this.parent = root;
-        this.orig = root.innerText;
         root.status = this;
     }
     toString() {
         return (
-            `${this.orig}<br>` +
             (this.information
                 ? `<font color="green">${this.information}</font><br>`
                 : '') +
@@ -72,7 +70,7 @@ window.GTCGlobal.hist_mode_range = {
     frequency: undefined,
 };
 
-window.addEventListener('load', async function () {
+window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
 
     // register plot type tabs
@@ -108,6 +106,119 @@ window.addEventListener('load', async function () {
     }
 
     addDownloadFunction();
+
+    // initial breadcrumb
+    wrap(async () => {
+        const res = await fetch('/fileTree');
+        await propagateFetchError(res);
+        const fileTree = await res.json();
+        const navigationBar = document.querySelector(
+            '#breadcrumb-container'
+        ).firstElementChild;
+        const [root, ...pathname] = navigationBar.innerText.split('/');
+
+        const constructPath = entry => {
+            return entry
+                ? `${constructPath(entry.parent)}/${entry.dirname}`
+                : '';
+        };
+
+        const pathSegments = pathname.map(seg => {
+            const span = document.createElement('span');
+            span.classList.add('breadcrumb-item');
+            const a = document.createElement('a');
+            a.classList.add('breadcrumb-anchor');
+            a.innerText = seg;
+            span.appendChild(a);
+            return span;
+        });
+        navigationBar.innerText = root;
+        navigationBar.after(...pathSegments);
+
+        // add drop down list
+        let currentEntry = fileTree;
+        const dropdown = document.createElement('div');
+        dropdown.classList.add('breadcrumb-dropdown');
+        const clearDropdown = () => {
+            pathSegments.forEach(s => {
+                s.classList.remove('active');
+                for (const child of s.children) {
+                    child.classList.remove('active');
+                }
+            });
+        };
+        const constructFolderContentList = (parent, child, isTop) => {
+            const ul = document.createElement('ul');
+
+            for (const entry of parent.content) {
+                if (typeof entry === 'string') {
+                    continue;
+                }
+                entry.parent = parent;
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.innerText = entry.dirname;
+                li.appendChild(a);
+
+                li.classList.add('breadcrumb-dropdown-item');
+                if (isTop && child.dirname === entry.dirname) {
+                    li.classList.add('current-item');
+                }
+
+                if (entry.mTimeMs) {
+                    // a gtc output folder
+                    a.addEventListener('click', () => {
+                        postForm('/plot', { gtc_output: constructPath(entry) });
+                    });
+                    const span = document.createElement('span');
+                    span.innerText = 'gtc.out';
+                    span.classList.add('output');
+                    li.appendChild(span);
+                }
+
+                if (entry.count.folders > 1) {
+                    // a folder contains subfolders
+                    li.classList.add('folder');
+                    li.appendChild(constructFolderContentList(entry));
+                    li.addEventListener('click', event => {
+                        event.stopPropagation();
+                        event.currentTarget.classList.toggle('folder-expand');
+                    });
+                }
+                ul.appendChild(li);
+            }
+
+            return ul;
+        };
+
+        pathSegments.forEach(seg => {
+            seg.parentEntry = currentEntry;
+            currentEntry = currentEntry.content.find(
+                f => f.dirname === seg.firstElementChild.innerText
+            );
+
+            seg.appendChild(dropdown.cloneNode());
+            seg.lastElementChild.append(
+                constructFolderContentList(seg.parentEntry, currentEntry, true)
+            );
+            seg.addEventListener('click', event => {
+                clearDropdown();
+                for (const child of event.currentTarget.children) {
+                    child.classList.add('active');
+                }
+            });
+        });
+        // clear dropdown when clicked on other parts on the page
+        document.addEventListener('click', event => {
+            if (
+                !nodeIs(event.target, elem =>
+                    elem.classList.contains('breadcrumb-item')
+                )
+            ) {
+                clearDropdown();
+            }
+        });
+    })();
 });
 
 window.addEventListener('error', () => {
@@ -527,4 +638,30 @@ async function propagateFetchError(res) {
     if (!res.ok) {
         throw await res.text();
     }
+}
+
+function nodeIs(node, predict) {
+    if (node) {
+        return predict(node) || nodeIs(node.parentElement, predict);
+    }
+}
+
+function postForm(url, content) {
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = url;
+
+    for (const key in content) {
+        if (content.hasOwnProperty(key)) {
+            const hiddenField = document.createElement('input');
+            hiddenField.type = 'hidden';
+            hiddenField.name = key;
+            hiddenField.value = content[key];
+
+            form.appendChild(hiddenField);
+        }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
 }

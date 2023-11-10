@@ -1,5 +1,4 @@
 node_modules
 .env
 .vscode
-views/files.html
 server-prod.js

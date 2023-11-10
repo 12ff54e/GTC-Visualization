@@ -12,8 +12,10 @@ html(lang="en")
                 div(class="ctrl")
                     button Expand All
                     button Collapse All
-                ul(id="outer_ul")
-                    include files.html
+                ul(id="outer_ul" class="content")
             div(id="submit_area")
                 button(type="submit") Choose this folder
+
+        div(id='loading')
+            img(src="loading.gif", alt="loading")
         
