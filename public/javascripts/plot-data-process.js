@@ -178,7 +178,6 @@ export function snapshotPoloidal(figures) {
             name: `m = ${i}`,
             showlegend: false,
             hoverinfo: 'none',
-            total_: 0,
             max_: -Infinity,
             max_idx_: 0,
         });
@@ -255,7 +254,9 @@ export async function trackingPlot(figures) {
 }
 
 export function addSimulationRegion(fig) {
-    const [rg0, rg1] = window.GTCGlobal.basicParameters.radial_region;
+    const [rg0, rg1] = GTCGlobal.basicParameters.radial_region;
+    const rgd =
+        GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi;
     const data = fig.data[0].y;
 
     let y_min = Infinity,
@@ -271,31 +272,47 @@ export function addSimulationRegion(fig) {
     if (y_min == y_max) {
         y_max = y_min + 1;
     }
+
+    const extendRegion = (x0, x1, s) => {
+        return [x0 - s * (x1 - x0), x1 + s * (x1 - x0)];
+    };
+
     const sep_props = {
-        y: [y_min - 0.2 * (y_max - y_min), y_max + 0.2 * (y_max - y_min)],
+        y: extendRegion(y_min, y_max, 0.2),
         mode: 'lines',
         line: {
-            color: 'rgb(143, 177, 50)',
+            color: 'rgb(225, 156, 36)',
             width: 3,
         },
+        showlegend: true,
     };
+    fig.data.forEach(d => (d.showlegend = false));
     fig.data.push(
+        // simulation region border
         {
             x: [rg0, rg0],
             ...sep_props,
+            showlegend: false,
         },
         {
+            name: 'Simulation Region',
             x: [rg1, rg1],
             fill: 'tonextx',
             ...sep_props,
+        },
+        // diagnostic flux
+        {
+            name: 'Diagnostic Flux',
+            x: [rgd, rgd],
+            ...sep_props,
+            line: {
+                color: 'rgb(143, 177, 49)',
+                width: 2,
+            },
         }
     );
 
-    fig.layout.yaxis.range = [
-        y_min - 0.1 * (y_max - y_min),
-        y_max + 0.1 * (y_max - y_min),
-    ];
-    fig.layout.showlegend = false;
+    fig.layout.yaxis.range = extendRegion(y_min, y_max, 0.1);
 }
 
 /**
