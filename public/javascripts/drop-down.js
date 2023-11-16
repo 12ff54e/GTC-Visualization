@@ -21,8 +21,12 @@ window.addEventListener(
                     } else {
                         const expandEntry = li => {
                             const btn = li.querySelector('.collapsible');
-                            if (btn?.innerText == '+') {
-                                for (const item of toggleList(btn).children) {
+                            if (btn) {
+                                if (btn.innerText == '+') {
+                                    toggleList(btn);
+                                }
+                                for (const item of getButtonContent(btn)
+                                    .children) {
                                     expandEntry(item);
                                 }
                             }
@@ -68,12 +72,16 @@ function setHeight(elem, height) {
     }
 }
 
-function toggleList(btn) {
+function getButtonContent(btn) {
     const dirEntry = btn.parentElement.parentElement;
     if (!dirEntry.nextElementSibling?.classList.contains('content')) {
         dirEntry.after(generateContent(dirEntry));
     }
-    const contentUL = dirEntry.nextElementSibling;
+    return dirEntry.nextElementSibling;
+}
+
+function toggleList(btn) {
+    const contentUL = getButtonContent(btn);
     contentUL.classList.toggle('active_list');
     if (contentUL.classList.contains('active_list')) {
         setHeight(contentUL, 1.3 * calcListHeight(contentUL));
@@ -86,7 +94,6 @@ function toggleList(btn) {
         contentUL.style.height = '';
         btn.innerText = '+';
     }
-    return contentUL;
 }
 
 function generateContent(dirEntry) {
