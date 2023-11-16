@@ -180,6 +180,7 @@ export function snapshotPoloidal(figures) {
             hoverinfo: 'none',
             total_: 0,
             max_: -Infinity,
+            max_idx_: 0,
         });
     }
 
@@ -198,8 +199,10 @@ export function snapshotPoloidal(figures) {
                     let p = trace.y.pop();
                     p = Math.sqrt(p * p + amp * amp);
                     trace.y.push(p);
-                    trace.total_ += p;
-                    trace.max_ = p > trace.max_ ? p : trace.max_;
+                    if (p > trace.max_) {
+                        trace.max_ = p;
+                        trace.max_idx_ = i;
+                    }
                 }
             });
     }
@@ -208,7 +211,7 @@ export function snapshotPoloidal(figures) {
 
     spectrumFigureData
         .sort((u, v) => {
-            return v.total_ - u.total_;
+            return v.max_ - u.max_;
         })
         .some((d, i) => {
             d.showlegend = true;
