@@ -121,7 +121,9 @@ app.get(
 );
 
 app.use('/plot', (req, res, next) => {
-    req.body.gtcOutput = output[encodeURI(req.query.dir)];
+    req.body.gtcOutput = output[req.query.dir];
+    console.log(req.query.dir);
+    console.log(Object.keys(output));
     if (req.body.gtcOutput) {
         next();
     } else {
