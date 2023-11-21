@@ -123,7 +123,7 @@ window.addEventListener('load', () => {
                 : '';
         };
 
-        const pathSegments = pathname.map(seg => {
+        const pathSegments = [root, ...pathname].map(seg => {
             const span = document.createElement('span');
             span.classList.add('breadcrumb-item');
             const a = document.createElement('a');
@@ -132,11 +132,11 @@ window.addEventListener('load', () => {
             span.appendChild(a);
             return span;
         });
-        navigationBar.innerText = root;
+        // navigationBar.innerText = root;
         navigationBar.after(...pathSegments);
+        navigationBar.remove();
 
         // add drop down list
-        let currentEntry = fileTree;
         const dropdown = document.createElement('div');
         dropdown.classList.add('breadcrumb-dropdown');
         const clearDropdown = () => {
@@ -147,8 +147,19 @@ window.addEventListener('load', () => {
                 }
             });
         };
-        const constructFolderContentList = (parent, child, isTop) => {
+        const constructFolderContentList = (parent, child) => {
             const ul = document.createElement('ul');
+
+            if (parent === undefined) {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '/';
+                a.innerText = '(Go Back to File Tree View)';
+                li.classList.add('breadcrumb-dropdown-item');
+                li.appendChild(a);
+                ul.appendChild(li);
+                return ul;
+            }
 
             for (const entry of parent.content) {
                 if (typeof entry === 'string') {
@@ -161,7 +172,7 @@ window.addEventListener('load', () => {
                 li.appendChild(a);
 
                 li.classList.add('breadcrumb-dropdown-item');
-                if (isTop && child.dirname === entry.dirname) {
+                if (child?.dirname === entry.dirname) {
                     li.classList.add('current-item');
                 }
 
@@ -191,15 +202,18 @@ window.addEventListener('load', () => {
             return ul;
         };
 
+        let currentEntry = undefined;
         pathSegments.forEach(seg => {
-            seg.parentEntry = currentEntry;
-            currentEntry = currentEntry.content.find(
-                f => f.dirname === seg.firstElementChild.innerText
-            );
+            const parentEntry = currentEntry;
+            currentEntry = currentEntry
+                ? currentEntry.content.find(
+                      f => f.dirname === seg.firstElementChild.innerText
+                  )
+                : fileTree;
 
             seg.appendChild(dropdown.cloneNode());
             seg.lastElementChild.append(
-                constructFolderContentList(seg.parentEntry, currentEntry, true)
+                constructFolderContentList(parentEntry, currentEntry)
             );
             seg.addEventListener('click', event => {
                 clearDropdown();
