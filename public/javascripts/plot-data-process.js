@@ -136,6 +136,22 @@ export async function snapshotSpectrum(figures) {
 export function snapshotPoloidal(figures) {
     const { polNum, radNum } = figures.pop();
 
+    // add carpet indices
+
+    const theta_mesh = [];
+    const psi_mesh = [];
+    for (let r = 0; r < radNum; ++r) {
+        for (let p = 0; p <= polNum; ++p) {
+            theta_mesh.push(p);
+            psi_mesh.push(r);
+        }
+    }
+
+    figures[0].data[0].a = theta_mesh;
+    figures[0].data[0].b = psi_mesh;
+    figures[0].data[1].a = theta_mesh;
+    figures[0].data[1].b = psi_mesh;
+
     // draw diagnostic flux indicator
 
     const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';

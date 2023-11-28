@@ -122,8 +122,6 @@ app.get(
 
 app.use('/plot', (req, res, next) => {
     req.body.gtcOutput = output[req.query.dir];
-    console.log(req.query.dir);
-    console.log(Object.keys(output));
     if (req.body.gtcOutput) {
         next();
     } else {
@@ -185,10 +183,13 @@ app.get('/plot/data/basicParameters', (req, res) => {
 app.get('/plot/data/:type-:id', (req, res) => {
     let plotType = req.params.type;
     let plotId = req.params.id;
-    console.log(plotId);
+    const then = performance.now();
 
     try {
         res.json(req.body.gtcOutput.getPlotData(plotType, plotId));
+        console.log(
+            `${plotId} using ${(performance.now() - then).toFixed(2)}ms.`
+        );
     } catch (e) {
         console.log(e);
         res.status(404).end();

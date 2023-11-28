@@ -1,9 +1,13 @@
 const PlotlyData = require('./PlotlyData.js');
 const PlotType = require('./PlotType.js');
-const util = require('./util.js');
 
-const particlePlotTypes =
-    ['density', 'flow', 'energy', 'PDF_energy', 'PDF_pitch'];
+const particlePlotTypes = [
+    'density',
+    'flow',
+    'energy',
+    'PDF_energy',
+    'PDF_pitch',
+];
 const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
 
 /**
@@ -11,26 +15,28 @@ const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
  */
 class Snapshot extends PlotType {
     /**
-     * @param {string} filePath 
+     * @param {string} filePath
      * @param {Object} basicParams GTCOutput.parameters
      */
     constructor(filePath, basicParams) {
-        super(filePath, basicParams)
+        super(filePath, basicParams);
         this.isTimeSeriesData = false;
 
         this.plotTypes = [
-            ...this.existingParticles.map(t => particlePlotTypes.map(p => t + '-' + p)),
-            ...PlotType.fieldID.map(f => fieldPlotTypes.map(p => f + '-' + p))
+            ...this.existingParticles.map(t =>
+                particlePlotTypes.map(p => t + '-' + p)
+            ),
+            ...PlotType.fieldID.map(f => fieldPlotTypes.map(p => f + '-' + p)),
         ];
 
         // particle data, including profile of torques and pdf of energy and pitch angle
         this.particleData = new Object();
 
-        // field data, including poloidal plane and flux 
+        // field data, including poloidal plane and flux
         this.fieldData = new Object();
     }
 
-    * parseLine() {
+    *parseLine() {
         this.speciesNumber = parseInt(yield);
         this.fieldNumber = parseInt(yield);
         this.velocityGridNumber = parseInt(yield);
@@ -43,8 +49,9 @@ class Snapshot extends PlotType {
         for (let particle of this.existingParticles) {
             this.particleData[particle] = new Object();
             for (let type = 0; type < 3; type++) {
-                const pt = this.particleData[particle][particlePlotTypes[type]] =
-                    Array.from({ length: 2 }, _ => []);
+                const pt = (this.particleData[particle][
+                    particlePlotTypes[type]
+                ] = Array.from({ length: 2 }, _ => []));
                 for (let i = 0; i < pt.length; i++) {
                     for (let r = 0; r < this.radialGridPtNumber; r++) {
                         pt[i].push(parseFloat(yield));
@@ -55,8 +62,9 @@ class Snapshot extends PlotType {
 
         for (let particle of this.existingParticles) {
             for (let type = 3; type < 5; type++) {
-                const pt = this.particleData[particle][particlePlotTypes[type]] =
-                    Array.from({ length: 2 }, _ => []);
+                const pt = (this.particleData[particle][
+                    particlePlotTypes[type]
+                ] = Array.from({ length: 2 }, _ => []));
                 for (let i = 0; i < pt.length; i++) {
                     for (let v = 0; v < this.velocityGridNumber; v++) {
                         pt[i].push(parseFloat(yield));
@@ -67,19 +75,19 @@ class Snapshot extends PlotType {
 
         this.fieldData['poloidalPlane'] = new Object();
         for (let field of PlotType.fieldID.concat(['x', 'y'])) {
-            let tmp = this.fieldData['poloidalPlane'][field] =
-                Array.from({ length: this.radialGridPtNumber }, _ => []);
-            for (let r = 0; r < this.radialGridPtNumber; r++) {
-                for (let p = 0; p < this.poloidalGridPtNumber + 1; p++) {
-                    tmp[r].push(parseFloat(yield));
-                }
+            let tmp = (this.fieldData['poloidalPlane'][field] = []);
+            for (let r = 0; r < this.radialGridPtNumber; ++r) {
+                for (let p = 0; p <= this.poloidalGridPtNumber; ++p)
+                    tmp.push(parseFloat(yield));
             }
         }
 
         this.fieldData['fluxData'] = new Object();
         for (let field of PlotType.fieldID) {
-            let tmp = this.fieldData['fluxData'][field] =
-                Array.from({ length: this.toroidalGridPtNumber }, _ => []);
+            let tmp = (this.fieldData['fluxData'][field] = Array.from(
+                { length: this.toroidalGridPtNumber },
+                _ => []
+            ));
             for (let t = 0; t < this.toroidalGridPtNumber; t++) {
                 for (let p = 0; p < this.poloidalGridPtNumber + 1; p++) {
                     tmp[t].push(parseFloat(yield));
@@ -90,9 +98,9 @@ class Snapshot extends PlotType {
 
     /**
      * Generate plot data as per specifications of Plotly library.
-     * 
+     *
      * @param {string} id
-     * 
+     *
      * @returns {Array<PlotlyData>}
      */
     plotData(id) {
@@ -111,9 +119,9 @@ class Snapshot extends PlotType {
                         z: this.fieldData['fluxData'][cat],
                         type: 'heatmap',
                         colorbar: {
-                            tickformat: '.4g'
+                            tickformat: '.4g',
                         },
-                        transpose: true
+                        transpose: true,
                     });
                     fig.axesLabel = { x: 'nzeta', y: 'mtheta' };
                     fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on flux surface}$`;
@@ -125,32 +133,26 @@ class Snapshot extends PlotType {
                     figs.forEach((fig, i) => {
                         fig.data.push({
                             type: 'scatter',
-                            mode: 'lines'
-                        })
-                        fig.plotLabel = `$\\text{${(i == 0 ? 'poloidal' : 'parallel')} spectrum}$`;
-                    })
+                            mode: 'lines',
+                        });
+                        fig.plotLabel = `$\\text{${
+                            i == 0 ? 'poloidal' : 'parallel'
+                        } spectrum}$`;
+                    });
                     figs.push({ extraData: this.fieldData['fluxData'][cat] });
                     figureContainer = figs;
                     break;
                 case 2: // field strength on poloidal plane
-                    let thetaMesh = util.flat(Array.from({ length: this.radialGridPtNumber },
-                        _ => util.range(this.poloidalGridPtNumber + 1)));
-                    let psiMesh = util.flat(util.range(this.radialGridPtNumber)
-                        .map(i => Array(this.poloidalGridPtNumber + 1).fill(i)));
                     let polData = this.fieldData['poloidalPlane'];
                     // add carpet
                     const carpet = {
-                        a: thetaMesh,
-                        b: psiMesh,
-                        x: util.flat(polData['x']),
-                        y: util.flat(polData['y']),
+                        x: polData['x'],
+                        y: polData['y'],
                         type: 'carpet',
                     };
                     // add contour
                     const field_contour = {
-                        a: thetaMesh,
-                        b: psiMesh,
-                        z: util.flat(polData[cat]),
+                        z: polData[cat],
                         type: 'contourcarpet',
                         contours: {
                             showlines: false,
@@ -172,46 +174,88 @@ class Snapshot extends PlotType {
 
                     let fig2 = new PlotlyData();
                     fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
-                    fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`
+                    fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`;
                     figureContainer.push(fig2);
                     figureContainer.push({
                         polNum: this.poloidalGridPtNumber,
-                        radNum: this.radialGridPtNumber
-                    })
+                        radNum: this.radialGridPtNumber,
+                    });
                     break;
-                case 3: case 4: // profile of field and rms
+                case 3:
+                case 4: // profile of field and rms
                     let field = this.fieldData['poloidalPlane'][cat];
                     // point value
                     let fig0 = new PlotlyData();
+                    let pv = [];
+                    if (type === 'psi') {
+                        for (let r = 0; r < this.radialGridPtNumber; ++r) {
+                            pv.push(field[r * (this.poloidalGridPtNumber + 1)]);
+                        }
+                    } else {
+                        const start =
+                            Math.floor((this.radialGridPtNumber - 1) / 2) *
+                            (this.poloidalGridPtNumber + 1);
+                        pv = field.slice(
+                            start,
+                            start + this.poloidalGridPtNumber + 1
+                        );
+                    }
                     fig0.data.push({
-                        y: type === 'psi' ?
-                            field.map(pol => pol[0]) :
-                            field[(this.radialGridPtNumber - 1) / 2],
+                        y: pv,
                         type: 'scatter',
-                        mode: 'lines'
+                        mode: 'lines',
                     });
                     fig0.addX(1, 0);
-                    fig0.axesLabel = { x: `$\\text{${type === 'psi' ? 'mpsi' : 'mtheta'}}$`, y: '' };
-                    fig0.plotLabel = '$\\text{Point value}$'
+                    fig0.axesLabel = {
+                        x: `$\\text{${type === 'psi' ? 'mpsi' : 'mtheta'}}$`,
+                        y: '',
+                    };
+                    fig0.plotLabel = '$\\text{Point value}$';
                     figureContainer.push(fig0);
+
                     // RMS
                     let fig1 = new PlotlyData();
+
+                    const rms =
+                        type === 'psi'
+                            ? field
+                                  .reduce((acc, curr, idx) => {
+                                      if (
+                                          idx %
+                                              (this.poloidalGridPtNumber + 1) ==
+                                          0
+                                      ) {
+                                          acc.push(curr * curr);
+                                      } else {
+                                          acc[acc.length - 1] += curr * curr;
+                                      }
+                                      return acc;
+                                  }, [])
+                                  .map(v =>
+                                      Math.sqrt(v / this.poloidalGridPtNumber)
+                                  )
+                            : field
+                                  .reduce((acc, curr, idx) => {
+                                      acc[
+                                          idx % (this.poloidalGridPtNumber + 1)
+                                      ] += curr * curr;
+                                      return acc;
+                                  }, Array(this.poloidalGridPtNumber + 1).fill(0))
+                                  .map(v =>
+                                      Math.sqrt(
+                                          v / (this.radialGridPtNumber - 1)
+                                      )
+                                  );
                     fig1.data.push({
-                        y: type === 'psi' ?
-                            field.map(pol => Math.sqrt(pol.reduce(
-                                (acc, curr) => acc + curr * curr, 0) / this.poloidalGridPtNumber)) :
-                            field
-                                .reduce((acc, curr) => {
-                                    acc.forEach((v, i) => { acc[i] = v + curr[i] * curr[i] },
-                                        Array(this.poloidalGridPtNumber).fill(0));
-                                    return acc;
-                                }, Array(this.poloidalGridPtNumber).fill(0))
-                                .map(v => Math.sqrt(v / (this.radialGridPtNumber - 1))),
+                        y: rms,
                         type: 'scatter',
-                        mode: 'lines'
+                        mode: 'lines',
                     });
                     fig1.addX(1, 0);
-                    fig1.axesLabel = { x: `$\\text{${type === 'psi' ? 'mpsi' : 'mtheta'}}$`, y: '' };
+                    fig1.axesLabel = {
+                        x: `$\\text{${type === 'psi' ? 'mpsi' : 'mtheta'}}$`,
+                        y: '',
+                    };
                     fig1.plotLabel = '$\\text{RMS}$';
                     figureContainer.push(fig1);
                     break;
@@ -223,11 +267,15 @@ class Snapshot extends PlotType {
                 fig.data.push({
                     y: this.particleData[cat][type][i],
                     type: 'scatter',
-                    mode: 'lines'
+                    mode: 'lines',
                 });
                 fig.addX(1, 0);
-                fig.axesLabel = { x: type.startsWith('PDF') ? '' : '$\\text{mpsi}$', y: '' };
-                fig.plotLabel = `$${(i == 0 ? '\\text{full }f' : '\\delta f')}` +
+                fig.axesLabel = {
+                    x: type.startsWith('PDF') ? '' : '$\\text{mpsi}$',
+                    y: '',
+                };
+                fig.plotLabel =
+                    `$${i == 0 ? '\\text{full }f' : '\\delta f'}` +
                     `\\text{ ${type.replace('_', ' of ')}}$`;
             });
             figureContainer = figs;
