@@ -470,7 +470,7 @@ async function openPanel() {
 
 function cleanPlot() {
     for (let fig of document.getElementById('figure-wrapper').children) {
-        fig.innerHTML = '';
+        fig.classList.remove('active');
     }
 }
 
@@ -542,11 +542,17 @@ async function getDataThenPlot() {
     }
 
     await Promise.all(
-        figures.map(({ data, layout }, idx) =>
-            Plotly.newPlot(`figure-${idx + 1}`, data, layout, {
+        figures.map(({ data, layout }, idx) => {
+            const fig_div = document.querySelector(`#figure-${idx + 1}`);
+            fig_div.classList.add('active');
+            // restore height
+            if (layout.height === undefined) {
+                layout.height = 450;
+            }
+            return Plotly.react(fig_div, data, layout, {
                 editable: true,
-            })
-        )
+            });
+        })
     );
 
     if (this.id.startsWith('History') && this.id.includes('-mode')) {

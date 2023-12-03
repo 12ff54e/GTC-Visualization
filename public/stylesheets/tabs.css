@@ -154,6 +154,16 @@ p {
     top: 6rem;
 }
 
+#figure-wrapper > div {
+    overflow-y: hidden;
+    visibility: hidden;
+    height: 0;
+}
+#figure-wrapper > div.active {
+    visibility: initial;
+    height: auto;
+}
+
 #tabs > div {
     padding: 2px 0;
 }
