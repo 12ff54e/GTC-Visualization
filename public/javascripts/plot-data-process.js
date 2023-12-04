@@ -249,6 +249,184 @@ export function snapshotPoloidal(figures) {
             width: 3,
         },
     });
+
+    if (1) {
+        drawPoloidalData({
+            radNum,
+            polNum,
+            x: figures[0].data[0].x,
+            y: figures[0].data[0].y,
+            z: figures[0].data[1].z,
+        });
+        figures[0] = { layout: {} };
+    }
+}
+
+async function drawPoloidalData(data) {
+    // create canvas
+    let canvas;
+    if (!(canvas = document.querySelector('#pol-canvas'))) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'pol-canvas';
+        canvas.width = canvas.height = 700;
+        document.querySelector('#figure-1').append(canvas);
+    }
+
+    // webgl2 context
+    const gl = canvas.getContext('webgl2');
+    if (!gl) {
+        throw 'Your browser do not support webgl2!';
+    }
+
+    const { radNum, polNum, x, y, z } = data;
+    // find bounding box
+    const [x_min, x_max] = min_max(x.slice((radNum - 1) * (polNum + 1)));
+    const [y_min, y_max] = min_max(y.slice((radNum - 1) * (polNum + 1)));
+    const z_range = min_max(z);
+
+    const bounding_box = {
+        center: [0.5 * (x_min + x_max), 0.5 * (y_min + y_max)],
+        // add padding through slightly stretch the bounding box dimension
+        dim: [1.05 * (x_max - x_min), 1.05 * (y_max - y_min)],
+        z_range,
+    };
+
+    // create shader program
+    const shader_program = buildShaderProgram(gl, [
+        {
+            type: gl.VERTEX_SHADER,
+            code: await (await fetch('/shader/pol.vert')).text(),
+        },
+        {
+            type: gl.FRAGMENT_SHADER,
+            code: await (await fetch('/shader/pol.frag')).text(),
+        },
+    ]);
+
+    // set uniforms
+    gl.useProgram(shader_program);
+    for (const [key, val] of Object.entries(bounding_box)) {
+        gl.uniform2f(gl.getUniformLocation(shader_program, key), ...val);
+    }
+    gl.uniform2f(
+        gl.getUniformLocation(shader_program, 'resolution'),
+        canvas.width,
+        canvas.height
+    );
+    // bind texture sampler
+    gl.uniform1i(gl.getUniformLocation(shader_program, 'color_map'), 0);
+
+    // create buffers, load data in VRAM
+
+    const grid_num = radNum * (polNum + 1);
+    const grid_coords = new Float32Array(grid_num * 3);
+    for (let i = 0; i < grid_num; ++i) {
+        grid_coords[i * 3] = x[i];
+        grid_coords[i * 3 + 1] = y[i];
+        grid_coords[i * 3 + 2] = z[i];
+    }
+    const element_num = 2 * (polNum + 1) * (radNum - 1);
+    const triangle_stride_vertex_indices = new Uint32Array(element_num);
+    let vertex_idx = 0;
+    for (let r = 0; r < radNum - 1; ++r) {
+        for (let p = 0; p <= polNum; ++p) {
+            triangle_stride_vertex_indices[vertex_idx++] = r * (polNum + 1) + p;
+            triangle_stride_vertex_indices[vertex_idx++] =
+                (r + 1) * (polNum + 1) + p;
+        }
+    }
+
+    const VBO = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, VBO);
+    gl.bufferData(gl.ARRAY_BUFFER, grid_coords, gl.STREAM_DRAW);
+
+    const EBO = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO);
+    gl.bufferData(
+        gl.ELEMENT_ARRAY_BUFFER,
+        triangle_stride_vertex_indices,
+        gl.STREAM_DRAW
+    );
+
+    // set vertex attribute
+
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, 0, 0, 0);
+
+    // create color map texture
+
+    const color_map = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, color_map);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    // ColorData["ThermometerColors"] from Mathematica
+    const color_map_data = new Uint8Array([
+        41, 30, 202, 87, 113, 234, 151, 191, 241, 203, 226, 225, 229, 217, 188,
+        224, 168, 137, 191, 91, 86, 136, 21, 42,
+    ]);
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGB,
+        color_map_data.length / 3,
+        1,
+        0,
+        gl.RGB,
+        gl.UNSIGNED_BYTE,
+        color_map_data
+    );
+
+    // specify color map texture
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, color_map);
+    // Clear canvas with white background color
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    // draw call
+    gl.drawElements(gl.TRIANGLE_STRIP, element_num, gl.UNSIGNED_INT, 0);
+}
+
+/**
+ *
+ * @param {WebGL2RenderingContext} gl
+ */
+function buildShaderProgram(gl, shader_info) {
+    const program = gl.createProgram();
+
+    function compileShader(type, code) {
+        const shader = gl.createShader(type);
+
+        gl.shaderSource(shader, code);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            console.log(
+                `Error compiling ${
+                    type === gl.VERTEX_SHADER ? 'vertex' : 'fragment'
+                } shader:`
+            );
+            console.log(gl.getShaderInfoLog(shader));
+        }
+        return shader;
+    }
+
+    shader_info.forEach(({ type, code }) => {
+        const shader = compileShader(type, code);
+
+        if (shader) {
+            gl.attachShader(program, shader);
+        }
+    });
+
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.log('Error linking shader program:');
+        console.log(gl.getProgramInfoLog(program));
+    }
+
+    return program;
 }
 
 export async function trackingPlot(figures) {
@@ -459,4 +637,11 @@ function unInterleave(cs) {
         }
         return arr;
     }, []);
+}
+
+function min_max(arr) {
+    return arr.reduce(
+        ([min, max], curr) => [Math.min(min, curr), Math.max(max, curr)],
+        [Infinity, -Infinity]
+    );
 }

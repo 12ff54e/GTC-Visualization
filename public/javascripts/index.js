@@ -549,9 +549,11 @@ async function getDataThenPlot() {
             if (layout.height === undefined) {
                 layout.height = 450;
             }
-            return Plotly.react(fig_div, data, layout, {
-                editable: true,
-            });
+            return data
+                ? Plotly.react(fig_div, data, layout, {
+                      editable: true,
+                  })
+                : Promise.resolve();
         })
     );
 
