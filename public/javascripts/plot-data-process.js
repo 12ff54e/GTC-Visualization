@@ -133,7 +133,7 @@ export async function snapshotSpectrum(figures) {
     );
 }
 
-export function snapshotPoloidal(figures) {
+export async function snapshotPoloidal(figures) {
     const { polNum, radNum } = figures.pop();
 
     // add carpet indices
@@ -251,7 +251,7 @@ export function snapshotPoloidal(figures) {
     });
 
     if (1) {
-        drawPoloidalData({
+        await drawPoloidalData({
             radNum,
             polNum,
             x: figures[0].data[0].x,
@@ -269,7 +269,7 @@ async function drawPoloidalData(data) {
         canvas = document.createElement('canvas');
         canvas.id = 'pol-canvas';
         canvas.width = canvas.height = 700;
-        document.querySelector('#figure-1').append(canvas);
+        document.querySelector('#figure-1').replaceChildren(canvas);
     }
 
     // webgl2 context

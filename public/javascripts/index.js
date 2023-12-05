@@ -469,8 +469,12 @@ async function openPanel() {
 }
 
 function cleanPlot() {
-    for (let fig of document.getElementById('figure-wrapper').children) {
-        fig.classList.remove('active');
+    for (let div of document.getElementById('figure-wrapper').children) {
+        div.classList.remove('active');
+        if (div.firstElementChild?.tagName === 'CANVAS') {
+            div.className = ''; // ensures subsequent Plotly.react works properly
+            div.removeChild(div.firstElementChild);
+        }
     }
 }
 
@@ -531,7 +535,7 @@ async function getDataThenPlot() {
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-poloidal')
     ) {
-        snapshotPoloidal(figures);
+        await snapshotPoloidal(figures);
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
