@@ -272,7 +272,9 @@ export async function trackingPlot(figures) {
 export function addSimulationRegion(fig) {
     const [rg0, rg1] = GTCGlobal.basicParameters.radial_region;
     const rgd =
-        GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi;
+        rg0 +
+        (GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi) *
+            (rg1 - rg0);
     const data = fig.data[0].y;
 
     let y_min = Infinity,
