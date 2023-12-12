@@ -184,6 +184,17 @@ p {
     border-radius: 10px;
 }
 
+input:disabled + .tab-l0-label {
+    /* background-color: gray; */
+    background-image: repeating-linear-gradient(
+        45deg,
+        gray,
+        gray 15px,
+        lightgray 15px,
+        lightgray 30px
+    );
+}
+
 .tab-l0-switch {
     display: none;
 }

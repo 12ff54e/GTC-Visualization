@@ -25,7 +25,7 @@ html(lang="en")
         div(id="tabs")
             each panel in types
                 div
-                    input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
+                    input(id=panel, type="radio" name="plot-type" class="tab-l0-switch" disabled)
                     label(for=panel, class="tab-l0-label")= panel
                     if panel === 'Snapshot'
                         div(id="files" class='dropdown')

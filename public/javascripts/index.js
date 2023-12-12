@@ -95,6 +95,7 @@ window.addEventListener('load', () => {
                 })
             );
         }
+        swc.disabled = false;
     }
 
     // snapshot file name buttons
