@@ -164,6 +164,12 @@ p {
     height: auto;
 }
 
+#pol-canvas-overlay {
+    position: absolute;
+    left: 0;
+    background-color: transparent;
+}
+
 #tabs > div {
     padding: 2px 0;
 }

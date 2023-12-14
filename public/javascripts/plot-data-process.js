@@ -264,19 +264,30 @@ export async function snapshotPoloidal(figures) {
 
 async function drawPoloidalData(data) {
     // create canvas
-    let canvas;
-    if (!(canvas = document.querySelector('#pol-canvas'))) {
-        canvas = document.createElement('canvas');
-        canvas.id = 'pol-canvas';
+
+    const create_canvas = id => {
+        const canvas = document.createElement('canvas');
+        canvas.id = id;
         canvas.width = canvas.height = 700;
-        document.querySelector('#figure-1').replaceChildren(canvas);
-    }
+        return canvas;
+    };
+    document.querySelector('canvas#pol-canvas');
+    const figure_canvas = create_canvas('pol-canvas');
+    const overlay_canvas = create_canvas('pol-canvas-overlay');
+
+    document
+        .querySelector('#figure-1')
+        .replaceChildren(figure_canvas, overlay_canvas);
 
     // webgl2 context
-    const gl = canvas.getContext('webgl2');
+    const gl = figure_canvas.getContext('webgl2');
     if (!gl) {
         throw 'Your browser do not support webgl2!';
     }
+
+    // 2d context for frame an ticks
+    const ctx = overlay_canvas.getContext('2d');
+    ctx.font = '24px serif';
 
     const { radNum, polNum, x, y, z } = data;
     // find bounding box
@@ -284,10 +295,30 @@ async function drawPoloidalData(data) {
     const [y_min, y_max] = min_max(y.slice((radNum - 1) * (polNum + 1)));
     const z_range = min_max(z);
 
+    // create color map texture
+
+    // ColorData["ThermometerColors"] from Mathematica
+    const color_map_data = new Uint8Array([
+        41, 30, 202, 87, 113, 234, 151, 191, 241, 203, 226, 225, 229, 217, 188,
+        224, 168, 137, 191, 91, 86, 136, 21, 42,
+    ]);
+    const legend_width = 0.1 * (x_max - x_min);
+    const legend_left_padding = 0.1 * (x_max - x_min);
+    const color_map = createColorMap(
+        gl,
+        color_map_data,
+        [x_max + legend_left_padding, y_min + 0.1 * (y_max - y_min)],
+        [legend_width, 0.8 * (y_max - y_min)],
+        z_range
+    );
+
+    // bounding box should be aware of color map
+
+    const x_max_total = x_max + legend_left_padding + legend_width;
     const bounding_box = {
-        center: [0.5 * (x_min + x_max), 0.5 * (y_min + y_max)],
+        center: [0.5 * (x_min + x_max_total), 0.5 * (y_min + y_max)],
         // add padding through slightly stretch the bounding box dimension
-        dim: [1.05 * (x_max - x_min), 1.05 * (y_max - y_min)],
+        dim: [1.05 * (x_max_total - x_min), 1.05 * (y_max - y_min)],
         z_range,
     };
 
@@ -310,16 +341,15 @@ async function drawPoloidalData(data) {
     }
     gl.uniform2f(
         gl.getUniformLocation(shader_program, 'resolution'),
-        canvas.width,
-        canvas.height
+        figure_canvas.width,
+        figure_canvas.height
     );
     // bind texture sampler
     gl.uniform1i(gl.getUniformLocation(shader_program, 'color_map'), 0);
 
-    // create buffers, load data in VRAM
-
     const grid_num = radNum * (polNum + 1);
-    const grid_coords = new Float32Array(grid_num * 3);
+    const color_map_vertex_num = 2 * (color_map_data.length / 3 - 1);
+    const grid_coords = new Float32Array((grid_num + color_map_vertex_num) * 3);
     for (let i = 0; i < grid_num; ++i) {
         grid_coords[i * 3] = x[i];
         grid_coords[i * 3 + 1] = y[i];
@@ -327,14 +357,20 @@ async function drawPoloidalData(data) {
     }
     const element_num = 2 * (polNum + 1) * (radNum - 1);
     const triangle_stride_vertex_indices = new Uint32Array(element_num);
-    let vertex_idx = 0;
     for (let r = 0; r < radNum - 1; ++r) {
         for (let p = 0; p <= polNum; ++p) {
-            triangle_stride_vertex_indices[vertex_idx++] = r * (polNum + 1) + p;
-            triangle_stride_vertex_indices[vertex_idx++] =
-                (r + 1) * (polNum + 1) + p;
+            const idx = r * (polNum + 1) + p;
+            triangle_stride_vertex_indices[2 * idx] = idx;
+            triangle_stride_vertex_indices[2 * idx + 1] = idx + (polNum + 1);
         }
     }
+
+    // create vertex array object for contour
+
+    const VAO = gl.createVertexArray();
+    gl.bindVertexArray(VAO);
+
+    // create buffers, initialize their data store
 
     const VBO = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, VBO);
@@ -353,38 +389,17 @@ async function drawPoloidalData(data) {
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, 0, 0, 0);
 
-    // create color map texture
-
-    const color_map = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, color_map);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-    // ColorData["ThermometerColors"] from Mathematica
-    const color_map_data = new Uint8Array([
-        41, 30, 202, 87, 113, 234, 151, 191, 241, 203, 226, 225, 229, 217, 188,
-        224, 168, 137, 191, 91, 86, 136, 21, 42,
-    ]);
-    gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGB,
-        color_map_data.length / 3,
-        1,
-        0,
-        gl.RGB,
-        gl.UNSIGNED_BYTE,
-        color_map_data
-    );
-
     // specify color map texture
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, color_map);
+    color_map.bindToTextureUnit(gl.TEXTURE0);
+
     // Clear canvas with white background color
-    gl.clearColor(1, 1, 1, 1);
+    gl.clearColor(1, 1, 1, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
+
     // draw call
+    gl.bindVertexArray(VAO);
     gl.drawElements(gl.TRIANGLE_STRIP, element_num, gl.UNSIGNED_INT, 0);
+    color_map.draw();
 }
 
 /**
@@ -427,6 +442,84 @@ function buildShaderProgram(gl, shader_info) {
     }
 
     return program;
+}
+
+/**
+ *
+ * @param {WebGL2RenderingContext} gl
+ * @param {Uint8Array} data
+ * @param {[number, number]} corner lower left corner
+ * @param {[number, number]} dim
+ * @param {[number, number]} z_range
+ */
+function createColorMap(gl, data, corner, dim, z_range) {
+    const color_map_texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, color_map_texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.texImage2D(...packTexArgs(gl, data));
+
+    // As far as I'm using another draw call for color map, creating separate vbo/ebo
+    //  for it should not be a performance issue.
+
+    const VAO = gl.createVertexArray();
+    gl.bindVertexArray(VAO);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+
+    const color_num = data.length / 3;
+
+    // geometry thingy
+
+    const [x0, y0] = corner;
+    const x1 = x0 + dim[0];
+    const dy = dim[1] / color_num;
+
+    const [z0, z1] = z_range;
+    const dz = (z1 - z0) / color_num;
+
+    const vertex_data = new Float32Array(3 * 4 * color_num);
+    const element_data = new Int32Array(3 * 2 * color_num);
+    for (let i = 0; i < 2 * color_num; ++i) {
+        vertex_data[3 * (2 * i)] = x0;
+        vertex_data[3 * (2 * i) + 1] = y0 + Math.floor((i + 1) / 2) * dy;
+        vertex_data[3 * (2 * i) + 2] = z0 + (Math.floor(i / 2) + 0.5) * dz;
+
+        vertex_data[3 * (2 * i + 1)] = x1;
+        vertex_data[3 * (2 * i + 1) + 1] = y0 + Math.floor((i + 1) / 2) * dy;
+        vertex_data[3 * (2 * i + 1) + 2] = z0 + (Math.floor(i / 2) + 0.5) * dz;
+
+        const idx = Math.floor((4 * Math.floor((i * 3) / 2)) / 3);
+        element_data[3 * i] = idx;
+        element_data[3 * i + 1] = idx + 1;
+        element_data[3 * i + 2] = idx + 2;
+    }
+
+    // initial data store for buffers
+
+    gl.bufferData(gl.ARRAY_BUFFER, vertex_data, gl.STREAM_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, element_data, gl.STREAM_DRAW);
+
+    // set vertex attribute
+
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 3, gl.FLOAT, 0, 0, 0);
+
+    return {
+        /**
+         * @param {number} texture
+         */
+        bindToTextureUnit: function (texture) {
+            gl.activeTexture(texture);
+            gl.bindTexture(gl.TEXTURE_2D, color_map_texture);
+        },
+        draw: function () {
+            this.bindToTextureUnit(gl.TEXTURE0);
+            gl.bindVertexArray(VAO);
+            gl.drawElements(gl.TRIANGLES, color_num * 6, gl.UNSIGNED_INT, 0);
+        },
+    };
 }
 
 export async function trackingPlot(figures) {
@@ -644,4 +737,22 @@ function min_max(arr) {
         ([min, max], curr) => [Math.min(min, curr), Math.max(max, curr)],
         [Infinity, -Infinity]
     );
+}
+
+/**
+ * @param {WebGL2RenderingContext} gl
+ * @param {Uint8Array} data
+ */
+function packTexArgs(gl, data) {
+    return [
+        gl.TEXTURE_2D,
+        0,
+        gl.RGB,
+        data.length / 3,
+        1,
+        0,
+        gl.RGB,
+        gl.UNSIGNED_BYTE,
+        data,
+    ];
 }
