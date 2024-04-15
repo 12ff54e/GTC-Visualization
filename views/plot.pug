@@ -12,6 +12,11 @@ html(lang="en")
         code(id='outputTag' style="display:none")= outputTag
         div(id='breadcrumb-container') Current GTC output folder set to 
             span= dir
+        div(id='select-compare')
+            input(id="select-compare-goto" type="radio" name="select-compare-radio" checked)
+            label(for="select-compare-goto") Go to selected folder
+            input(id="select-compare-compare" type="radio" name="select-compare-radio")
+            label(for="select-compare-compare") Select Folder to Compare
         p(id='status')
         form(id='download-output')
             div(id="download-overlay")

@@ -118,12 +118,6 @@ window.addEventListener('load', () => {
         ).firstElementChild;
         const [root, ...pathname] = navigationBar.innerText.split('/');
 
-        const constructPath = entry => {
-            return entry
-                ? `${constructPath(entry.parent)}/${entry.dirname}`
-                : '';
-        };
-
         const pathSegments = [root, ...pathname].map(seg => {
             const span = document.createElement('span');
             span.classList.add('breadcrumb-item');
@@ -147,60 +141,6 @@ window.addEventListener('load', () => {
                     child.classList.remove('active');
                 }
             });
-        };
-        const constructFolderContentList = (parent, child) => {
-            const ul = document.createElement('ul');
-
-            if (parent === undefined) {
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.href = '/';
-                a.innerText = '(Go Back to File Tree View)';
-                li.classList.add('breadcrumb-dropdown-item');
-                li.appendChild(a);
-                ul.appendChild(li);
-                return ul;
-            }
-
-            for (const entry of parent.content) {
-                if (typeof entry === 'string') {
-                    continue;
-                }
-                entry.parent = parent;
-                const li = document.createElement('li');
-                const a = document.createElement('a');
-                a.innerText = entry.dirname;
-                li.appendChild(a);
-
-                li.classList.add('breadcrumb-dropdown-item');
-                if (child?.dirname === entry.dirname) {
-                    li.classList.add('current-item');
-                }
-
-                if (entry.mTimeMs) {
-                    // a gtc output folder
-                    a.addEventListener('click', () => {
-                        postForm('/plot', { gtc_output: constructPath(entry) });
-                    });
-                    const span = document.createElement('span');
-                    span.innerText = 'gtc.out';
-                    span.classList.add('output');
-                    li.appendChild(span);
-                }
-
-                if (entry.count.folders > 1) {
-                    // a folder contains subfolders
-                    li.classList.add('folder');
-                    li.appendChild(constructFolderContentList(entry));
-                    li.addEventListener('click', event => {
-                        event.stopPropagation();
-                        event.currentTarget.classList.toggle('folder-expand');
-                    });
-                }
-                ul.appendChild(li);
-            }
-
-            return ul;
         };
 
         let currentEntry = undefined;
@@ -666,6 +606,67 @@ function nodeIs(node, predict) {
         return predict(node) || nodeIs(node.parentElement, predict);
     }
 }
+
+function constructFolderContentList(parent, child) {
+    const constructPath = entry => {
+        return entry
+            ? `${constructPath(entry.parent)}/${entry.dirname}`
+            : '';
+    };
+    
+    const ul = document.createElement('ul');
+
+    if (parent === undefined) {
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = '/';
+        a.innerText = '(Go Back to File Tree View)';
+        li.classList.add('breadcrumb-dropdown-item');
+        li.appendChild(a);
+        ul.appendChild(li);
+        return ul;
+    }
+
+    for (const entry of parent.content) {
+        if (typeof entry === 'string') {
+            continue;
+        }
+        entry.parent = parent;
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.innerText = entry.dirname;
+        li.appendChild(a);
+
+        li.classList.add('breadcrumb-dropdown-item');
+        if (child?.dirname === entry.dirname) {
+            li.classList.add('current-item');
+        }
+
+        if (entry.mTimeMs) {
+            // a gtc output folder
+            a.addEventListener('click', () => {
+                postForm('/plot', { gtc_output: constructPath(entry) });
+            });
+            const span = document.createElement('span');
+            span.innerText = 'gtc.out';
+            span.classList.add('output');
+            li.appendChild(span);
+        }
+
+        if (entry.count.folders > 1) {
+            // a folder contains subfolders
+            li.classList.add('folder');
+            li.appendChild(constructFolderContentList(entry));
+            li.addEventListener('click', event => {
+                event.stopPropagation();
+                event.currentTarget.classList.toggle('folder-expand');
+            });
+        }
+        ul.appendChild(li);
+    }
+
+    return ul;
+};
 
 function postForm(url, content) {
     const form = document.createElement('form');

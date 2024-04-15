@@ -95,7 +95,7 @@
 }
 
 p {
-    height: 3rem;
+    height: 2.5rem;
 }
 
 #download-output {
@@ -130,6 +130,10 @@ p {
 }
 #download-output > button {
     margin-top: 0.5em;
+}
+
+#select-compare {
+    padding-block-start: .5em;
 }
 
 #tabs {
