@@ -133,7 +133,7 @@ export async function snapshotSpectrum(figures) {
     );
 }
 
-export function snapshotPoloidal(figures) {
+export function snapshotPoloidal(figures, statusBar) {
     const { polNum, radNum } = figures.pop();
 
     // add carpet indices
@@ -185,17 +185,26 @@ export function snapshotPoloidal(figures) {
     // calculate spectrum profile on radial grids
 
     const flattenedField = figures[0].data[1].z;
-    const modeNum = Math.floor(polNum / 10);
+    const selectedPoloidalModeNum = [
+        ...new Set(window.GTCGlobal.basicParameters.mmodes),
+    ];
+    const modeNum = selectedPoloidalModeNum.length;
+    if (Math.floor(polNum / 10) < Math.max(...selectedPoloidalModeNum)) {
+        statusBar.warn = 'm modes in gtc.in is too high!';
+    }
 
     const spectrumFigureData = figures[1].data;
-    for (let i = 0; i < modeNum; i++) {
+    for (let i = 0; i < 3 * modeNum; i++) {
         spectrumFigureData.push({
             y: [],
-            name: `m = ${i}`,
-            showlegend: false,
+            name: `m = ${selectedPoloidalModeNum[Math.floor(i / 3)]}, ${
+                i % 3 == 0 ? 'real' : i % 3 == 1 ? 'imag' : 'modulus'
+            }`,
+            showlegend: true,
             hoverinfo: 'none',
+            visible: i % 3 == 2,
             max_: -Infinity,
-            max_idx_: 0,
+            min_: Infinity,
         });
     }
 
@@ -204,51 +213,103 @@ export function snapshotPoloidal(figures) {
 
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        plan.forward(circle)
-            .slice(0, 2 * modeNum)
-            .forEach((amp, i) => {
-                const trace = spectrumFigureData[Math.floor(i / 2)];
-                if (i % 2 == 0) {
-                    spectrumFigureData[i / 2].y.push(amp);
-                } else {
-                    let p = trace.y.pop();
-                    p = Math.sqrt(p * p + amp * amp);
-                    trace.y.push(p);
-                    if (p > trace.max_) {
-                        trace.max_ = p;
-                        trace.max_idx_ = i;
-                    }
+        plan.forward(circle).forEach((amp, i) => {
+            const mode_num = Math.floor(i / 2);
+            if (!selectedPoloidalModeNum.includes(mode_num)) {
+                return;
+            }
+            const trace_index =
+                3 * selectedPoloidalModeNum.indexOf(mode_num) + (i % 2);
+            const trace = spectrumFigureData[trace_index];
+            trace.y.push(amp);
+            if (amp > trace.max_) {
+                trace.max_ = amp;
+            }
+            if (amp < trace.min_) {
+                trace.min_ = amp;
+            }
+            if (i % 2 == 1) {
+                const modulus = Math.sqrt(
+                    Math.pow(spectrumFigureData[trace_index - 1].y.at(-1), 2) +
+                        Math.pow(trace.y.at(-1), 2)
+                );
+                const modulus_trace = spectrumFigureData[trace_index + 1];
+                modulus_trace.y.push(modulus);
+                if (modulus > modulus_trace.max_) {
+                    modulus_trace.max_ = modulus;
                 }
-            });
+                if (modulus < modulus_trace.min_) {
+                    modulus_trace.min_ = modulus;
+                }
+            }
+        });
     }
 
     plan.dispose();
 
-    spectrumFigureData
-        .sort((u, v) => {
-            return v.max_ - u.max_;
-        })
-        .some((d, i) => {
-            d.showlegend = true;
-            return i > 6;
-        });
+    let min_values = [Infinity, Infinity, Infinity];
+    let max_values = [-Infinity, -Infinity, -Infinity];
+    spectrumFigureData.forEach((trace, ind) => {
+        max_values[ind % 3] =
+            trace.max_ > max_values[ind % 3] ? trace.max_ : max_values[ind % 3];
+        min_values[ind % 3] =
+            trace.min_ < min_values[ind % 3] ? trace.min_ : min_values[ind % 3];
+    });
 
     // add diag flux indicator
 
-    spectrumFigureData.unshift({
-        name: 'Diagnostic Flux',
-        x: [
-            GTCGlobal.basicParameters.diag_flux,
-            GTCGlobal.basicParameters.diag_flux,
-        ],
-        y: [0, spectrumFigureData[0].max_ * 1.1],
-        mode: 'lines',
-        showlegend: true,
-        line: {
-            color: diagFluxLineColor,
-            width: 3,
+    spectrumFigureData.unshift(
+        ...[0, 1, 2].map(i => {
+            return {
+                name: 'Diagnostic Flux',
+                x: [
+                    GTCGlobal.basicParameters.diag_flux,
+                    GTCGlobal.basicParameters.diag_flux,
+                ],
+                y: [1.1 * min_values[i], max_values[i] * 1.1],
+                mode: 'lines',
+                showlegend: true,
+                line: {
+                    color: diagFluxLineColor,
+                    width: 3,
+                },
+                visible: i == 2,
+            };
+        })
+    );
+
+    // add control buttons
+
+    const step3_pick = i =>
+        Array.from(
+            { length: 3 * selectedPoloidalModeNum.length + 3 },
+            (_, ind) => ind % 3 == i
+        );
+    figures[1].layout.updatemenus = [
+        {
+            x: 0.05,
+            xanchor: 'left',
+            y: 0.9,
+            yanchor: 'top',
+            buttons: [
+                {
+                    mode: 'restyle',
+                    args: ['visible', step3_pick(2)],
+                    label: 'Total',
+                },
+                {
+                    mode: 'restyle',
+                    args: ['visible', step3_pick(0)],
+                    label: 'Even Parity',
+                },
+                {
+                    mode: 'restyle',
+                    args: ['visible', step3_pick(1)],
+                    label: 'Odd Parity',
+                },
+            ],
         },
-    });
+    ];
 }
 
 export async function trackingPlot(figures) {

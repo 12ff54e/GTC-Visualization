@@ -532,7 +532,7 @@ async function getDataThenPlot() {
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-poloidal')
     ) {
-        snapshotPoloidal(figures);
+        snapshotPoloidal(figures, getStatusBar());
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
