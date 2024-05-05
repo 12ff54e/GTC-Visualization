@@ -133,7 +133,7 @@ export async function snapshotSpectrum(figures) {
     );
 }
 
-export function snapshotPoloidal(figures, statusBar) {
+export function snapshotPoloidal(figures, statusBar, safetyFactor) {
     const { polNum, radNum } = figures.pop();
 
     // add carpet indices
@@ -208,8 +208,11 @@ export function snapshotPoloidal(figures, statusBar) {
         });
     }
 
-    const planConstructor = fftw['r2c']['fft1d'];
-    const plan = new planConstructor(polNum);
+    if (!window.GTCGlobal.fftPlan) {
+        const planConstructor = fftw['r2c']['fft1d'];
+        window.GTCGlobal.fftPlan = new planConstructor(polNum);
+    }
+    const plan = window.GTCGlobal.fftPlan;
 
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
@@ -245,8 +248,6 @@ export function snapshotPoloidal(figures, statusBar) {
         });
     }
 
-    plan.dispose();
-
     let min_values = [Infinity, Infinity, Infinity];
     let max_values = [-Infinity, -Infinity, -Infinity];
     spectrumFigureData.forEach((trace, ind) => {
@@ -256,24 +257,57 @@ export function snapshotPoloidal(figures, statusBar) {
             trace.min_ < min_values[ind % 3] ? trace.min_ : min_values[ind % 3];
     });
 
+    const extand_range = (a, b) => [1.1 * a - 0.1 * b, -0.1 * a + 1.1 * b];
+    const limits = extand_range(
+        Math.max(...max_values),
+        Math.min(...min_values)
+    );
+
     // add diag flux indicator
 
+    spectrumFigureData.unshift({
+        name: 'Diagnostic Flux',
+        x: [
+            GTCGlobal.basicParameters.diag_flux,
+            GTCGlobal.basicParameters.diag_flux,
+        ],
+        y: limits,
+        mode: 'lines',
+        showlegend: true,
+        hoverinfo: 'none',
+        line: {
+            color: diagFluxLineColor,
+            width: 3,
+        },
+    });
+
+    // add rational surface
+
+    const rational_surface = getRationalSurface(
+        safetyFactor,
+        window.GTCGlobal.basicParameters.nmodes,
+        window.GTCGlobal.basicParameters.mmodes
+    );
+    const RS_POINT_NUM = 20;
     spectrumFigureData.unshift(
-        ...[0, 1, 2].map(i => {
+        ...rational_surface.map(({ n, m, r }) => {
+            const pos = window.GTCGlobal.basicParameters.mpsi * r;
             return {
-                name: 'Diagnostic Flux',
-                x: [
-                    GTCGlobal.basicParameters.diag_flux,
-                    GTCGlobal.basicParameters.diag_flux,
-                ],
-                y: [1.1 * min_values[i], max_values[i] * 1.1],
+                name: `${n},${m} surface`,
+                x: Array(RS_POINT_NUM).fill(pos),
+                y: Array.from({ length: RS_POINT_NUM }).map(
+                    (_, i) =>
+                        limits[0] +
+                        ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
+                ),
                 mode: 'lines',
-                showlegend: true,
+                showlegend: false,
+                hoverinfo: 'name',
                 line: {
                     color: diagFluxLineColor,
-                    width: 3,
+                    dash: 'dash',
+                    width: 1,
                 },
-                visible: i == 2,
             };
         })
     );
@@ -282,8 +316,14 @@ export function snapshotPoloidal(figures, statusBar) {
 
     const step3_pick = i =>
         Array.from(
-            { length: 3 * selectedPoloidalModeNum.length + 3 },
-            (_, ind) => ind % 3 == i
+            {
+                length:
+                    rational_surface.length +
+                    3 * (selectedPoloidalModeNum.length + 1),
+            },
+            (_, ind) =>
+                ind < rational_surface.length + 1 ||
+                (ind - rational_surface.length - 1) % 3 == i
         );
     figures[1].layout.updatemenus = [
         {
@@ -292,24 +332,29 @@ export function snapshotPoloidal(figures, statusBar) {
             y: 0.9,
             yanchor: 'top',
             buttons: [
-                {
-                    mode: 'restyle',
-                    args: ['visible', step3_pick(2)],
-                    label: 'Total',
-                },
-                {
-                    mode: 'restyle',
-                    args: ['visible', step3_pick(0)],
-                    label: 'Even Parity',
-                },
-                {
-                    mode: 'restyle',
-                    args: ['visible', step3_pick(1)],
-                    label: 'Odd Parity',
-                },
+                ...[2, 0, 1].map(i => {
+                    return {
+                        method: 'update',
+                        args: [
+                            { visible: step3_pick(i) },
+                            {
+                                'xaxis.range': [
+                                    0,
+                                    window.GTCGlobal.basicParameters.mpsi,
+                                ],
+                                'yaxis.range': extand_range(
+                                    min_values[i],
+                                    max_values[i]
+                                ),
+                            },
+                        ],
+                        label: ['Even Parity', 'Odd Parity', 'Modulus'][i],
+                    };
+                }),
             ],
         },
     ];
+    figures[1].layout.yaxis.range = extand_range(min_values[2], max_values[2]);
 }
 
 export async function trackingPlot(figures) {
@@ -522,4 +567,39 @@ function unInterleave(cs) {
         }
         return arr;
     }, []);
+}
+
+function getRationalSurface(safetyFactor, n_modes, m_modes) {
+    const mode_num = n_modes
+        .map((n, i) => {
+            return { n: n, m: m_modes[i] };
+        })
+        .sort((a, b) => a.m / a.n - b.m / b.n)
+        .filter(function (item, pos, ary) {
+            const last_item = ary[!pos ? 0 : pos - 1];
+            return !pos || item.m * last_item.n != item.n * last_item.m;
+        });
+    const linear_map = (t, x0, x1, y0, y1) =>
+        y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
+
+    const result = [];
+    const [r0, r1] = window.GTCGlobal.basicParameters.radial_region;
+    for (let i = 0; i < safetyFactor.x.length - 1; ++i) {
+        if (safetyFactor.x[i + 1] < r0 || safetyFactor.x[i] > r1) {
+            continue;
+        }
+        mode_num.forEach(mode => {
+            const pos = linear_map(
+                mode.m / mode.n,
+                safetyFactor.y[i],
+                safetyFactor.y[i + 1],
+                safetyFactor.x[i],
+                safetyFactor.x[i + 1]
+            );
+            if (pos >= safetyFactor.x[i] && pos < safetyFactor.x[i + 1]) {
+                result.push({ r: (pos - r0) / (r1 - r0), ...mode });
+            }
+        });
+    }
+    return result;
 }
