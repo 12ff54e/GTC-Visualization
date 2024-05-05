@@ -133,7 +133,7 @@ export async function snapshotSpectrum(figures) {
     );
 }
 
-export function snapshotPoloidal(figures) {
+export function snapshotPoloidal(figures, statusBar, safetyFactor) {
     const { polNum, radNum } = figures.pop();
 
     // add carpet indices
@@ -185,53 +185,83 @@ export function snapshotPoloidal(figures) {
     // calculate spectrum profile on radial grids
 
     const flattenedField = figures[0].data[1].z;
-    const modeNum = Math.floor(polNum / 10);
+    const selectedPoloidalModeNum = [
+        ...new Set(window.GTCGlobal.basicParameters.mmodes),
+    ];
+    const modeNum = selectedPoloidalModeNum.length;
+    if (Math.floor(polNum / 10) < Math.max(...selectedPoloidalModeNum)) {
+        statusBar.warn = 'm modes in gtc.in is too high!';
+    }
 
     const spectrumFigureData = figures[1].data;
-    for (let i = 0; i < modeNum; i++) {
+    for (let i = 0; i < 3 * modeNum; i++) {
         spectrumFigureData.push({
             y: [],
-            name: `m = ${i}`,
-            showlegend: false,
+            name: `m = ${selectedPoloidalModeNum[Math.floor(i / 3)]}, ${
+                i % 3 == 0 ? 'real' : i % 3 == 1 ? 'imag' : 'modulus'
+            }`,
+            showlegend: true,
             hoverinfo: 'none',
+            visible: i % 3 == 2,
             max_: -Infinity,
-            max_idx_: 0,
+            min_: Infinity,
         });
     }
 
-    const planConstructor = fftw['r2c']['fft1d'];
-    const plan = new planConstructor(polNum);
+    if (!window.GTCGlobal.fftPlan) {
+        const planConstructor = fftw['r2c']['fft1d'];
+        window.GTCGlobal.fftPlan = new planConstructor(polNum);
+    }
+    const plan = window.GTCGlobal.fftPlan;
 
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        plan.forward(circle)
-            .slice(0, 2 * modeNum)
-            .forEach((amp, i) => {
-                const trace = spectrumFigureData[Math.floor(i / 2)];
-                if (i % 2 == 0) {
-                    spectrumFigureData[i / 2].y.push(amp);
-                } else {
-                    let p = trace.y.pop();
-                    p = Math.sqrt(p * p + amp * amp);
-                    trace.y.push(p);
-                    if (p > trace.max_) {
-                        trace.max_ = p;
-                        trace.max_idx_ = i;
-                    }
+        plan.forward(circle).forEach((amp, i) => {
+            const mode_num = Math.floor(i / 2);
+            if (!selectedPoloidalModeNum.includes(mode_num)) {
+                return;
+            }
+            const trace_index =
+                3 * selectedPoloidalModeNum.indexOf(mode_num) + (i % 2);
+            const trace = spectrumFigureData[trace_index];
+            trace.y.push(amp);
+            if (amp > trace.max_) {
+                trace.max_ = amp;
+            }
+            if (amp < trace.min_) {
+                trace.min_ = amp;
+            }
+            if (i % 2 == 1) {
+                const modulus = Math.sqrt(
+                    Math.pow(spectrumFigureData[trace_index - 1].y.at(-1), 2) +
+                        Math.pow(trace.y.at(-1), 2)
+                );
+                const modulus_trace = spectrumFigureData[trace_index + 1];
+                modulus_trace.y.push(modulus);
+                if (modulus > modulus_trace.max_) {
+                    modulus_trace.max_ = modulus;
                 }
-            });
+                if (modulus < modulus_trace.min_) {
+                    modulus_trace.min_ = modulus;
+                }
+            }
+        });
     }
 
-    plan.dispose();
+    let min_values = [Infinity, Infinity, Infinity];
+    let max_values = [-Infinity, -Infinity, -Infinity];
+    spectrumFigureData.forEach((trace, ind) => {
+        max_values[ind % 3] =
+            trace.max_ > max_values[ind % 3] ? trace.max_ : max_values[ind % 3];
+        min_values[ind % 3] =
+            trace.min_ < min_values[ind % 3] ? trace.min_ : min_values[ind % 3];
+    });
 
-    spectrumFigureData
-        .sort((u, v) => {
-            return v.max_ - u.max_;
-        })
-        .some((d, i) => {
-            d.showlegend = true;
-            return i > 6;
-        });
+    const extand_range = (a, b) => [1.1 * a - 0.1 * b, -0.1 * a + 1.1 * b];
+    const limits = extand_range(
+        Math.max(...max_values),
+        Math.min(...min_values)
+    );
 
     // add diag flux indicator
 
@@ -241,14 +271,90 @@ export function snapshotPoloidal(figures) {
             GTCGlobal.basicParameters.diag_flux,
             GTCGlobal.basicParameters.diag_flux,
         ],
-        y: [0, spectrumFigureData[0].max_ * 1.1],
+        y: limits,
         mode: 'lines',
         showlegend: true,
+        hoverinfo: 'none',
         line: {
             color: diagFluxLineColor,
             width: 3,
         },
     });
+
+    // add rational surface
+
+    const rational_surface = getRationalSurface(
+        safetyFactor,
+        window.GTCGlobal.basicParameters.nmodes,
+        window.GTCGlobal.basicParameters.mmodes
+    );
+    const RS_POINT_NUM = 20;
+    spectrumFigureData.unshift(
+        ...rational_surface.map(({ n, m, r }) => {
+            const pos = window.GTCGlobal.basicParameters.mpsi * r;
+            return {
+                name: `${n},${m} surface`,
+                x: Array(RS_POINT_NUM).fill(pos),
+                y: Array.from({ length: RS_POINT_NUM }).map(
+                    (_, i) =>
+                        limits[0] +
+                        ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
+                ),
+                mode: 'lines',
+                showlegend: false,
+                hoverinfo: 'name',
+                line: {
+                    color: diagFluxLineColor,
+                    dash: 'dash',
+                    width: 1,
+                },
+            };
+        })
+    );
+
+    // add control buttons
+
+    const step3_pick = i =>
+        Array.from(
+            {
+                length:
+                    rational_surface.length +
+                    3 * (selectedPoloidalModeNum.length + 1),
+            },
+            (_, ind) =>
+                ind < rational_surface.length + 1 ||
+                (ind - rational_surface.length - 1) % 3 == i
+        );
+    figures[1].layout.updatemenus = [
+        {
+            x: 0.05,
+            xanchor: 'left',
+            y: 0.9,
+            yanchor: 'top',
+            buttons: [
+                ...[2, 0, 1].map(i => {
+                    return {
+                        method: 'update',
+                        args: [
+                            { visible: step3_pick(i) },
+                            {
+                                'xaxis.range': [
+                                    0,
+                                    window.GTCGlobal.basicParameters.mpsi,
+                                ],
+                                'yaxis.range': extand_range(
+                                    min_values[i],
+                                    max_values[i]
+                                ),
+                            },
+                        ],
+                        label: ['Even Parity', 'Odd Parity', 'Modulus'][i],
+                    };
+                }),
+            ],
+        },
+    ];
+    figures[1].layout.yaxis.range = extand_range(min_values[2], max_values[2]);
 }
 
 export async function trackingPlot(figures) {
@@ -461,4 +567,39 @@ function unInterleave(cs) {
         }
         return arr;
     }, []);
+}
+
+function getRationalSurface(safetyFactor, n_modes, m_modes) {
+    const mode_num = n_modes
+        .map((n, i) => {
+            return { n: n, m: m_modes[i] };
+        })
+        .sort((a, b) => a.m / a.n - b.m / b.n)
+        .filter(function (item, pos, ary) {
+            const last_item = ary[!pos ? 0 : pos - 1];
+            return !pos || item.m * last_item.n != item.n * last_item.m;
+        });
+    const linear_map = (t, x0, x1, y0, y1) =>
+        y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
+
+    const result = [];
+    const [r0, r1] = window.GTCGlobal.basicParameters.radial_region;
+    for (let i = 0; i < safetyFactor.x.length - 1; ++i) {
+        if (safetyFactor.x[i + 1] < r0 || safetyFactor.x[i] > r1) {
+            continue;
+        }
+        mode_num.forEach(mode => {
+            const pos = linear_map(
+                mode.m / mode.n,
+                safetyFactor.y[i],
+                safetyFactor.y[i + 1],
+                safetyFactor.x[i],
+                safetyFactor.x[i + 1]
+            );
+            if (pos >= safetyFactor.x[i] && pos < safetyFactor.x[i + 1]) {
+                result.push({ r: (pos - r0) / (r1 - r0), ...mode });
+            }
+        });
+    }
+    return result;
 }

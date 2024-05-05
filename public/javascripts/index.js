@@ -382,22 +382,22 @@ async function openPanel() {
     panel.style.zIndex = 2;
 
     // inform the server about which .out file should be parsed
-    let res = await fetch(
-        `plot/plotType/${this.id}?dir=${
-            document.querySelector('#outputTag').innerText
-        }`
-    );
-    await propagateFetchError(res);
-    // wait for the response, then create buttons for plotting
-    await getBasicParameters();
+    let {
+        info,
+        warn,
+        err,
+        id: btn_id_array,
+    } = await (await requestPlotData(`plotType/${this.id}`)).json();
 
-    let { info, warn, err, id: btn_id_array } = await res.json();
     statusBar.info = info ? info : '';
     statusBar.warn = warn ? warn : '';
     if (err) {
         statusBar.err = err;
         return;
     }
+
+    // wait for the response, then create buttons for plotting
+    await getBasicParameters();
 
     // add buttons
     const node =
@@ -469,6 +469,21 @@ async function openPanel() {
     }
 }
 
+async function requestPlotData(name, optional = false) {
+    // inform the server about which .out file should be parsed
+    let res = await fetch(
+        `plot/${name}?dir=${document.querySelector('#outputTag').innerText}`
+    );
+    try {
+        await propagateFetchError(res);
+    } catch (e) {
+        if (!optional) {
+            throw e;
+        }
+    }
+    return res;
+}
+
 function cleanPlot() {
     for (let fig of document.getElementById('figure-wrapper').children) {
         fig.classList.remove('active');
@@ -532,7 +547,25 @@ async function getDataThenPlot() {
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-poloidal')
     ) {
-        snapshotPoloidal(figures);
+        const res = await requestPlotData('plotType/Equilibrium', true);
+        if (res.ok) {
+            snapshotPoloidal(
+                figures,
+                getStatusBar(),
+                (
+                    await (
+                        await requestPlotData(
+                            'data/Equilibrium-1D-rg_n-q',
+                            true
+                        )
+                    ).json()
+                )
+                    ?.at(0)
+                    ?.data?.at(0)
+            );
+        } else {
+            snapshotPoloidal(figures, getStatusBar());
+        }
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
