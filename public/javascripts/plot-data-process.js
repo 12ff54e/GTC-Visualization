@@ -78,6 +78,12 @@ export async function historyMode(figures, interval1, interval2) {
         type: 'scatter',
         mode: 'lines',
     });
+
+    if (navigator.clipboard) {
+        await navigator.clipboard.writeText(
+            `${gamma.toPrecision(5)}, ${omega.toPrecision(5)}`
+        );
+    }
 }
 
 export async function snapshotSpectrum(figures) {
