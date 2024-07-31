@@ -111,6 +111,13 @@ class FileTree {
                 return item.name;
             } else if (item.isDirectory()) {
                 return FileTree.readFileTree(path.join(dir, item.name));
+            } else if(item.isSymbolicLink()) {
+                const realpath = await fsp.realpath(path.join(dir, item.name));
+                if((await fsp.stat(realpath)).isDirectory()) {
+                    return FileTree.readFileTree(realpath);
+                } else {
+                    return null;
+                }
             } else {
                 return null;
             }
