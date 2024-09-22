@@ -112,10 +112,14 @@ class FileTree {
             } else if (item.isDirectory()) {
                 return FileTree.readFileTree(path.join(dir, item.name));
             } else if(item.isSymbolicLink()) {
-                const realpath = await fsp.realpath(path.join(dir, item.name));
-                if((await fsp.stat(realpath)).isDirectory()) {
-                    return FileTree.readFileTree(realpath);
-                } else {
+                try {
+                    const realpath = await fsp.realpath(
+                        path.join(dir, item.name)
+                    ); // realpath syscall might throw when the symlink can not be resolve
+                    return (await fsp.stat(realpath)).isDirectory()
+                        ? FileTree.readFileTree(realpath)
+                        : null;
+                } catch (e) {
                     return null;
                 }
             } else {
