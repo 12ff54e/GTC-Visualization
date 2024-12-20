@@ -66,17 +66,24 @@ app.post(
             (currentOutput = output[req.body.gtc_output]) === undefined ||
             (await modificationCheck(currentOutput))
         ) {
-            currentOutput = output[req.body.gtc_output] = new GTCOutput(
-                GTC_outputDir
-            );
-            currentOutput.timestamp = (
-                await fs.stat(path.join(GTC_outputDir, 'gtc.out'))
-            ).mtimeMs;
+            currentOutput = new GTCOutput(GTC_outputDir);
+            try {
+                currentOutput.timestamp = (
+                    await fs.stat(path.join(GTC_outputDir, 'gtc.out'))
+                ).mtimeMs;
+            } catch (err) {
+                res.status(404).send(
+                    'The folder you requested does not exist.'
+                );
+                throw err;
+            }
             const outputKeys = Object.keys(output);
             delete output[outputKeys[outputKeys.length - processLimit - 1]];
             console.log(`path set to ${GTC_outputDir}`);
             await currentOutput.getSnapshotFileList();
             await currentOutput.check_tracking();
+
+            output[req.body.gtc_output] = currentOutput;
         }
 
         currentOutput.fileList = (await readdir(currentOutput.dir, 'utf-8'))
@@ -161,10 +168,10 @@ app.get(
             }
             res.send(JSON.stringify(status));
         } catch (err) {
-            console.log(err);
             res.json({
                 err: `Error happens when reading <b>${type}</b> file, this folder may be corrupted!`,
             });
+            throw err;
         }
     })
 );
