@@ -138,7 +138,12 @@ export async function generateSummary() {
     const driveDetails = ` Density and temperature gradients are shown as follows (<button id="summary-gradients" class="summary-figure-button">show/hide figure</button>)`;
     addParagraph(driveDetails);
 
-    const rescale = df => zip((v, r, q) => (v * r) / q, df, data.rg, data.q);
+    const calc_scale_length = profile_name =>
+        zip(
+            (d, f) => -d / f,
+            derivative(data['rg'], data[profile_name]),
+            data[profile_name]
+        );
     multipleTraceFigure(
         summary,
         summary.querySelector('#summary-gradients'),
@@ -154,7 +159,7 @@ export async function generateSummary() {
                 title: 'Electron Temperature Gradient',
                 tag: '$\\frac{R_0}{L_\\text{T}}$',
                 buttonText: '\\(R_0/L_\\text{T}\\)<code>(e)</code>',
-                data: rescale(data['dlnTe_dpsi']),
+                data: calc_scale_length('Te'),
             },
             {
                 title: 'Electron Density',
@@ -167,7 +172,7 @@ export async function generateSummary() {
                 title: 'Electron Density Gradient',
                 tag: '$\\frac{R_0}{L_\\text{n}}$',
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(e)</code>',
-                data: rescale(data['dlnne_dpsi']),
+                data: calc_scale_length('ne'),
             },
             {
                 title: 'Ion Temperature',
@@ -179,7 +184,7 @@ export async function generateSummary() {
                 title: 'Ion Temperature Gradient',
                 tag: '$\\frac{R_0}{L_\\text{T}}$',
                 buttonText: '\\(R_0/L_\\text{T}\\)<code>(i)</code>',
-                data: rescale(data['dlnTi_dpsi']),
+                data: calc_scale_length('Ti'),
             },
             {
                 title: 'Ion Density',
@@ -191,16 +196,26 @@ export async function generateSummary() {
                 title: 'Ion Density Gradient',
                 tag: '$\\frac{R_0}{L_\\text{n}}$',
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(i)</code>',
-                data: rescale(data['dlnni_dpsi']),
+                data: calc_scale_length('ni'),
             },
             {
-                title: 'Eta',
+                title: 'Ion Eta',
                 tag: '$\\eta_i$',
-                buttonText: '\\(\\eta\\)',
+                buttonText: '\\(\\eta_\\text{i}\\)',
                 data: zip(
                     (a, b) => a / b,
-                    rescale(data['dlnTi_dpsi']),
-                    rescale(data['dlnni_dpsi'])
+                    calc_scale_length('Ti'),
+                    calc_scale_length('ni')
+                ),
+            },
+            {
+                title: 'Electron Eta',
+                tag: '$\\eta_e$',
+                buttonText: '\\(\\eta_\\text{e}\\)',
+                data: zip(
+                    (a, b) => a / b,
+                    calc_scale_length('Te'),
+                    calc_scale_length('ne')
                 ),
             },
         ]
@@ -273,6 +288,8 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
         document.createElement('div')
     );
     figureWrapper.classList.add('summary-figure-wrapper');
+    const buttonDiv = figureWrapper.appendChild(document.createElement('div'));
+    buttonDiv.classList.add('summary-figure-button-div');
     const plotlyRoot = figureWrapper.appendChild(document.createElement('div'));
     plotlyRoot.classList.add('summary-figure-plot-div');
     button.addEventListener('click', e => {
@@ -298,8 +315,6 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
         figureContainer.classList.toggle('summary-figure-container-show');
     });
 
-    const buttonDiv = figureWrapper.appendChild(document.createElement('div'));
-    buttonDiv.classList.add('summary-figure-button-div');
     for (const { title, tag, data, buttonText } of ordinates) {
         const btn = buttonDiv.appendChild(document.createElement('button'));
         btn.innerHTML = buttonText ?? title;
@@ -359,37 +374,31 @@ function interpolationDerivativeAt(x, xs, ys) {
     return d;
 }
 
-function derivative(xs, ys, xNorm = 1) {
+function derivative(xs, ys) {
     const d = xs.map(_ => 0);
-    let dx0, dx1;
-    for (let i = 0; i < xs.length; ++i) {
-        const dx = dx0 + dx1;
-        if (i == 0) {
-            dx0 = xs[1] - xs[0];
-            dx1 = xs[2] - xs[1];
-            d[0] =
-                (-ys[0] * dx1 * (dx + dx0) +
-                    ys[1] * dx * dx -
-                    ys[2] * dx0 * dx0) /
-                (dx0 * dx1 * dx);
-        } else if (i == xs.length - 1) {
-            d[0] =
-                (ys[i - 2] * dx1 * dx1 -
-                    ys[i - 1] * dx * dx +
-                    ys[i] * dx0 * (dx + dx1)) /
-                (dx0 * dx1 * dx);
-        } else {
-            if (i != 1) {
-                dx0 = dx1;
-                dx1 = xs[i + 1] - xs[i];
-            }
-            d[i] =
-                (-ys[i - 1] * dx1 * dx1 +
-                    ys[i] * dx * (dx1 - dx0) +
-                    ys[i + 1] * dx0 * dx0) /
-                (dx0 * dx1 * dx);
+    let dx0 = xs[1] - xs[0];
+    let dx1 = xs[2] - xs[1];
+    let dx = dx0 + dx1;
+    d[0] =
+        (-ys[0] * dx1 * (dx + dx0) + ys[1] * dx * dx - ys[2] * dx0 * dx0) /
+        (dx0 * dx1 * dx);
+    for (let i = 1; i < xs.length - 1; ++i) {
+        if (i != 1) {
+            dx0 = dx1;
+            dx1 = xs[i + 1] - xs[i];
+            dx = dx0 + dx1;
         }
+        d[i] =
+            (-ys[i - 1] * dx1 * dx1 +
+                ys[i] * dx * (dx1 - dx0) +
+                ys[i + 1] * dx0 * dx0) /
+            (dx0 * dx1 * dx);
     }
+    d[xs.length - 1] =
+        (ys[xs.length - 3] * dx0 * dx0 -
+            ys[xs.length - 2] * dx * dx +
+            ys[xs.length - 1] * dx1 * (dx + dx0)) /
+        (dx0 * dx1 * dx);
     return d;
 }
 

@@ -362,21 +362,23 @@ input.eq-1d-y:checked + label {
     transition: 0.3s ease-in-out;
 }
 #summary-page > .summary-figure-container-show {
-    height: 400px;
+    height: calc(400px + 2em);
 }
 .summary-figure-wrapper {
     width: 600px;
     margin: 0 auto;
     position: relative;
 }
+.summary-figure-plot-div{
+    width: 100%;
+    height: 400px;
+}
 .summary-figure-button-div {
-    position: absolute;
-    top: 0.5rem;
-    left: 1rem;
-    width: 7em;
+    margin: 0em 1em 0.5em;
     display: flex;
     flex-wrap: wrap;
     align-items: stretch;
+    justify-content: space-between;
 }
 .summary-figure-button-div > button {
     padding-block: 0;
