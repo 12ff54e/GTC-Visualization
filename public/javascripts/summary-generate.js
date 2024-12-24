@@ -1,4 +1,4 @@
-export async function generateSummary() {
+export async function generateSummary(statut_bar) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -42,28 +42,35 @@ export async function generateSummary() {
     const rgDiag =
         lerp(...bp.radial_region, bp.diag_flux / bp.mpsi) * minorRadius;
     const eqRadialDiagIndex = lower_bound(data.rg, rgDiag) - 1;
-    const safetyFactor = linearMap(
-        rgDiag,
-        data.rg[eqRadialDiagIndex],
-        data.rg[eqRadialDiagIndex + 1],
-        data.q[eqRadialDiagIndex],
-        data.q[eqRadialDiagIndex + 1]
-    );
+    const value_diag_flux = profile_name =>
+        linearMap(
+            rgDiag,
+            data.rg[eqRadialDiagIndex],
+            data.rg[eqRadialDiagIndex + 1],
+            data[profile_name][eqRadialDiagIndex],
+            data[profile_name][eqRadialDiagIndex + 1]
+        );
+    const inverse_scale_length_diag_flux = profile_name =>
+        interpolationDerivativeAt(rgDiag, data['rg'], data[profile_name]) /
+        value_diag_flux(profile_name);
+
+    const safety_factor = value_diag_flux('q');
     const properModeIndex = bp.nmodes.reduce(
         (acc, val, idx) => {
             const { eps } = acc;
-            const delta = Math.abs(bp.mmodes[idx] / val - safetyFactor);
+            const delta = Math.abs(bp.mmodes[idx] / val - safety_factor);
             return eps > delta ? { eps: delta, minIdx: idx } : acc;
         },
         { minIdx: 0, eps: Infinity }
     ).minIdx;
     const diagFluxProp = `The diagnostic flux you choose locates at \\(${(
         rgDiag / minorRadius
-    ).toPrecision(4)}a_0\\). Here safety factor \\(q=${safetyFactor.toPrecision(
+    ).toPrecision(
+        4
+    )}a_0\\). Here safety factor \\(q=${safety_factor.toPrecision(
         4
     )}\\), shear \\(\\hat{s}=r\\mathrm{d\\,ln}q/\\mathrm{d}r=${(
-        (interpolationDerivativeAt(rgDiag, data.rg, data.q) * rgDiag) /
-        safetyFactor
+        inverse_scale_length_diag_flux('q') * rgDiag
     ).toFixed(
         4
     )}\\) (<button id="summary-safety-factor" class="summary-figure-button">show/hide figure</button>). Among 8 modes you choose, the ${
@@ -106,6 +113,48 @@ export async function generateSummary() {
         ]
     );
 
+    const rho_diag_flux =
+        bp['rho0'] *
+        (bp['inorm'] == 1
+            ? 1
+            : Math.sqrt(value_diag_flux('Te') / data['Te'][0]));
+    const electron_beta_diag_flux =
+        bp['betae'] *
+        (bp['inorm'] == 1
+            ? 1
+            : ((value_diag_flux('Te') / data['Te'][0]) *
+                  value_diag_flux('ne')) /
+              data['ne'][0]);
+    const key_dimensionless_parameters = `At diagnotic flux, density gradient \\(\\epsilon_n=${-inverse_scale_length_diag_flux(
+        'ne'
+    ).toFixed(4)}\\), \\(\\eta_\\mathrm{i}=${(
+        inverse_scale_length_diag_flux('Ti') /
+        inverse_scale_length_diag_flux('ni')
+    ).toFixed(4)}\\), ${
+        bp.magnetic
+            ? `\\(\\eta_\\mathrm{e}=${(
+                  inverse_scale_length_diag_flux('Te') /
+                  inverse_scale_length_diag_flux('ne')
+              ).toFixed(
+                  4
+              )}\\), electron beta \\(\\beta_\\mathrm{e}=${electron_beta_diag_flux.toFixed(
+                  4
+              )}\\), `
+            : ''
+    }temperature ratio \\(\\tau=${(
+        value_diag_flux('Te') / value_diag_flux('Ti')
+    ).toFixed(4)}\\), \\(b_\\theta=${bp['mmodes']
+        .map(m =>
+            (Math.pow((m / rgDiag) * rho_diag_flux, 2) * bp['aion']).toFixed(4)
+        )
+        .join()}\\) for modes in gtc.in respectively.`;
+    addParagraph(key_dimensionless_parameters);
+
+    // check rg monotonicity
+    if (data.rg.every((v, i, a) => !i || a[i - 1] <= v)) {
+        statut_bar.warn = 'rg is not monotonic';
+    }
+
     const particleLoading = (varName, pload) =>
         pload == 1
             ? 'uniform in both temperature and density'
@@ -138,7 +187,7 @@ export async function generateSummary() {
     const driveDetails = ` Density and temperature gradients are shown as follows (<button id="summary-gradients" class="summary-figure-button">show/hide figure</button>)`;
     addParagraph(driveDetails);
 
-    const calc_scale_length = profile_name =>
+    const calc_gradient = profile_name =>
         zip(
             (d, f) => -d / f,
             derivative(data['rg'], data[profile_name]),
@@ -159,7 +208,7 @@ export async function generateSummary() {
                 title: 'Electron Temperature Gradient',
                 tag: '$\\frac{R_0}{L_\\text{T}}$',
                 buttonText: '\\(R_0/L_\\text{T}\\)<code>(e)</code>',
-                data: calc_scale_length('Te'),
+                data: calc_gradient('Te'),
             },
             {
                 title: 'Electron Density',
@@ -172,7 +221,7 @@ export async function generateSummary() {
                 title: 'Electron Density Gradient',
                 tag: '$\\frac{R_0}{L_\\text{n}}$',
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(e)</code>',
-                data: calc_scale_length('ne'),
+                data: calc_gradient('ne'),
             },
             {
                 title: 'Ion Temperature',
@@ -184,7 +233,7 @@ export async function generateSummary() {
                 title: 'Ion Temperature Gradient',
                 tag: '$\\frac{R_0}{L_\\text{T}}$',
                 buttonText: '\\(R_0/L_\\text{T}\\)<code>(i)</code>',
-                data: calc_scale_length('Ti'),
+                data: calc_gradient('Ti'),
             },
             {
                 title: 'Ion Density',
@@ -196,7 +245,7 @@ export async function generateSummary() {
                 title: 'Ion Density Gradient',
                 tag: '$\\frac{R_0}{L_\\text{n}}$',
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(i)</code>',
-                data: calc_scale_length('ni'),
+                data: calc_gradient('ni'),
             },
             {
                 title: 'Ion Eta',
@@ -204,8 +253,8 @@ export async function generateSummary() {
                 buttonText: '\\(\\eta_\\text{i}\\)',
                 data: zip(
                     (a, b) => a / b,
-                    calc_scale_length('Ti'),
-                    calc_scale_length('ni')
+                    calc_gradient('Ti'),
+                    calc_gradient('ni')
                 ),
             },
             {
@@ -214,8 +263,8 @@ export async function generateSummary() {
                 buttonText: '\\(\\eta_\\text{e}\\)',
                 data: zip(
                     (a, b) => a / b,
-                    calc_scale_length('Te'),
-                    calc_scale_length('ne')
+                    calc_gradient('Te'),
+                    calc_gradient('ne')
                 ),
             },
         ]

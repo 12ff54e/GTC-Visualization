@@ -338,7 +338,7 @@ async function getBasicParameters() {
 async function openPanel() {
     if (this.id == 'Summary') {
         await getBasicParameters();
-        const summaryContainer = await generateSummary();
+        const summaryContainer = await generateSummary(getStatusBar());
 
         if (summaryContainer === undefined) {
             // summary page is already generated

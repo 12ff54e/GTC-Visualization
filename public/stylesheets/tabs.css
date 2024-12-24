@@ -378,7 +378,7 @@ input.eq-1d-y:checked + label {
     display: flex;
     flex-wrap: wrap;
     align-items: stretch;
-    justify-content: space-between;
+    justify-content: space-evenly;
 }
 .summary-figure-button-div > button {
     padding-block: 0;
