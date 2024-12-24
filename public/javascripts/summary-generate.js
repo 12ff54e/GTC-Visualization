@@ -115,39 +115,40 @@ export async function generateSummary(statut_bar) {
 
     const rho_diag_flux =
         bp['rho0'] *
-        (bp['inorm'] == 1
-            ? 1
-            : Math.sqrt(value_diag_flux('Te') / data['Te'][0]));
+        (bp['inorm'] ? 1 : Math.sqrt(value_diag_flux('Te') / data['Te'][0]));
     const electron_beta_diag_flux =
         bp['betae'] *
-        (bp['inorm'] == 1
+        (bp['inorm']
             ? 1
             : ((value_diag_flux('Te') / data['Te'][0]) *
                   value_diag_flux('ne')) /
               data['ne'][0]);
-    const key_dimensionless_parameters = `At diagnotic flux, density gradient \\(\\epsilon_n=${-inverse_scale_length_diag_flux(
-        'ne'
-    ).toFixed(4)}\\), \\(\\eta_\\mathrm{i}=${(
+    const key_dimensionless_parameters = `At diagnotic flux, density gradient \\(\\epsilon_n=${(
+        -1 / inverse_scale_length_diag_flux('ne')
+    ).toFixed(4)},\\) \\(\\eta_\\mathrm{i}=${(
         inverse_scale_length_diag_flux('Ti') /
         inverse_scale_length_diag_flux('ni')
-    ).toFixed(4)}\\), ${
+    ).toFixed(4)},\\) ${
         bp.magnetic
             ? `\\(\\eta_\\mathrm{e}=${(
                   inverse_scale_length_diag_flux('Te') /
                   inverse_scale_length_diag_flux('ne')
               ).toFixed(
                   4
-              )}\\), electron beta \\(\\beta_\\mathrm{e}=${electron_beta_diag_flux.toFixed(
+              )},\\) electron beta \\(\\beta_\\mathrm{e}=${electron_beta_diag_flux.toFixed(
                   4
-              )}\\), `
+              )},\\) `
             : ''
     }temperature ratio \\(\\tau=${(
         value_diag_flux('Te') / value_diag_flux('Ti')
-    ).toFixed(4)}\\), \\(b_\\theta=${bp['mmodes']
-        .map(m =>
-            (Math.pow((m / rgDiag) * rho_diag_flux, 2) * bp['aion']).toFixed(4)
+    ).toFixed(4)},\\) \\(b_\\theta=\\)${[...new Set(bp['mmodes'])]
+        .map(
+            m =>
+                `\\(${(
+                    Math.pow((m / rgDiag) * rho_diag_flux, 2) * bp['aion']
+                ).toFixed(4)}(${m}),\\)`
         )
-        .join()}\\) for modes in gtc.in respectively.`;
+        .join(' ')} for modes in gtc.in respectively.`;
     addParagraph(key_dimensionless_parameters);
 
     // check rg monotonicity
