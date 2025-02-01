@@ -187,9 +187,10 @@ app.get('/plot/data/basicParameters', (req, res) => {
     });
 });
 
-app.get('/plot/data/:type-:id', (req, res) => {
-    let plotType = req.params.type;
-    let plotId = req.params.id;
+app.get('/plot/data/:typeid', (req, res) => {
+    const sep = req.params.typeid.indexOf('-');
+    const plotType = req.params.typeid.substring(0, sep);
+    const plotId = req.params.typeid.substring(sep + 1);
     const then = performance.now();
 
     try {
