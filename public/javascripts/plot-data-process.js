@@ -199,7 +199,7 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
         statusBar.warn = 'm modes in gtc.in is too high!';
     }
 
-    const spectrumFigureData = figures[1].data;
+    const spectrumFigureData = [];
     for (let i = 0; i < 3 * modeNum; i++) {
         spectrumFigureData.push({
             y: [],
@@ -220,10 +220,32 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
     }
     const plan = window.GTCGlobal.fftPlan;
 
+    const extra_spectrum_data = Array.from({ length: polNum / 20 }, (_, i) => {
+        return {
+            y: [],
+            name: `m = ${i}`,
+            showlegend: false,
+            hoverinfo: 'name',
+            visible: false,
+            max_: -Infinity,
+        };
+    });
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
         plan.forward(circle).forEach((amp, i) => {
             const mode_num = Math.floor(i / 2);
+            if (mode_num < extra_spectrum_data.length) {
+                const extra_trace = extra_spectrum_data[mode_num];
+                if (i % 2 == 0) {
+                    extra_trace.y.push(amp);
+                } else {
+                    const mod = Math.sqrt(
+                        Math.pow(amp, 2) + Math.pow(extra_trace.y.pop(), 2)
+                    );
+                    extra_trace.y.push(mod);
+                    extra_trace.max_ = Math.max(extra_trace.max_, mod);
+                }
+            }
             if (!selectedPoloidalModeNum.includes(mode_num)) {
                 return;
             }
@@ -254,6 +276,14 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
         });
     }
 
+    extra_spectrum_data
+        .sort((a, b) => b.max_ - a.max_)
+        .forEach((fig, ind) => {
+            if (ind < 8) {
+                fig.showlegend = true;
+            }
+        });
+
     let min_values = [Infinity, Infinity, Infinity];
     let max_values = [-Infinity, -Infinity, -Infinity];
     spectrumFigureData.forEach((trace, ind) => {
@@ -263,29 +293,13 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
             trace.min_ < min_values[ind % 3] ? trace.min_ : min_values[ind % 3];
     });
 
-    const extand_range = (a, b) => [1.1 * a - 0.1 * b, -0.1 * a + 1.1 * b];
-    const limits = extand_range(
+    spectrumFigureData.push(...extra_spectrum_data);
+
+    const extend_range = (a, b) => [1.1 * a - 0.1 * b, -0.1 * a + 1.1 * b];
+    const limits = extend_range(
         Math.max(...max_values),
         Math.min(...min_values)
     );
-
-    // add diag flux indicator
-
-    spectrumFigureData.unshift({
-        name: 'Diagnostic Flux',
-        x: [
-            GTCGlobal.basicParameters.diag_flux,
-            GTCGlobal.basicParameters.diag_flux,
-        ],
-        y: limits,
-        mode: 'lines',
-        showlegend: true,
-        hoverinfo: 'none',
-        line: {
-            color: diagFluxLineColor,
-            width: 3,
-        },
-    });
 
     // add rational surface
 
@@ -318,19 +332,38 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
         })
     );
 
-    // add control buttons
+    // add diag flux indicator
 
+    spectrumFigureData.unshift({
+        name: 'Diagnostic Flux',
+        x: [
+            GTCGlobal.basicParameters.diag_flux,
+            GTCGlobal.basicParameters.diag_flux,
+        ],
+        y: limits,
+        mode: 'lines',
+        showlegend: true,
+        hoverinfo: 'none',
+        line: {
+            color: diagFluxLineColor,
+            width: 3,
+        },
+    });
+
+    // add control buttons
+    // traces: diag flux | rational surfaces | selected m modes (real, imag, modulus) | some largest m modes
     const step3_pick = i =>
         Array.from(
-            {
-                length:
-                    rational_surface.length +
-                    3 * (selectedPoloidalModeNum.length + 1),
-            },
+            spectrumFigureData,
             (_, ind) =>
                 ind < rational_surface.length + 1 ||
-                (ind - rational_surface.length - 1) % 3 == i
+                ((ind - rational_surface.length - 1) % 3 == i &&
+                    ind <
+                        1 +
+                            rational_surface.length +
+                            3 * selectedPoloidalModeNum.length)
         );
+    figures[1].data = spectrumFigureData;
     figures[1].layout.updatemenus = [
         {
             x: 0.05,
@@ -348,7 +381,7 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
                                     0,
                                     window.GTCGlobal.basicParameters.mpsi,
                                 ],
-                                'yaxis.range': extand_range(
+                                'yaxis.range': extend_range(
                                     min_values[i],
                                     max_values[i]
                                 ),
@@ -357,10 +390,38 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
                         label: ['Even Parity', 'Odd Parity', 'Modulus'][i],
                     };
                 }),
+                ,
+                {
+                    method: 'update',
+                    args: [
+                        {
+                            visible: Array.from(
+                                spectrumFigureData,
+                                (_, ind) =>
+                                    ind < 1 + rational_surface.length ||
+                                    ind >=
+                                        1 +
+                                            rational_surface.length +
+                                            3 * selectedPoloidalModeNum.length
+                            ),
+                        },
+                        {
+                            'xaxis.range': [
+                                0,
+                                window.GTCGlobal.basicParameters.mpsi,
+                            ],
+                            'yaxis.range': extend_range(
+                                0,
+                                extra_spectrum_data[0].max_
+                            ),
+                        },
+                    ],
+                    label: 'Full',
+                },
             ],
         },
     ];
-    figures[1].layout.yaxis.range = extand_range(min_values[2], max_values[2]);
+    figures[1].layout.yaxis.range = extend_range(min_values[2], max_values[2]);
 }
 
 export async function trackingPlot(figures) {
