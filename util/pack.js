@@ -11,6 +11,7 @@ const fileList = [
     'package.json',
     'README.md',
     'server-prod.js',
+    'server-prod.js.LICENSE.txt',
 ];
 
 async function pack() {
