@@ -1,6 +1,10 @@
 'use strict';
 
-export async function historyMode(figures, interval1, interval2) {
+export async function historyMode(
+    figures,
+    interval1 = [0.43, 0.98],
+    interval2 = [0.43, 0.98]
+) {
     // deconstructing figures
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
@@ -72,7 +76,8 @@ export async function historyMode(figures, interval1, interval2) {
     let powerSpectrum = cal_spectrum(
         yReals,
         yImages,
-        window.GTCGlobal.timeStep
+        window.GTCGlobal.timeStep,
+        interval2
     );
     spectralFig.data[0] = Object.assign(powerSpectrum, {
         type: 'scatter',
@@ -515,7 +520,7 @@ export function addSimulationRegion(fig) {
  *
  * @returns {{gamma: number, measurePts:{x:number, y:number}[]}}} growth rate
  */
-export function cal_gamma(ys, dt, interval = [0.43, 0.98]) {
+export function cal_gamma(ys, dt, interval) {
     let [tIni, tEnd] = interval;
 
     let tIniIndex = Math.floor(tIni * ys.length);
@@ -543,7 +548,7 @@ export function cal_gamma(ys, dt, interval = [0.43, 0.98]) {
  *
  * @returns {{omega:number, measurePts:{x:number, y:number}[]}}
  */
-export function cal_omega_r(yReals, yImages, dt, interval = [0.43, 0.98]) {
+export function cal_omega_r(yReals, yImages, dt, interval) {
     let [tIni, tEnd] = interval;
 
     let tIniIndex = Math.floor(tIni * yReals.length);
@@ -599,17 +604,20 @@ export function cal_omega_r(yReals, yImages, dt, interval = [0.43, 0.98]) {
  *
  * @returns {{x: Array<Number>, y: Array<Number>}} power spectrum
  */
-export function cal_spectrum(reals, images, timeStep) {
-    const plan = new fftw['c2c']['fft1d'](reals.length);
+export function cal_spectrum(reals, images, timeStep, interval) {
+    const [t_ini, t_end] = interval.map(t => Math.floor(t * reals.length));
+    const len = t_end - t_ini;
+    const halfLen = Math.floor(len / 2);
 
-    const spectrum = unInterleave(plan.forward(interleave(reals, images))).map(
-        ([re, im]) => Math.sqrt(re * re + im * im)
-    );
+    const plan = new fftw['c2c']['fft1d'](len);
+
+    const spectrum = unInterleave(
+        plan.forward(
+            interleave(reals.slice(t_ini, t_end), images.slice(t_ini, t_end))
+        )
+    ).map(([re, im]) => Math.sqrt(re * re + im * im));
 
     plan.dispose();
-
-    const len = reals.length;
-    const halfLen = Math.floor(len / 2);
 
     return {
         x: [...Array(len).keys()].map(
