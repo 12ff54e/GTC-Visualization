@@ -288,7 +288,8 @@ export async function generateSummary(statut_bar) {
     addParagraph(gridFormation);
 
     // renders math expression
-    MathJax.Hub.Typeset(summary);
+    // MathJax.Hub.Typeset(summary);
+    MathJax.typeset();
 
     return container;
 }
