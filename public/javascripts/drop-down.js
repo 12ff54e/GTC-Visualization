@@ -14,6 +14,12 @@ window.addEventListener(
                         for (const btn of document.querySelectorAll(
                             '.collapsible'
                         )) {
+                            if (
+                                btn.parentElement.parentElement.parentElement
+                                    .parentElement.id === 'recent_ul'
+                            ) {
+                                continue;
+                            }
                             if (btn.innerText == '-') {
                                 btn.click();
                             }
@@ -40,6 +46,19 @@ window.addEventListener(
             const outer_ul = document.querySelector('#outer_ul');
             outer_ul.classList.add('active_list');
             outer_ul.style.height = `${1.3 * calcListHeight(outer_ul)}em`;
+
+            const recent_entries = getRecent(fileTree);
+            const recent_entry_virtual_folder = {
+                dirname: 'Recent Tasks',
+                content: recent_entries,
+                count: { files: recent_entries.length },
+            };
+            const recent_ul = document.querySelector('#recent_ul');
+            recent_ul.append(
+                generateListEntry(recent_entry_virtual_folder, '#recent')
+            );
+            recent_ul.classList.add('active_list');
+            recent_ul.style.height = `${1.3 * calcListHeight(recent_ul)}em`;
         })
     )
 );
@@ -72,16 +91,16 @@ function setHeight(elem, height) {
     }
 }
 
-function getButtonContent(btn) {
+function getButtonContent(btn, tag_suffix = '') {
     const dirEntry = btn.parentElement.parentElement;
     if (!dirEntry.nextElementSibling?.classList.contains('content')) {
-        dirEntry.after(generateContent(dirEntry));
+        dirEntry.after(generateContent(dirEntry, tag_suffix));
     }
     return dirEntry.nextElementSibling;
 }
 
-function toggleList(btn) {
-    const contentUL = getButtonContent(btn);
+function toggleList(btn, tag_suffix = '') {
+    const contentUL = getButtonContent(btn, tag_suffix);
     contentUL.classList.toggle('active_list');
     if (contentUL.classList.contains('active_list')) {
         setHeight(contentUL, 1.3 * calcListHeight(contentUL));
@@ -96,7 +115,7 @@ function toggleList(btn) {
     }
 }
 
-function generateContent(dirEntry) {
+function generateContent(dirEntry, tag_suffix) {
     const fileTree = dirEntry.dirObj;
     const ul = document.createElement('ul');
     ul.classList.add('content');
@@ -104,19 +123,13 @@ function generateContent(dirEntry) {
         if (typeof entry === 'string') {
             continue;
         }
-        entry.parent = fileTree;
-        ul.append(generateListEntry(entry));
+        ul.append(generateListEntry(entry, tag_suffix));
     }
 
     return ul;
 }
 
-function generateListEntry(entry) {
-    const getPath = fileTree => {
-        return fileTree === undefined
-            ? []
-            : [...getPath(fileTree.parent), fileTree.dirname];
-    };
+function generateListEntry(entry, tag_suffix = '') {
     const li = document.createElement('li');
     const entryContainer = document.createElement('div');
     entryContainer.dirObj = entry;
@@ -124,14 +137,14 @@ function generateListEntry(entry) {
 
     if (entry.mTimeMs) {
         // This entry is a gtc output folder
-        const path = getPath(entry).join('/');
+        const path = entry.path;
         const input = document.createElement('input');
-        input.setAttribute('id', path);
+        input.setAttribute('id', `${path}${tag_suffix}`);
         input.setAttribute('value', path);
         input.setAttribute('type', 'radio');
         input.setAttribute('name', 'gtc_output');
         const label = document.createElement('label');
-        label.setAttribute('for', path);
+        label.setAttribute('for', `${path}${tag_suffix}`);
         label.innerText = entry.dirname;
         const modTime = document.createElement('div');
         modTime.classList.add('mod');
@@ -164,7 +177,7 @@ function generateListEntry(entry) {
         listButton.innerText = '+';
         listButton.addEventListener('click', event => {
             event.preventDefault();
-            toggleList(event.target);
+            toggleList(event.target, tag_suffix);
         });
         entryContainer.firstElementChild.prepend(listButton);
     }
@@ -225,4 +238,46 @@ function addLoadingIndicator(func) {
 
         loading.style.visibility = 'hidden';
     };
+}
+
+function getRecent(file_tree) {
+    const RECENT_ENTRIES_COUNT = 3;
+    const recent_entries = [];
+
+    const add_to_recent = entry => {
+        recent_entries.push(entry);
+        recent_entries.sort((a, b) => b.mTimeMs - a.mTimeMs);
+        if (recent_entries.length > RECENT_ENTRIES_COUNT) {
+            recent_entries.pop();
+        }
+    };
+
+    const folder_stack = [[file_tree, 0]];
+    while (folder_stack.length > 0) {
+        const [current_folder, idx] = folder_stack.at(-1);
+        let i = idx;
+        for (; i < current_folder.content.length; ++i) {
+            const entry = current_folder.content[i];
+            if (typeof entry === 'string') {
+                continue;
+            }
+            if (entry.mTimeMs) {
+                entry.path = folder_stack
+                    .map(p => p[0].dirname)
+                    .join('/')
+                    .concat(`/${entry.dirname}`);
+                add_to_recent(entry);
+            }
+            if (entry.count.folders > 1) {
+                folder_stack.at(-1)[1] = i + 1;
+                folder_stack.push([entry, 0]);
+                break;
+            }
+        }
+        if (i == current_folder.content.length) {
+            folder_stack.pop();
+        }
+    }
+
+    return recent_entries;
 }
