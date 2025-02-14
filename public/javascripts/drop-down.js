@@ -55,7 +55,7 @@ window.addEventListener(
             };
             const recent_ul = document.querySelector('#recent_ul');
             recent_ul.append(
-                generateListEntry(recent_entry_virtual_folder, '#recent')
+                generateListEntry(recent_entry_virtual_folder, '#recent', 1)
             );
             recent_ul.classList.add('active_list');
             recent_ul.style.height = `${1.3 * calcListHeight(recent_ul)}em`;
@@ -91,16 +91,16 @@ function setHeight(elem, height) {
     }
 }
 
-function getButtonContent(btn, tag_suffix = '') {
+function getButtonContent(btn, tag_suffix = '', max_depth = -1) {
     const dirEntry = btn.parentElement.parentElement;
     if (!dirEntry.nextElementSibling?.classList.contains('content')) {
-        dirEntry.after(generateContent(dirEntry, tag_suffix));
+        dirEntry.after(generateContent(dirEntry, tag_suffix, max_depth));
     }
     return dirEntry.nextElementSibling;
 }
 
-function toggleList(btn, tag_suffix = '') {
-    const contentUL = getButtonContent(btn, tag_suffix);
+function toggleList(btn, tag_suffix = '', max_depth = -1) {
+    const contentUL = getButtonContent(btn, tag_suffix, max_depth);
     contentUL.classList.toggle('active_list');
     if (contentUL.classList.contains('active_list')) {
         setHeight(contentUL, 1.3 * calcListHeight(contentUL));
@@ -115,7 +115,7 @@ function toggleList(btn, tag_suffix = '') {
     }
 }
 
-function generateContent(dirEntry, tag_suffix) {
+function generateContent(dirEntry, tag_suffix, max_depth) {
     const fileTree = dirEntry.dirObj;
     const ul = document.createElement('ul');
     ul.classList.add('content');
@@ -123,13 +123,19 @@ function generateContent(dirEntry, tag_suffix) {
         if (typeof entry === 'string') {
             continue;
         }
-        ul.append(generateListEntry(entry, tag_suffix));
+        ul.append(
+            generateListEntry(
+                entry,
+                tag_suffix,
+                max_depth > 0 ? max_depth - 1 : max_depth
+            )
+        );
     }
 
     return ul;
 }
 
-function generateListEntry(entry, tag_suffix = '') {
+function generateListEntry(entry, tag_suffix = '', max_depth = -1) {
     const li = document.createElement('li');
     const entryContainer = document.createElement('div');
     entryContainer.dirObj = entry;
@@ -168,8 +174,8 @@ function generateListEntry(entry, tag_suffix = '') {
         entryContainer.firstElementChild.innerText = entry.dirname;
     }
 
-    if (entry.count.files === 1 && entry.mTimeMs) {
-        // This folder has no sub-folders
+    if ((entry.count.files === 1 && entry.mTimeMs) || max_depth === 0) {
+        // This folder has no sub-folders, or max depth has reached
         li.classList.add('tip');
     } else {
         const listButton = document.createElement('button');
@@ -177,7 +183,7 @@ function generateListEntry(entry, tag_suffix = '') {
         listButton.innerText = '+';
         listButton.addEventListener('click', event => {
             event.preventDefault();
-            toggleList(event.target, tag_suffix);
+            toggleList(event.target, tag_suffix, max_depth);
         });
         entryContainer.firstElementChild.prepend(listButton);
     }
@@ -240,6 +246,11 @@ function addLoadingIndicator(func) {
     };
 }
 
+/**
+ * Get recent entries, also add path to each entry
+ * @param file_tree 
+ * @returns 
+ */
 function getRecent(file_tree) {
     const RECENT_ENTRIES_COUNT = 3;
     const recent_entries = [];
