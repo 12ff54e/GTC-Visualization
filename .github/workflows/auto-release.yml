@@ -26,6 +26,7 @@ jobs:
             
       - name: Build
         run: |
+          npm run pack-custom-plotly
           npm run pack
 
       - uses: marvinpinto/action-automatic-releases@latest
