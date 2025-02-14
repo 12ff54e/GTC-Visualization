@@ -5,6 +5,8 @@ body {
 
 #folder_form {
     width: 50%;
+    min-width: 600px;
+    max-width: 1200px;
     margin: 1em auto;
 }
 
@@ -53,6 +55,14 @@ input[name="gtc_output"] {
 }
 
 input + label {
+    display: inline-block;
+    max-width: 30em;
+    height: 1.2em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+
     cursor: pointer;
     transition: all 0.3s ease-out;
 }

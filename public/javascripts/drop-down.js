@@ -152,6 +152,10 @@ function generateListEntry(entry, tag_suffix = '', max_depth = -1) {
         const label = document.createElement('label');
         label.setAttribute('for', `${path}${tag_suffix}`);
         label.innerText = entry.dirname;
+        if (tag_suffix.length > 0) {
+            label.innerText = path;
+            label.title = path;
+        }
         const modTime = document.createElement('div');
         modTime.classList.add('mod');
         modTime.innerHTML = `<div style="display:none">${localeISOLikeForm(
