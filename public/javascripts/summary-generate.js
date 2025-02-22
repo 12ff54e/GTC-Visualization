@@ -123,6 +123,8 @@ export async function generateSummary(statut_bar) {
             : ((value_diag_flux('Te') / data['Te'][0]) *
                   value_diag_flux('ne')) /
               data['ne'][0]);
+    const energetic_ion_beta_diag_flux =
+        value_diag_flux('Tf') * value_diag_flux('nf') * bp['betae'];
     const key_dimensionless_parameters = `At diagnotic flux, density gradient \\(\\epsilon_n=${(
         -1 / inverse_scale_length_diag_flux('ne')
     ).toFixed(4)},\\) \\(\\eta_\\mathrm{i}=${(
@@ -137,7 +139,13 @@ export async function generateSummary(statut_bar) {
                   4
               )},\\) electron beta \\(\\beta_\\mathrm{e}=${electron_beta_diag_flux.toFixed(
                   4
-              )},\\) `
+              )},\\) ${
+                  bp.fload > 0
+                      ? `energetic ion beta \\(\\beta_\\mathrm{f}=${energetic_ion_beta_diag_flux.toFixed(
+                            4
+                        )},\\) `
+                      : ''
+              }`
             : ''
     }temperature ratio \\(\\tau=${(
         value_diag_flux('Te') / value_diag_flux('Ti')
