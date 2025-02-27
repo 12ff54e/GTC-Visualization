@@ -150,13 +150,17 @@ export async function generateSummary(status_bar) {
     }temperature ratio \\(\\tau=${(
         value_diag_flux('Te') / value_diag_flux('Ti')
     ).toFixed(4)},\\) \\(b_\\theta=\\)${[...new Set(bp['mmodes'])]
-        .map(
-            m =>
-                `\\(${(
-                    Math.pow((m / rgDiag) * rho_diag_flux, 2) * bp['aion']
-                ).toFixed(4)}(${m}),\\)`
-        )
-        .join(' ')} for modes in gtc.in respectively.`;
+        .map(m => {
+            const k_rho = (m / rgDiag) * rho_diag_flux * Math.sqrt(bp['aion']);
+            return `<span title=${k_rho.toFixed(
+                4
+            )} class="hover_text">\\(${Math.pow(k_rho, 2).toFixed(
+                4
+            )}(${m}),\\)</span>`;
+        })
+        .join(
+            ' '
+        )} for modes in gtc.in respectively, number in bracket is m mode number.`;
     addParagraph(key_dimensionless_parameters);
 
     // check rg monotonicity

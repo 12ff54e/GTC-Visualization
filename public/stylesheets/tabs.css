@@ -393,3 +393,11 @@ input.eq-1d-y:checked + label {
 #summary-page span.error {
     color: crimson;
 }
+
+#summary-page .hover_text {
+    transition: all 0.35s;
+}
+#summary-page .hover_text:hover {
+    color:gray
+}
+
