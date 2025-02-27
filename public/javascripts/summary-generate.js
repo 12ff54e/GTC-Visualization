@@ -1,4 +1,4 @@
-export async function generateSummary(statut_bar) {
+export async function generateSummary(status_bar) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -125,7 +125,7 @@ export async function generateSummary(statut_bar) {
               data['ne'][0]);
     const energetic_ion_beta_diag_flux =
         value_diag_flux('Tf') * value_diag_flux('nf') * bp['betae'];
-    const key_dimensionless_parameters = `At diagnotic flux, density gradient \\(\\epsilon_n=${(
+    const key_dimensionless_parameters = `At diagnostic flux, density gradient \\(\\epsilon_n=${(
         -1 / inverse_scale_length_diag_flux('ne')
     ).toFixed(4)},\\) \\(\\eta_\\mathrm{i}=${(
         inverse_scale_length_diag_flux('Ti') /
@@ -161,7 +161,7 @@ export async function generateSummary(statut_bar) {
 
     // check rg monotonicity
     if (data.rg.every((v, i, a) => !i || a[i - 1] <= v)) {
-        statut_bar.warn = 'rg is not monotonic';
+        status_bar.warn = 'rg is not monotonic';
     }
 
     const particleLoading = (varName, pload) =>

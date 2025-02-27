@@ -497,9 +497,9 @@ function cleanPanel() {
         p.style.zIndex = 1;
     }
 
-    const recal = panel.querySelector('#History-panel').firstElementChild;
-    if (recal) {
-        recal.style.height = '0rem';
+    const recalculate = panel.querySelector('#History-panel').firstElementChild;
+    if (recalculate) {
+        recalculate.style.height = '0rem';
     }
 
     const summary = document.querySelector('#container');
@@ -529,15 +529,16 @@ async function getDataThenPlot() {
     let figures = await res.json();
 
     // some figures need some local calculation
-    const recal = document.getElementById('History-panel').firstElementChild;
+    const recalculate =
+        document.getElementById('History-panel').firstElementChild;
     if (this.id.startsWith('History')) {
-        recal.style.height = '0rem';
+        recalculate.style.height = '0rem';
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
         window.GTCGlobal.hist_mode_range.frequency = undefined;
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
-        recal.style.height = '3.5rem';
+        recalculate.style.height = '3.5rem';
     } else if (
         this.id.startsWith('Snapshot') &&
         this.id.endsWith('-spectrum')
