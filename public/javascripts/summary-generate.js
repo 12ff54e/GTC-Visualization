@@ -124,7 +124,10 @@ export async function generateSummary(status_bar) {
                   value_diag_flux('ne')) /
               data['ne'][0]);
     const energetic_ion_beta_diag_flux =
-        value_diag_flux('Tf') * value_diag_flux('nf') * bp['betae'];
+        (electron_beta_diag_flux *
+            value_diag_flux('Tf') *
+            value_diag_flux('nf')) /
+        (value_diag_flux('Te') * value_diag_flux('ne'));
     const key_dimensionless_parameters = `At diagnostic flux, density gradient \\(\\epsilon_n=${(
         -1 / inverse_scale_length_diag_flux('ne')
     ).toFixed(4)},\\) \\(\\eta_\\mathrm{i}=${(
