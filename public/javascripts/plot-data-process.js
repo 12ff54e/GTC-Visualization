@@ -145,6 +145,7 @@ export async function snapshotSpectrum(figures) {
 }
 
 export function snapshotPoloidal(figures, statusBar, safetyFactor) {
+    const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
 
     // add carpet indices
@@ -200,7 +201,7 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
         ...new Set(window.GTCGlobal.basicParameters.mmodes),
     ];
     const modeNum = selectedPoloidalModeNum.length;
-    if (Math.floor(polNum / 10) < Math.max(...selectedPoloidalModeNum)) {
+    if (Math.floor(polNum / MIN_PTS) < Math.max(...selectedPoloidalModeNum)) {
         statusBar.warn = 'm modes in gtc.in is too high!';
     }
 
@@ -225,7 +226,7 @@ export function snapshotPoloidal(figures, statusBar, safetyFactor) {
     }
     const plan = window.GTCGlobal.fftPlan;
 
-    const extra_spectrum_data = Array.from({ length: polNum / 20 }, (_, i) => {
+    const extra_spectrum_data = Array.from({ length: polNum / MIN_PTS }, (_, i) => {
         return {
             y: [],
             name: `m = ${i}`,
