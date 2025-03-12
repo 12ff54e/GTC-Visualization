@@ -110,8 +110,12 @@ window.addEventListener('load', () => {
         btn.addEventListener(
             'click',
             wrap(async e => {
+                for (let b of e.target.parentElement.children) {
+                    b.classList.remove('snapshot-selected');
+                }
+                e.target.classList.add('snapshot-selected');
                 // set current snapshot file
-                window.GTCGlobal.current_snapshot_id = e.target.id;
+                window.GTCGlobal.current_snapshot = e.target;
                 await addLoadingIndicator(callEventTarget(openPanel))(e);
             })
         );
@@ -491,12 +495,10 @@ async function openPanel(clean_beforehand = true) {
             create_l1_group(
                 ['previous snapshot', 'next snapshot'],
                 async function () {
-                    let current_snapshot = document.querySelector(
-                        `#${CSS.escape(GTCGlobal.current_snapshot_id)}`
-                    );
+                    const current_snapshot = GTCGlobal.current_snapshot;
                     if (this.innerText.startsWith('prev')) {
                         if (current_snapshot.previousElementSibling) {
-                            current_snapshot =
+                            GTCGlobal.current_snapshot =
                                 current_snapshot.previousElementSibling;
                         } else {
                             alert('No previous snapshot');
@@ -504,20 +506,21 @@ async function openPanel(clean_beforehand = true) {
                         }
                     } else {
                         if (current_snapshot.nextElementSibling) {
-                            current_snapshot =
+                            GTCGlobal.current_snapshot =
                                 current_snapshot.nextElementSibling;
                         } else {
                             alert('No next snapshot');
                             return;
                         }
                     }
-                    GTCGlobal.current_snapshot_id = current_snapshot.id;
-                    await openPanel.call(current_snapshot, false);
-                    if (GTCGlobal.current_snapshot_figure_id) {
+                    current_snapshot.classList.remove('snapshot-selected');
+                    GTCGlobal.current_snapshot.classList.add(
+                        'snapshot-selected'
+                    );
+                    await openPanel.call(GTCGlobal.current_snapshot, false);
+                    if (GTCGlobal.current_snapshot_figure) {
                         await getDataThenPlot.call(
-                            document.querySelector(
-                                `#${GTCGlobal.current_snapshot_figure_id}`
-                            ),
+                            GTCGlobal.current_snapshot_figure,
                             false
                         );
                     }
@@ -546,6 +549,8 @@ function cleanPlot() {
     for (let fig of document.getElementById('figure-wrapper').children) {
         fig.classList.remove('active');
     }
+
+    GTCGlobal.current_snapshot_figure = undefined;
 }
 
 function cleanPanel() {
@@ -623,7 +628,7 @@ async function getDataThenPlot(clean_beforehand = true) {
                 snapshotPoloidal(figures, getStatusBar());
             }
         }
-        GTCGlobal.current_snapshot_figure_id = this.id;
+        GTCGlobal.current_snapshot_figure = this;
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
