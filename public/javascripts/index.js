@@ -96,8 +96,11 @@ window.addEventListener('load', () => {
                 'change',
                 wrap(async e => {
                     // collapse snapshot file list
-                    let div = document.getElementById('files');
+                    const div = document.getElementById('files');
                     div.style.height = '';
+                    for (const btn of div.children) {
+                        btn.classList.remove('snapshot-selected');
+                    }
                     await addLoadingIndicator(callEventTarget(openPanel))(e);
                 })
             );
