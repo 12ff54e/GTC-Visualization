@@ -3,7 +3,7 @@
  */
 class PlotType {
     /**
-     * @param {string} filePath 
+     * @param {string} filePath
      * @param {object} basicParams GTCOutput.parameters
      */
     constructor(filePath, basicParams) {
@@ -11,10 +11,14 @@ class PlotType {
 
         if (basicParams) {
             let { iload, nhybrid, fload, feload } = basicParams;
-            this.existingParticles =
-                ['ion', 'electron', 'EP', 'fast_electron'].filter((_, i) => {
-                    return [iload, nhybrid, fload, feload][i] > 0
-                });
+            this.existingParticles = [
+                'ion',
+                'electron',
+                'EP',
+                'fast_electron',
+            ].filter((_, i) => {
+                return [iload, nhybrid, fload, feload][i] > 0;
+            });
         }
 
         this.isTimeSeriesData = false;
@@ -29,23 +33,28 @@ class PlotType {
      *  as a generator.
      * Subclass should set `isTimeSeriesData` property to indicate whether
      *  data it read are times series. If so, set `initBlockSize`, `entryPerStep`
-     *  and `expectedStepNumber` property for completion check. 
+     *  and `expectedStepNumber` property for completion check.
      * These value will be checked after final call of `parseLine().next()`.
-     * 
-     * @param {string} filePath 
+     *
+     * @param {string} filePath
      * @param {object} basicParams GTCOutput.parameters
      */
     static async readDataFile(filePath, basicParams) {
         const { once } = require('events');
-        const { createReadStream, promises: {stat}} = require('fs');
+        const {
+            createReadStream,
+            promises: { stat },
+        } = require('fs');
         const { createInterface } = require('readline');
 
         // For error handling
         await stat(filePath);
-        
+
         const rl = createInterface({
-            input: createReadStream(filePath).on('error', (err) => console.log(err)),
-            ctrlDelay: Infinity
+            input: createReadStream(filePath).on('error', err =>
+                console.log(err)
+            ),
+            ctrlDelay: Infinity,
         });
 
         const data = new this(filePath, basicParams);
@@ -64,14 +73,34 @@ class PlotType {
 
         // formal way to check the length of time series data
         if (data.isTimeSeriesData) {
-            data.stepNumber =
-                Math.floor((lineNum - data.initBlockSize) / data.entryPerStep);
+            data.stepNumber = Math.floor(
+                (lineNum - data.initBlockSize) / data.entryPerStep
+            );
             data.isCompleted = data.expectedStepNumber === data.stepNumber;
         }
 
         console.log(`${filePath} read`);
 
         return data;
+    }
+
+    deal_with_particle_species(particlePlotTypes) {
+        if (this.speciesNumber > this.existingParticles.length) {
+            // unknown particle exists
+            for (
+                let i = this.existingParticles.length;
+                i < this.speciesNumber;
+                i++
+            ) {
+                const particle_name = `unknown${
+                    i - this.existingParticles.length
+                }`;
+                this.existingParticles.push(particle_name);
+                this.plotTypes.push(
+                    particlePlotTypes.map(p => `${particle_name}-${p}`)
+                );
+            }
+        }
     }
 }
 
