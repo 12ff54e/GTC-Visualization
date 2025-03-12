@@ -66,7 +66,8 @@ function getStatusBar() {
 //      hist_mode_range;
 //      basicParameters;
 //      timeStep;
-//      current_snapshot;
+//      current_snapshot_id;
+//      current_snapshot_figure_id;
 //  }
 window.GTCGlobal = new Object();
 
@@ -510,6 +511,13 @@ async function openPanel() {
                     }
                     GTCGlobal.current_snapshot_id = current_snapshot.id;
                     await openPanel.call(current_snapshot);
+                    if (GTCGlobal.current_snapshot_figure_id) {
+                        await getDataThenPlot.call(
+                            document.querySelector(
+                                `#${GTCGlobal.current_snapshot_figure_id}`
+                            )
+                        );
+                    }
                 }
             )
         );
@@ -586,34 +594,31 @@ async function getDataThenPlot() {
         window.GTCGlobal.hist_mode_range.frequency = undefined;
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
         recalculate.style.height = '3.5rem';
-    } else if (
-        this.id.startsWith('Snapshot') &&
-        this.id.endsWith('-spectrum')
-    ) {
-        await snapshotSpectrum(figures);
-    } else if (
-        this.id.startsWith('Snapshot') &&
-        this.id.endsWith('-poloidal')
-    ) {
-        const res = await requestPlotData('plotType/Equilibrium', true);
-        if (res.ok) {
-            snapshotPoloidal(
-                figures,
-                getStatusBar(),
-                (
-                    await (
-                        await requestPlotData(
-                            'data/Equilibrium-1D-rg_n-q',
-                            true
-                        )
-                    ).json()
-                )
-                    ?.at(0)
-                    ?.data?.at(0)
-            );
-        } else {
-            snapshotPoloidal(figures, getStatusBar());
+    } else if (this.id.startsWith('Snapshot')) {
+        if (this.id.endsWith('-spectrum')) {
+            await snapshotSpectrum(figures);
+        } else if (this.id.endsWith('-poloidal')) {
+            const res = await requestPlotData('plotType/Equilibrium', true);
+            if (res.ok) {
+                snapshotPoloidal(
+                    figures,
+                    getStatusBar(),
+                    (
+                        await (
+                            await requestPlotData(
+                                'data/Equilibrium-1D-rg_n-q',
+                                true
+                            )
+                        ).json()
+                    )
+                        ?.at(0)
+                        ?.data?.at(0)
+                );
+            } else {
+                snapshotPoloidal(figures, getStatusBar());
+            }
         }
+        GTCGlobal.current_snapshot_figure_id = this.id;
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
