@@ -346,7 +346,7 @@ async function getBasicParameters() {
     }
 }
 
-async function openPanel() {
+async function openPanel(clean_beforehand = true) {
     if (this.id == 'Summary') {
         await getBasicParameters();
         const summaryContainer = await generateSummary(getStatusBar());
@@ -387,7 +387,9 @@ async function openPanel() {
     const statusBar = document.getElementById('status').status;
 
     cleanPanel();
-    cleanPlot();
+    if (clean_beforehand) {
+        cleanPlot();
+    }
     let panel = document.getElementById(panelName);
     panel.style.opacity = 1;
     panel.style.zIndex = 2;
@@ -510,12 +512,13 @@ async function openPanel() {
                         }
                     }
                     GTCGlobal.current_snapshot_id = current_snapshot.id;
-                    await openPanel.call(current_snapshot);
+                    await openPanel.call(current_snapshot, false);
                     if (GTCGlobal.current_snapshot_figure_id) {
                         await getDataThenPlot.call(
                             document.querySelector(
                                 `#${GTCGlobal.current_snapshot_figure_id}`
-                            )
+                            ),
+                            false
                         );
                     }
                 }
@@ -572,8 +575,10 @@ function addLoadingIndicator(func) {
     };
 }
 
-async function getDataThenPlot() {
-    cleanPlot();
+async function getDataThenPlot(clean_beforehand = true) {
+    if (clean_beforehand) {
+        cleanPlot();
+    }
 
     const res = await fetch(
         `plot/data/${this.id}?dir=${
