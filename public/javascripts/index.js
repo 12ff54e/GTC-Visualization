@@ -62,6 +62,12 @@ function getStatusBar() {
 }
 
 // global vars
+//  {
+//      hist_mode_range;
+//      basicParameters;
+//      timeStep;
+//      current_snapshot;
+//  }
 window.GTCGlobal = new Object();
 
 // use for history mode interaction
@@ -102,7 +108,11 @@ window.addEventListener('load', () => {
     for (let btn of document.getElementById('files').children) {
         btn.addEventListener(
             'click',
-            wrap(addLoadingIndicator(callEventTarget(openPanel)))
+            wrap(async e => {
+                // set current snapshot file
+                window.GTCGlobal.current_snapshot_id = e.target.id;
+                await addLoadingIndicator(callEventTarget(openPanel))(e);
+            })
         );
     }
 
@@ -314,11 +324,11 @@ function addDownloadFunction() {
     );
 }
 
-function registerButtons(buttons) {
+function registerButtons(buttons, cb = getDataThenPlot) {
     buttons.forEach(btn => {
         btn.addEventListener(
             'click',
-            wrap(addLoadingIndicator(callEventTarget(getDataThenPlot)))
+            wrap(addLoadingIndicator(callEventTarget(cb)))
         );
     });
 }
@@ -416,9 +426,11 @@ async function openPanel() {
         btn_id_array = [poloidalPlane, others];
         createEqPanel1D(x, y);
     }
-    btn_id_array.map(type => {
+
+    // group is array of strings used as button id
+    const create_l1_group = (group, cb) => {
         let subDiv = document.createElement('div');
-        const btns = type.map(btnID => {
+        const btns = group.map(btnID => {
             let btn = document.createElement('button');
             btn.setAttribute('id', `${majorType}-${btnID}`);
             btn.setAttribute('class', 'tab-l1-btn');
@@ -427,8 +439,11 @@ async function openPanel() {
 
             return btn;
         });
-        registerButtons(btns);
-        panel.appendChild(subDiv);
+        registerButtons(btns, cb);
+        return subDiv;
+    };
+    btn_id_array.forEach(group => {
+        panel.appendChild(create_l1_group(group));
     });
 
     if (this.id === 'History') {
@@ -466,6 +481,38 @@ async function openPanel() {
         div.classList.add('dropdown');
         div.append(btn);
         panel.prepend(div);
+    }
+
+    if (this.id.startsWith('snap')) {
+        panel.appendChild(
+            create_l1_group(
+                ['previous snapshot', 'next snapshot'],
+                async function () {
+                    let current_snapshot = document.querySelector(
+                        `#${CSS.escape(GTCGlobal.current_snapshot_id)}`
+                    );
+                    if (this.innerText.startsWith('prev')) {
+                        if (current_snapshot.previousElementSibling) {
+                            current_snapshot =
+                                current_snapshot.previousElementSibling;
+                        } else {
+                            alert('No previous snapshot');
+                            return;
+                        }
+                    } else {
+                        if (current_snapshot.nextElementSibling) {
+                            current_snapshot =
+                                current_snapshot.nextElementSibling;
+                        } else {
+                            alert('No next snapshot');
+                            return;
+                        }
+                    }
+                    GTCGlobal.current_snapshot_id = current_snapshot.id;
+                    await openPanel.call(current_snapshot);
+                }
+            )
+        );
     }
 }
 
