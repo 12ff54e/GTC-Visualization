@@ -124,14 +124,13 @@ class History extends PlotType {
             // field
             if (!type.includes('mode')) {
                 // point value
-                let plotType = type === 'point' ? 0 : 2;
+                let plot_type_index = type === 'point' ? 0 : 2;
                 for (let i = 0; i < 2; i++) {
                     let figure = new PlotlyData();
                     figure.data.push({
-                        y: this.fieldTimeSeriesData[cat][i + plotType].slice(
-                            0,
-                            this.stepNumber
-                        ),
+                        y: this.fieldTimeSeriesData[cat][
+                            i + plot_type_index
+                        ].slice(0, this.stepNumber),
                         mode: 'lines',
                     });
                     figure.addX(timeStep);
@@ -150,6 +149,30 @@ class History extends PlotType {
                         y: '',
                     };
                     figureContainer.push(figure);
+
+                    if (plot_type_index == 2) {
+                        // add log plot of RMS
+                        let figure = new PlotlyData();
+                        figure.data.push({
+                            y: this.fieldTimeSeriesData[cat][
+                                i + plot_type_index
+                            ]
+                                .slice(0, this.stepNumber)
+                                .map(val => Math.log(val)),
+                            mode: 'lines',
+                        });
+                        figure.addX(timeStep);
+                        figure.plotLabel = `$${
+                            i == 0
+                                ? '\\text{ZF}'
+                                : PlotType.fieldDisplayName[cat]
+                        }\\text{ RMS}\\ (\\log)$`;
+                        figure.axesLabel = {
+                            x: tu,
+                            y: '',
+                        };
+                        figureContainer.push(figure);
+                    }
                 }
             } else {
                 // mode value
