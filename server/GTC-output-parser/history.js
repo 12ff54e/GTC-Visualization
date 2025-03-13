@@ -240,7 +240,11 @@ class History extends PlotType {
                         figure.plotLabel =
                             i == 0
                                 ? '$\\text{Energy flow}$'
-                                : '$\\text{Total density}$';
+                                : `$\\text{${
+                                      this.particleDiagnosticNumber == 10
+                                          ? 'Total density'
+                                          : 'Runaway Fraction'
+                                  }}$`;
                 }
                 figureContainer.push(figure);
             }
