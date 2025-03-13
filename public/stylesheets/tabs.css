@@ -366,7 +366,7 @@ input.eq-1d-y:checked + label {
     transition: 0.3s ease-in-out;
 }
 #summary-page > .summary-figure-container-show {
-    height: calc(400px + 2em);
+    height: calc(400px + 4em + 20px);
 }
 .summary-figure-wrapper {
     width: 600px;
@@ -379,13 +379,14 @@ input.eq-1d-y:checked + label {
 }
 .summary-figure-button-div {
     margin: 0em 1em 0.5em;
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     align-items: stretch;
     justify-content: space-evenly;
 }
 .summary-figure-button-div > button {
     padding-block: 0;
+    margin: 0 0 5px 2em;
 }
 
 #summary-page span.good {

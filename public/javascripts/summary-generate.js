@@ -264,6 +264,30 @@ export async function generateSummary(status_bar) {
                 data: calc_gradient('ni'),
             },
             {
+                title: 'Energetic Ion Temperature',
+                tag: '$T_\\text{f}$',
+                buttonText: '\\(T_\\text{f}\\)',
+                data: data['Tf'],
+            },
+            {
+                title: 'Energetic Ion Temperature Gradient',
+                tag: '$\\frac{R_0}{L_\\text{T}}$',
+                buttonText: '\\(R_0/L_\\text{T}\\)<code>(f)</code>',
+                data: calc_gradient('Tf'),
+            },
+            {
+                title: 'Energetic Ion Density',
+                tag: '$n_\\text{f}$',
+                buttonText: '\\(n_\\text{f}\\)',
+                data: data['nf'],
+            },
+            {
+                title: 'Energetic Ion Density Gradient',
+                tag: '$\\frac{R_0}{L_\\text{n}}$',
+                buttonText: '\\(R_0/L_\\text{n}\\)<code>(f)</code>',
+                data: calc_gradient('nf'),
+            },
+            {
                 title: 'Ion Eta',
                 tag: '$\\eta_i$',
                 buttonText: '\\(\\eta_\\text{i}\\)',
