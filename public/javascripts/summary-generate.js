@@ -54,6 +54,8 @@ export async function generateSummary(status_bar) {
         interpolationDerivativeAt(rgDiag, data['rg'], data[profile_name]) /
         value_diag_flux(profile_name);
 
+    const qprime = derivative(data['rg'], data['q']);
+
     const safety_factor = value_diag_flux('q');
     const properModeIndex = bp.nmodes.reduce(
         (acc, val, idx) => {
@@ -71,6 +73,9 @@ export async function generateSummary(status_bar) {
         4
     )}\\), shear \\(\\hat{s}=r\\mathrm{d\\,ln}q/\\mathrm{d}r=${(
         inverse_scale_length_diag_flux('q') * rgDiag
+    ).toFixed(4)}\\), \\(s_{2}=r^{2}q^{\\prime\\prime}/q^{2}=${(
+        interpolationDerivativeAt(rgDiag, data['rg'], qprime) *
+        Math.pow(rgDiag / value_diag_flux('q'), 2)
     ).toFixed(
         4
     )}\\) (<button id="summary-safety-factor" class="summary-figure-button">show/hide figure</button>). Among 8 modes you choose, the ${
@@ -85,6 +90,8 @@ export async function generateSummary(status_bar) {
         properModeIndex + 1
     }</button>.`;
     addParagraph(diagFluxProp);
+
+    const qpp = derivative(data['rg'], qprime);
 
     const normalizedMinorRadius = {
         tag: '$r$',
@@ -103,9 +110,14 @@ export async function generateSummary(status_bar) {
             {
                 title: 'Shear',
                 tag: '$\\hat{s}$',
+                data: zip((qp, r, q) => (qp * r) / q, qprime, data.rg, data.q),
+            },
+            {
+                title: 'Reverse Shear Coefficient',
+                tag: '$s_2$',
                 data: zip(
-                    (dq, r, q) => (dq * r * r) / q,
-                    data['dlnq_dpsi'],
+                    (qpp, r, q) => qpp * Math.pow(r / q, 2),
+                    qpp,
                     data.rg,
                     data.q
                 ),
