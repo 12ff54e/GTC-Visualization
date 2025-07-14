@@ -1,6 +1,6 @@
 const PlotlyData = require('./PlotlyData.js');
 const PlotType = require('./PlotType.js');
-const { range } = require('./util.js');
+const { range, add_to_subscript } = require('./util.js');
 
 const particlePlotTypes = [
     'density',
@@ -138,7 +138,10 @@ class History extends PlotType {
                         type === 'point'
                             ? i == 0
                                 ? `$${PlotType.fieldDisplayName[cat]} (\\theta=\\zeta=0)$`
-                                : `$${PlotType.fieldDisplayName[cat]}_{00} (\\text{iflux@diag})$`
+                                : `$${add_to_subscript(
+                                      PlotType.fieldDisplayName[cat],
+                                      '00'
+                                  )} (\\text{iflux@diag})$`
                             : `$${
                                   i == 0
                                       ? '\\text{ZF}'

@@ -61,7 +61,12 @@ function range(initOrLen, end) {
     }
 }
 
+function add_to_subscript(expr, sub) {
+    const m = expr.match(/([^_]+)(?:\_\{(\S+)\})?/);
+    return `${m[1]}_{${m[2] ?? ''}${sub}}`;
+}
 
 module.exports.part = part;
 module.exports.flat = flat;
 module.exports.range = range;
+module.exports.add_to_subscript = add_to_subscript;

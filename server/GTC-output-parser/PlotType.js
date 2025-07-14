@@ -106,9 +106,9 @@ class PlotType {
 
 PlotType.fieldID = ['phi', 'a_para', 'fluid_ne']
 PlotType.fieldDisplayName = {
-    'phi': '\\phi',
-    'a_para': '\\delta A_{\\parallel}',
-    'fluid_ne': '\\mathrm{fluid}\\,n_e'
-}
+    phi: '\\phi',
+    a_para: '\\delta A_{\\parallel}',
+    fluid_ne: '\\mathrm{fluid}\\,n_{e}',
+};
 
 module.exports = PlotType;
