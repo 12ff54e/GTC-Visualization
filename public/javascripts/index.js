@@ -642,16 +642,21 @@ async function getDataThenPlot(clean_beforehand = true) {
     }
 
     await Promise.all(
-        figures.map(({ data, layout }, idx) => {
+        figures.map(({ data, layout, force_redraw }, idx) => {
             const fig_div = document.querySelector(`#figure-${idx + 1}`);
             fig_div.classList.add('active');
             // restore height
             if (layout.height === undefined) {
                 layout.height = 450;
             }
-            return Plotly.react(fig_div, data, layout, {
-                editable: true,
-            });
+            return (force_redraw ? Plotly.newPlot : Plotly.react)(
+                fig_div,
+                data,
+                layout,
+                {
+                    editable: true,
+                }
+            );
         })
     );
 
