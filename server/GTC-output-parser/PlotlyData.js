@@ -22,16 +22,16 @@ class PlotlyData {
         }
 
         this.layout = {
-            title: 'Plot',
+            title: { text: 'Plot' },
             xaxis: {
                 hoverformat: '.4g',
-                tickformat: '.4g'
+                tickformat: '.4g',
             },
             yaxis: {
                 hoverformat: '.4g',
-                tickformat: '.4g'
-            }
-        }
+                tickformat: '.4g',
+            },
+        };
     }
 
     /**
@@ -110,7 +110,7 @@ class PlotlyData {
      * @param {string} label
      */
     set plotLabel(label) {
-        this.layout.title = label;
+        this.layout.title.text = label;
     }
 }
 
