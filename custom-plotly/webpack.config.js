@@ -18,6 +18,10 @@ module.exports = {
                     'transform-loader?plotly.js/tasks/compress_attributes.js',
                 ],
             },
+            {
+                test: /\.css$/i,
+                use: ['style-loader', 'css-loader'],
+            },
         ],
     },
 };
