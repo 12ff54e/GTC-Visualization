@@ -355,34 +355,7 @@ async function getBasicParameters() {
 
 async function openPanel(clean_beforehand = true) {
     if (this.id == 'Summary') {
-        await getBasicParameters();
-        const summaryContainer = await generateSummary(getStatusBar());
-
-        if (summaryContainer === undefined) {
-            // summary page is already generated
-            return;
-        }
-
-        // register jump button on summary page
-        summaryContainer
-            .querySelectorAll('.summary-jump-button')
-            .forEach(btn => {
-                btn.addEventListener(
-                    'click',
-                    wrap(async e => {
-                        e.preventDefault();
-                        const panelSwitch = document.querySelector(
-                            `#${btn.id.split('-')[1]}`
-                        );
-                        await addLoadingIndicator(
-                            openPanel.bind(panelSwitch)
-                        )();
-
-                        panelSwitch.checked = true;
-                        document.querySelector(`#${btn.id.slice(8)}`).click();
-                    })
-                );
-            });
+        await buildSummaryPage();
         return;
     }
 
@@ -457,7 +430,7 @@ async function openPanel(clean_beforehand = true) {
     });
 
     if (this.id === 'History') {
-        addRecal(panel);
+        addHistoryRecal(panel);
     }
 
     if (this.id.startsWith('snap')) {
@@ -465,7 +438,34 @@ async function openPanel(clean_beforehand = true) {
     }
 }
 
-async function addRecal(panel) {
+async function buildSummaryPage() {
+    await getBasicParameters();
+    const summaryContainer = await generateSummary(getStatusBar());
+
+    if (summaryContainer === undefined) {
+        // summary page is already generated
+        return;
+    }
+
+    // register jump button on summary page
+    summaryContainer.querySelectorAll('.summary-jump-button').forEach(btn => {
+        btn.addEventListener(
+            'click',
+            wrap(async e => {
+                e.preventDefault();
+                const panelSwitch = document.querySelector(
+                    `#${btn.id.split('-')[1]}`
+                );
+                await addLoadingIndicator(openPanel.bind(panelSwitch))();
+
+                panelSwitch.checked = true;
+                document.querySelector(`#${btn.id.slice(8)}`).click();
+            })
+        );
+    });
+}
+
+function addHistoryRecal(panel) {
     if (!window.GTCGlobal.timeStep) {
         window.GTCGlobal.timeStep =
             window.GTCGlobal.basicParameters.ndiag *
@@ -645,30 +645,7 @@ async function getDataThenPlot(clean_beforehand = true) {
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
         recalculate.style.height = '3.5rem';
     } else if (this.id.startsWith('Snapshot')) {
-        if (this.id.endsWith('-spectrum')) {
-            await snapshotSpectrum(figures);
-        } else if (this.id.endsWith('-poloidal')) {
-            const res = await requestPlotData('plotType/Equilibrium', true);
-            if (res.ok) {
-                snapshotPoloidal(
-                    figures,
-                    getStatusBar(),
-                    (
-                        await (
-                            await requestPlotData(
-                                'data/Equilibrium-1D-rg_n-q',
-                                true
-                            )
-                        ).json()
-                    )
-                        ?.at(0)
-                        ?.data?.at(0)
-                );
-            } else {
-                snapshotPoloidal(figures, getStatusBar());
-            }
-        }
-        GTCGlobal.current_snapshot_figure = this;
+        await snapshotPreprocess(this, figures);
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
@@ -698,33 +675,69 @@ async function getDataThenPlot(clean_beforehand = true) {
     );
 
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        document
-            .getElementById('figure-2')
-            .on('plotly_relayout', function (eventData) {
-                if (eventData['xaxis.range']) {
-                    window.GTCGlobal.hist_mode_range.growthRate =
-                        eventData['xaxis.range'].slice();
-                } else if (eventData['xaxis.range[0]']) {
-                    window.GTCGlobal.hist_mode_range.growthRate = [
-                        eventData['xaxis.range[0]'],
-                        eventData['xaxis.range[1]'],
-                    ];
-                }
-            });
-        document
-            .getElementById('figure-3')
-            .on('plotly_relayout', function (eventData) {
-                if (eventData['xaxis.range']) {
-                    window.GTCGlobal.hist_mode_range.frequency =
-                        eventData['xaxis.range'].slice();
-                } else if (eventData['xaxis.range[0]']) {
-                    window.GTCGlobal.hist_mode_range.frequency = [
-                        eventData['xaxis.range[0]'],
-                        eventData['xaxis.range[1]'],
-                    ];
-                }
-            });
+        if (!window.GTCGlobal.hist_mode_range.ev_listener_added) {
+            updateHistoryModeRange();
+        }
+        window.GTCGlobal.hist_mode_range.ev_listener_added = true;
     }
+}
+
+async function snapshotPreprocess(btn, figures) {
+    if (btn.id.endsWith('-spectrum')) {
+        await snapshotSpectrum(figures);
+    } else if (btn.id.endsWith('-poloidal')) {
+        const res = await requestPlotData('plotType/Equilibrium', true);
+        if (res.ok) {
+            snapshotPoloidal(
+                figures,
+                getStatusBar(),
+                (
+                    await (
+                        await requestPlotData(
+                            'data/Equilibrium-1D-rg_n-q',
+                            true
+                        )
+                    ).json()
+                )
+                    ?.at(0)
+                    ?.data?.at(0)
+            );
+        } else {
+            snapshotPoloidal(figures, getStatusBar());
+        }
+    }
+    GTCGlobal.current_snapshot_figure = btn;
+}
+
+function updateHistoryModeRange() {
+    document
+        .getElementById('figure-2')
+        .on('plotly_relayout', function (eventData) {
+            console.log(eventData);
+            if (eventData['xaxis.range']) {
+                window.GTCGlobal.hist_mode_range.growthRate =
+                    eventData['xaxis.range'].slice();
+            } else if (eventData['xaxis.range[0]']) {
+                window.GTCGlobal.hist_mode_range.growthRate = [
+                    eventData['xaxis.range[0]'],
+                    eventData['xaxis.range[1]'],
+                ];
+            }
+        });
+    document
+        .getElementById('figure-3')
+        .on('plotly_relayout', function (eventData) {
+            console.log(eventData);
+            if (eventData['xaxis.range']) {
+                window.GTCGlobal.hist_mode_range.frequency =
+                    eventData['xaxis.range'].slice();
+            } else if (eventData['xaxis.range[0]']) {
+                window.GTCGlobal.hist_mode_range.frequency = [
+                    eventData['xaxis.range[0]'],
+                    eventData['xaxis.range[1]'],
+                ];
+            }
+        });
 }
 
 function createEqPanel1D(xDataTypes, yDataTypes) {
