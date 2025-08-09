@@ -457,18 +457,29 @@ async function openPanel(clean_beforehand = true) {
     });
 
     if (this.id === 'History') {
-        if (!window.GTCGlobal.timeStep) {
-            window.GTCGlobal.timeStep =
-                window.GTCGlobal.basicParameters.ndiag *
-                window.GTCGlobal.basicParameters.tstep;
-        }
+        addRecal(panel);
+    }
 
-        const div = document.createElement('div');
-        const btn = document.createElement('button');
-        btn.innerText =
-            'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
-        btn.classList.add('tab-l1-btn');
-        btn.addEventListener('click', async function () {
+    if (this.id.startsWith('snap')) {
+        addSnapshotPlayer(panel, create_l1_group);
+    }
+}
+
+async function addRecal(panel) {
+    if (!window.GTCGlobal.timeStep) {
+        window.GTCGlobal.timeStep =
+            window.GTCGlobal.basicParameters.ndiag *
+            window.GTCGlobal.basicParameters.tstep;
+    }
+
+    const div = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.innerText =
+        'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+    btn.classList.add('tab-l1-btn');
+    btn.addEventListener(
+        'click',
+        wrap(async function () {
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
@@ -486,16 +497,12 @@ async function openPanel(clean_beforehand = true) {
             figures.forEach(figure => {
                 Plotly.react(figure, figure.data, figure.layout);
             });
-        });
+        })
+    );
 
-        div.classList.add('dropdown');
-        div.append(btn);
-        panel.prepend(div);
-    }
-
-    if (this.id.startsWith('snap')) {
-        addSnapshotPlayer(panel, create_l1_group);
-    }
+    div.classList.add('dropdown');
+    div.append(btn);
+    panel.prepend(div);
 }
 
 async function addSnapshotPlayer(panel, create_l1_group) {

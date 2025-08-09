@@ -555,26 +555,34 @@ export function cal_omega_r(yReals, yImages, dt, interval) {
     let tIniIndex = Math.floor(tIni * yReals.length);
     let tEndIndex = Math.floor(tEnd * yReals.length);
 
-    // let maximums = ys.slice(tIniIndex, tEndIndex).filter((y, i, yn) => {
-    //     return i > 0 && i < yn.length - 1
-    //         && y[1] > yn[i - 1][1] && y[1] > yn[i + 1][1];
-    // })
-    let maximums = new Array();
-    // yReals.slice(tIniIndex, tEndIndex).forEach((y, i, arr) => {
-    //     if (i > 0 && i < arr.length - 1 && y > arr[i - 1] && y > arr[i + 1]) {
-    //         maximums.push([i + tIniIndex, y]);
-    //     }
-    // });
-
-    const section = [];
-    for (let i = tIniIndex; i < tEndIndex; ++i) {
-        section.push((yReals[i - 1] + yReals[i] + yReals[i + 1]) / 3);
-    }
-    section.forEach((y, i, arr) => {
-        if (i > 0 && i < arr.length - 1 && y > arr[i - 1] && y > arr[i + 1]) {
-            maximums.push([i + tIniIndex, y]);
+    const findMaximuns = ys => {
+        const maximums = [];
+        const section = [];
+        for (
+            let i = Math.max(tIniIndex, 1);
+            i < Math.min(tEndIndex, yReals.length - 1);
+            ++i
+        ) {
+            section.push((ys[i - 1] + ys[i] + ys[i + 1]) / 3);
         }
-    });
+        section.forEach((y, i, arr) => {
+            if (
+                i > 0 &&
+                i < arr.length - 1 &&
+                y > arr[i - 1] &&
+                y > arr[i + 1]
+            ) {
+                maximums.push([i + tIniIndex, y]);
+            }
+        });
+        return maximums;
+    };
+
+    const realMaximums = findMaximuns(yReals);
+    const imagMaximums = findMaximuns(yImages);
+
+    const maximums =
+        realMaximums.length > imagMaximums.length ? realMaximums : imagMaximums;
 
     let omega;
     let periodNum = maximums.length - 1;
