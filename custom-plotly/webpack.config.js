@@ -24,4 +24,7 @@ module.exports = {
             },
         ],
     },
+    performance: {
+        hints: false, // silence the >244 KB warning if you accept the size
+    },
 };
