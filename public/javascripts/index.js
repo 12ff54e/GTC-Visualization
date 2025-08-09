@@ -494,17 +494,44 @@ async function openPanel(clean_beforehand = true) {
     }
 
     if (this.id.startsWith('snap')) {
-        panel.appendChild(
-            create_l1_group(
-                ['previous snapshot', 'next snapshot'],
-                async function () {
-                    const current_snapshot = GTCGlobal.current_snapshot;
+        addSnapshotPlayer(panel, create_l1_group);
+    }
+}
+
+async function addSnapshotPlayer(panel, create_l1_group) {
+    panel.appendChild(
+        create_l1_group(
+            [
+                'previous snapshot',
+                'next snapshot',
+                'previous (continuously)',
+                'next (continuously)',
+            ],
+            async function () {
+                let limit = this.innerText.endsWith('(continuously)')
+                    ? Infinity
+                    : 1;
+                const stopper = ev => {
+                    if (ev.key === 's') {
+                        limit = 0;
+                    }
+                };
+                window.addEventListener('keypress', stopper);
+                for (let i = 0; i < limit; ++i) {
+                    let current_snapshot = GTCGlobal.current_snapshot;
+                    if (i > 0) {
+                        await new Promise(resolve => {
+                            setTimeout(resolve, 200);
+                        });
+                    }
                     if (this.innerText.startsWith('prev')) {
                         if (current_snapshot.previousElementSibling) {
                             GTCGlobal.current_snapshot =
                                 current_snapshot.previousElementSibling;
                         } else {
-                            alert('No previous snapshot');
+                            if (i == 0) {
+                                alert('No previous snapshot');
+                            }
                             return;
                         }
                     } else {
@@ -512,7 +539,9 @@ async function openPanel(clean_beforehand = true) {
                             GTCGlobal.current_snapshot =
                                 current_snapshot.nextElementSibling;
                         } else {
-                            alert('No next snapshot');
+                            if (i == 0) {
+                                alert('No next snapshot');
+                            }
                             return;
                         }
                     }
@@ -528,9 +557,10 @@ async function openPanel(clean_beforehand = true) {
                         );
                     }
                 }
-            )
-        );
-    }
+                window.removeEventListener('keypress', stopper);
+            }
+        )
+    );
 }
 
 async function requestPlotData(name, optional = false) {
