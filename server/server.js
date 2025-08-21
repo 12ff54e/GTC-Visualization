@@ -17,13 +17,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 const processLimit = process.env.LIMIT || 50;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
+const SCAN_PERIOD = 30; // scan host_dir evey hour
 
 validateInputSchema().catch(err => {
     console.log(err);
 });
 
 let output = {};
-let currentFileTree = new FileTree();
+const file_tree = { current: new FileTree(), timestamp: -1, scanning: false };
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -33,6 +34,7 @@ app.disable('x-powered-by');
 app.listen(port);
 
 console.log(`Server is running at http://127.0.0.1:${port}`);
+scan_host_folder();
 
 function pugView(fileBasename) {
     return path.join(process.cwd(), 'views', `${fileBasename}.pug`);
@@ -110,22 +112,16 @@ app.post(
     })
 );
 
-app.get(
-    '/fileTree',
-    wrap(async (req, res) => {
-        const then = performance.now();
-        currentFileTree = (await getFolderStructure(path.normalize(host_dir)))
-            .data;
-        console.log(
-            `${host_dir} scanned, ${
-                currentFileTree.count.files
-            } gtc output data found using ${(performance.now() - then).toFixed(
-                2
-            )}ms.`
-        );
-        res.json(currentFileTree);
-    })
-);
+app.get('/fileTree', (req, res) => {
+    function query() {
+        if (file_tree.timestamp < 0 && file_tree.scanning) {
+            setTimeout(query, 600);
+        } else {
+            res.json(file_tree.current);
+        }
+    }
+    query();
+});
 
 app.use('/plot', (req, res, next) => {
     req.body.gtcOutput = output[req.query.dir];
@@ -302,7 +298,26 @@ async function getFolderStructure(dir) {
             // folder.path = path.dirname(filePath);
         })
     );
-    return { data: filtered, html: filtered.toHTML2() };
+    return filtered;
+}
+
+function scan_host_folder() {
+    setTimeout(scan_host_folder, 1000 * SCAN_PERIOD);
+
+    const then = performance.now();
+    file_tree.scanning = true;
+    getFolderStructure(path.normalize(host_dir)).then(ft => {
+        file_tree.timestamp = performance.now();
+        file_tree.current = ft;
+        file_tree.scanning = false;
+        console.log(
+            `${host_dir} scanned, ${
+                ft.count.files
+            } gtc output data found using ${(
+                file_tree.timestamp - then
+            ).toFixed(2)}ms.`
+        );
+    });
 }
 
 function generateInput(params) {
