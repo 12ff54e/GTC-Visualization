@@ -103,19 +103,25 @@ form > div#submit_area {
     position: sticky;
     bottom: 1px;
     height: 5rem;
-    display: flex;
+    display: grid;
+    grid-template:
+        "a b" 3em
+        "a c" 1em / 1fr 25%;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: center;
+    justify-items: center
 }
 
 form > div#submit_area > button[type='submit'] {
     border-radius: 10px;
     font-size: 1.2rem;
+    grid-row: 1/span 2;
 }
 
 button.server_comm {
     border-radius: 5px;
     font-size: 0.8rem;
+    width: 100%;
     transition: all 0.3s ease-out;
 }
 
