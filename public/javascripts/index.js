@@ -130,7 +130,7 @@ window.addEventListener('load', () => {
     wrap(async () => {
         const res = await fetch('/fileTree');
         await propagateFetchError(res);
-        const fileTree = await res.json();
+        const { file_tree } = await res.json();
         const navigationBar = document.querySelector(
             '#breadcrumb-container'
         ).firstElementChild;
@@ -228,7 +228,7 @@ window.addEventListener('load', () => {
                 ? currentEntry.content.find(
                       f => f.dirname === seg.firstElementChild.innerText
                   )
-                : fileTree;
+                : file_tree;
 
             seg.appendChild(dropdown.cloneNode());
             seg.lastElementChild.append(

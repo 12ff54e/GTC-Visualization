@@ -57,6 +57,16 @@ window.addEventListener(
 
             setup_sync_btn();
             setup_scan_folder_btn();
+
+            document
+                .querySelector('#folder_form')
+                .addEventListener('formdata', ev => {
+                    const data = ev.formData;
+
+                    if (!data.has('gtc_output') && recent_entries.length > 0) {
+                        data.set('gtc_output', recent_entries[0].path);
+                    }
+                });
         })
     )
 );
