@@ -7,6 +7,12 @@ html(lang="en")
         link(rel="stylesheet", href="stylesheets/drop-down.css")
         title GTC-Visualization
     body
+        div(id="banner")
+            | Server uptime 
+            span#server_uptime
+            | , last scan 
+            span#last_scan_duration
+            |  ago
         form(method="POST" id="folder_form" action="plot")
             div(id="folder_list")
                 ul(id="recent_ul" class="content")
@@ -16,6 +22,14 @@ html(lang="en")
                 ul(id="outer_ul" class="content")
             div(id="submit_area")
                 button(type="submit") Choose this folder
+                button#sync_cache.server_comm
+                    | Sync Server Cache
+                    br
+                    | (last sync 
+                    span#duration 0s
+                    |  ago)
+                button#scan_folder.server_comm Scan folder now!
+                    
 
         div(id='loading')
             img(src="loading.gif", alt="loading")

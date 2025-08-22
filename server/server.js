@@ -17,14 +17,19 @@ const app = express();
 const port = process.env.PORT || 3000;
 const processLimit = process.env.LIMIT || 50;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
-const SCAN_PERIOD = 30; // scan host_dir evey hour
+const SCAN_PERIOD = 3600; // scan host_dir every hour
 
 validateInputSchema().catch(err => {
     console.log(err);
 });
 
 let output = {};
-const file_tree = { current: new FileTree(), timestamp: -1, scanning: false };
+const folder_cache = {
+    current: new FileTree(),
+    timestamp: -1,
+    scanning: false,
+    pending_id: -1,
+};
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -112,15 +117,38 @@ app.post(
     })
 );
 
-app.get('/fileTree', (req, res) => {
-    function query() {
-        if (file_tree.timestamp < 0 && file_tree.scanning) {
-            setTimeout(query, 600);
-        } else {
-            res.json(file_tree.current);
-        }
+function wait_for_scan(res, cond = () => folder_cache.scanning) {
+    if (cond()) {
+        setTimeout(() => {
+            wait_for_scan(res, cond);
+        }, 400);
+    } else {
+        res.json({
+            file_tree: folder_cache.current,
+            server_uptime: performance.now(),
+            last_scan_time: folder_cache.timestamp,
+        });
     }
-    query();
+}
+
+app.get('/fileTree', (req, res) => {
+    wait_for_scan(res, () => folder_cache.timestamp < 0);
+});
+
+app.get('/scan', (req, res) => {
+    // single thread, no race condition
+    if (folder_cache.scanning) {
+        wait_for_scan(res);
+    } else {
+        clearTimeout(folder_cache.pending_id);
+        scan_host_folder().then(() => {
+            res.json({
+                file_tree: folder_cache.current,
+                server_uptime: performance.now(),
+                last_scan_time: folder_cache.timestamp,
+            });
+        });
+    }
 });
 
 app.use('/plot', (req, res, next) => {
@@ -301,23 +329,24 @@ async function getFolderStructure(dir) {
     return filtered;
 }
 
-function scan_host_folder() {
-    setTimeout(scan_host_folder, 1000 * SCAN_PERIOD);
+async function scan_host_folder() {
+    const id = setTimeout(scan_host_folder, 1000 * SCAN_PERIOD);
 
     const then = performance.now();
-    file_tree.scanning = true;
-    getFolderStructure(path.normalize(host_dir)).then(ft => {
-        file_tree.timestamp = performance.now();
-        file_tree.current = ft;
-        file_tree.scanning = false;
-        console.log(
-            `${host_dir} scanned, ${
-                ft.count.files
-            } gtc output data found using ${(
-                file_tree.timestamp - then
-            ).toFixed(2)}ms.`
-        );
-    });
+    folder_cache.scanning = true;
+    const file_tree = await getFolderStructure(path.normalize(host_dir));
+
+    folder_cache.timestamp = performance.now();
+    folder_cache.current = file_tree;
+    folder_cache.scanning = false;
+    folder_cache.pending_id = id;
+    console.log(
+        `${host_dir} scanned, ${
+            folder_cache.current.count.files
+        } gtc output data found using ${(folder_cache.timestamp - then).toFixed(
+            2
+        )}ms.`
+    );
 }
 
 function generateInput(params) {

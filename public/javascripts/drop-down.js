@@ -2,10 +2,7 @@ window.addEventListener(
     'load',
     wrap(
         addLoadingIndicator(async () => {
-            const fileTree = await (await fetch('/fileTree')).json();
-            // add root entry
-            const rootEntry = generateListEntry(fileTree);
-            document.querySelector('#outer_ul').append(rootEntry);
+            const file_tree = await fetch_and_populate_folder('/fileTree');
 
             for (let btn of document.querySelector('.ctrl').children) {
                 btn.addEventListener('click', event => {
@@ -37,17 +34,15 @@ window.addEventListener(
                                 }
                             }
                         };
-                        expandEntry(rootEntry);
+                        expandEntry(
+                            document.querySelector('#outer_ul')
+                                .firstElementChild
+                        );
                     }
                 });
             }
 
-            // Set outer ul height
-            const outer_ul = document.querySelector('#outer_ul');
-            outer_ul.classList.add('active_list');
-            outer_ul.style.height = `${1.3 * calcListHeight(outer_ul)}em`;
-
-            const recent_entries = getRecent(fileTree);
+            const recent_entries = getRecent(file_tree);
             const recent_entry_virtual_folder = {
                 dirname: 'Recent Tasks',
                 content: recent_entries,
@@ -59,6 +54,9 @@ window.addEventListener(
             );
             recent_ul.classList.add('active_list');
             recent_ul.style.height = `${1.3 * calcListHeight(recent_ul)}em`;
+
+            setup_sync_btn();
+            setup_scan_folder_btn();
         })
     )
 );
@@ -252,8 +250,8 @@ function addLoadingIndicator(func) {
 
 /**
  * Get recent entries, also add path to each entry
- * @param file_tree 
- * @returns 
+ * @param file_tree
+ * @returns
  */
 function getRecent(file_tree) {
     const RECENT_ENTRIES_COUNT = 3;
@@ -295,4 +293,120 @@ function getRecent(file_tree) {
     }
 
     return recent_entries;
+}
+
+function setup_scan_folder_btn() {
+    document.querySelector('#scan_folder').addEventListener(
+        'click',
+        wrap(
+            addLoadingIndicator(async event => {
+                event.preventDefault();
+                await fetch_and_populate_folder('/scan');
+            })
+        )
+    );
+}
+
+function setup_sync_btn() {
+    const btn = document.querySelector('#sync_cache');
+    btn.addEventListener(
+        'click',
+        wrap(
+            addLoadingIndicator(async event => {
+                event.preventDefault();
+                await fetch_and_populate_folder('/fileTree');
+            })
+        )
+    );
+
+    const duration_span = document.querySelector('#duration');
+    function update_timer() {
+        const duration = (Date.now() - btn.sync_time) / 1000;
+        if (duration < 120) {
+            setTimeout(update_timer, 1000);
+            duration_span.innerText = `${duration.toFixed()}s`;
+        } else {
+            setTimeout(update_timer, 60 * 1000);
+            duration_span.innerText = `${(duration / 60).toFixed()}m`;
+        }
+    }
+
+    setTimeout(update_timer, 1000);
+}
+
+async function fetch_and_populate_folder(api) {
+    toggle_server_comm_btn();
+    const { file_tree, server_uptime, last_scan_time } = await (
+        await fetch(api)
+    ).json();
+    document.querySelector('#duration').innerText = '0s';
+
+    update_file_tree(file_tree);
+    show_banner(server_uptime, last_scan_time);
+    document.querySelector('#sync_cache').sync_time = Date.now();
+    toggle_server_comm_btn();
+
+    return file_tree;
+}
+
+function toggle_server_comm_btn() {
+    document.querySelectorAll('.server_comm').forEach(btn => {
+        btn.disabled = !btn.disabled;
+    });
+}
+
+function update_file_tree(file_tree) {
+    const outer_ul = document.querySelector('#outer_ul');
+    outer_ul.firstElementChild?.remove();
+    outer_ul.append(generateListEntry(file_tree));
+
+    // Set outer ul height
+    outer_ul.classList.add('active_list');
+    outer_ul.style.height = `${1.3 * calcListHeight(outer_ul)}em`;
+}
+
+function show_banner(server_uptime, last_scan_time) {
+    const banner = document.querySelector('#banner');
+    clearTimeout(banner.hide);
+    clearTimeout(banner.fade);
+
+    banner.style.display = 'initial';
+    setTimeout(() => {
+        banner.style.opacity = '1';
+    }, 50);
+    banner.querySelector('#server_uptime').innerText =
+        duration_text(server_uptime);
+    banner.querySelector('#last_scan_duration').innerText = `${(
+        (server_uptime - last_scan_time) /
+        60000
+    ).toFixed()}m`;
+
+    // Changing display or visibility dose not trigger transition
+    banner.fade = setTimeout(() => {
+        banner.style.opacity = '0';
+        banner.hide = setTimeout(() => {
+            banner.style.display = 'none';
+        }, 500);
+    }, 10 * 1000);
+}
+
+function duration_text(time) {
+    time /= 1000;
+    if (time < 120) {
+        return `${time.toFixed(3)}s`;
+    }
+
+    const sec = time % 60;
+    const min = ((time - sec) / 60) % 60;
+    const hr = (time - sec - min * 60) / 3600;
+    const day = (time - sec - min * 60 - hr * 3600) / 86400;
+
+    const time_string = `${hr.toString().padStart(2, '0')}:${min
+        .toString()
+        .padStart(2, '0')}:${sec.toFixed(0).padStart(2, '0')}`;
+    if (day > 0) {
+        return `${day}-${time_string}`;
+    } else {
+        return time_string;
+    }
 }

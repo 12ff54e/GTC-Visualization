@@ -7,7 +7,7 @@ body {
     width: 50%;
     min-width: 600px;
     max-width: 1200px;
-    margin: 1em auto;
+    margin: 2em auto;
 }
 
 div.ctrl {
@@ -50,7 +50,7 @@ li:hover {
     background: linear-gradient(90deg, rgba(214, 214, 214, 0.836), transparent);
 }
 
-input[name="gtc_output"] {
+input[name='gtc_output'] {
     display: none;
 }
 
@@ -105,12 +105,28 @@ form > div#submit_area {
     height: 5rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-evenly;
 }
 
-button[type="submit"] {
+form > div#submit_area > button[type='submit'] {
     border-radius: 10px;
     font-size: 1.2rem;
+}
+
+button.server_comm {
+    border-radius: 5px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease-out;
+}
+
+button.server_comm:disabled {
+    background: repeating-linear-gradient(
+        -45deg,
+        rgb(255, 200, 200),
+        rgb(255, 200, 200) 4px,
+        white 4px,
+        white 8px
+    );
 }
 
 #loading {
@@ -124,4 +140,19 @@ button[type="submit"] {
 #loading img {
     width: 75px;
     height: 75px;
+}
+
+#banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: rgb(206 200 255);
+    text-align: center;
+    padding: 5px;
+    font-size: 1em;
+    z-index: 100;
+    transition: all 0.3s ease-in-out;
+
+    opacity: 0;
 }
