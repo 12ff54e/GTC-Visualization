@@ -17,13 +17,19 @@ const app = express();
 const port = process.env.PORT || 3000;
 const processLimit = process.env.LIMIT || 50;
 const host_dir = process.env.HOST_DIR || require('os').homedir();
+const SCAN_PERIOD = 3600; // scan host_dir every hour
 
 validateInputSchema().catch(err => {
     console.log(err);
 });
 
 let output = {};
-let currentFileTree = new FileTree();
+const folder_cache = {
+    current: new FileTree(),
+    timestamp: -1,
+    scanning: false,
+    pending_id: -1,
+};
 
 app.use(compression());
 app.use(express.static('./public'));
@@ -33,6 +39,7 @@ app.disable('x-powered-by');
 app.listen(port);
 
 console.log(`Server is running at http://127.0.0.1:${port}`);
+scan_host_folder();
 
 function pugView(fileBasename) {
     return path.join(process.cwd(), 'views', `${fileBasename}.pug`);
@@ -110,22 +117,39 @@ app.post(
     })
 );
 
-app.get(
-    '/fileTree',
-    wrap(async (req, res) => {
-        const then = performance.now();
-        currentFileTree = (await getFolderStructure(path.normalize(host_dir)))
-            .data;
-        console.log(
-            `${host_dir} scanned, ${
-                currentFileTree.count.files
-            } gtc output data found using ${(performance.now() - then).toFixed(
-                2
-            )}ms.`
-        );
-        res.json(currentFileTree);
-    })
-);
+function wait_for_scan(res, cond = () => folder_cache.scanning) {
+    if (cond()) {
+        setTimeout(() => {
+            wait_for_scan(res, cond);
+        }, 400);
+    } else {
+        res.json({
+            file_tree: folder_cache.current,
+            server_uptime: performance.now(),
+            last_scan_time: folder_cache.timestamp,
+        });
+    }
+}
+
+app.get('/fileTree', (req, res) => {
+    wait_for_scan(res, () => folder_cache.timestamp < 0);
+});
+
+app.get('/scan', (req, res) => {
+    // single thread, no race condition
+    if (folder_cache.scanning) {
+        wait_for_scan(res);
+    } else {
+        clearTimeout(folder_cache.pending_id);
+        scan_host_folder().then(() => {
+            res.json({
+                file_tree: folder_cache.current,
+                server_uptime: performance.now(),
+                last_scan_time: folder_cache.timestamp,
+            });
+        });
+    }
+});
 
 app.use('/plot', (req, res, next) => {
     req.body.gtcOutput = output[req.query.dir];
@@ -302,7 +326,27 @@ async function getFolderStructure(dir) {
             // folder.path = path.dirname(filePath);
         })
     );
-    return { data: filtered, html: filtered.toHTML2() };
+    return filtered;
+}
+
+async function scan_host_folder() {
+    const id = setTimeout(scan_host_folder, 1000 * SCAN_PERIOD);
+
+    const then = performance.now();
+    folder_cache.scanning = true;
+    const file_tree = await getFolderStructure(path.normalize(host_dir));
+
+    folder_cache.timestamp = performance.now();
+    folder_cache.current = file_tree;
+    folder_cache.scanning = false;
+    folder_cache.pending_id = id;
+    console.log(
+        `${host_dir} scanned, ${
+            folder_cache.current.count.files
+        } gtc output data found using ${(folder_cache.timestamp - then).toFixed(
+            2
+        )}ms.`
+    );
 }
 
 function generateInput(params) {
