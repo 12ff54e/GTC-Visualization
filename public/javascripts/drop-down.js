@@ -408,7 +408,7 @@ function duration_text(time) {
 
     const sec = time % 60;
     const min = ((time - sec) / 60) % 60;
-    const hr = (time - sec - min * 60) / 3600;
+    const hr = ((time - sec - min * 60) / 3600) % 24;
     const day = (time - sec - min * 60 - hr * 3600) / 86400;
 
     const time_string = `${hr.toString().padStart(2, '0')}:${min
