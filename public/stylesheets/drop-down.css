@@ -1,3 +1,21 @@
+:root {
+    --banner-bg: rgb(206 200 255);
+    --tooltip-bg: rgb(13 120 162);
+    --submit-area-bg: linear-gradient(
+        90deg,
+        rgba(240, 255, 255, 0.7),
+        rgb(200, 255, 255),
+        rgba(240, 255, 255, 0.5)
+    );
+    --button-disabled-bg: repeating-linear-gradient(
+        -45deg,
+        rgb(255, 200, 200),
+        rgb(255, 200, 200) 4px,
+        white 4px,
+        white 8px
+    );
+}
+
 body {
     background-color: azure;
     font-size: 1.2em;
@@ -5,7 +23,9 @@ body {
 
 #folder_form {
     width: 50%;
-    margin: 1em auto;
+    min-width: 600px;
+    max-width: 1200px;
+    margin: 2em auto;
 }
 
 div.ctrl {
@@ -48,11 +68,19 @@ li:hover {
     background: linear-gradient(90deg, rgba(214, 214, 214, 0.836), transparent);
 }
 
-input[name="gtc_output"] {
+input[name='gtc_output'] {
     display: none;
 }
 
 input + label {
+    display: inline-block;
+    max-width: 30em;
+    height: 1.2em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+
     cursor: pointer;
     transition: all 0.3s ease-out;
 }
@@ -84,23 +112,41 @@ input:checked ~ .mod {
 }
 
 form > div#submit_area {
-    background: linear-gradient(
-        90deg,
-        rgba(240, 255, 255, 0.7),
-        rgb(200, 255, 255),
-        rgba(240, 255, 255, 0.5)
-    );
+    background: var(--submit-area-bg);
     position: sticky;
     bottom: 1px;
     height: 5rem;
-    display: flex;
+    display: grid;
+    grid-template:
+        'a b' 3em
+        'a c' 1em / 1fr 25%;
     align-items: center;
     justify-content: center;
+    justify-items: center;
 }
 
-button[type="submit"] {
+form button[type='submit'] {
     border-radius: 10px;
     font-size: 1.2rem;
+}
+
+form > div#submit_area > .long_column {
+    grid-row: 1 / -1;
+}
+
+form > div#submit_area > .normal_grid {
+    width: 100%;
+}
+
+button.server_comm {
+    border-radius: 5px;
+    font-size: 0.8rem;
+    width: 100%;
+    transition: all 0.3s ease-out;
+}
+
+button.server_comm:disabled {
+    background: var(--button-disabled-bg);
 }
 
 #loading {
@@ -114,4 +160,87 @@ button[type="submit"] {
 #loading img {
     width: 75px;
     height: 75px;
+}
+
+#banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--banner-bg);
+    text-align: center;
+    padding: 5px;
+    font-size: 1em;
+    z-index: 100;
+    transition: all 0.3s ease-in-out;
+
+    opacity: 0;
+}
+
+.tooltip_container {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip_container > .tooltip + .tooltip_text {
+    position: absolute;
+
+    /* Style */
+    background-color: var(--tooltip-bg);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.8em;
+    cursor: default;
+
+    opacity: 0;
+    z-index: 50;
+
+    /* Animation */
+    transition: opacity 0.5s ease;
+}
+
+.tooltip_container > .tooltip:hover + .tooltip_text {
+    opacity: 1;
+}
+
+.tooltip_container > .tooltip + .tooltip_text.tooltip_bottom {
+    top: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+
+    white-space: nowrap;
+}
+
+.tooltip_container > .tooltip + .tooltip_text.tooltip_bottom::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent transparent var(--tooltip-bg) transparent;
+}
+
+.tooltip_container > .tooltip + .tooltip_text.tooltip_right {
+    top: 50%;
+    left: 105%;
+    transform: translateY(-50%);
+
+    white-space: normal;
+    width: 10em;
+}
+
+.tooltip_container > .tooltip + .tooltip_text.tooltip_right::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent var(--tooltip-bg) transparent transparent;
 }

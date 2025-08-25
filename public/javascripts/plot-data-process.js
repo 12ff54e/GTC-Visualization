@@ -1,6 +1,10 @@
 'use strict';
 
-export async function historyMode(figures, interval1, interval2) {
+export async function historyMode(
+    figures,
+    interval1 = [0.43, 0.98],
+    interval2 = [0.43, 0.98]
+) {
     // deconstructing figures
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
@@ -17,7 +21,7 @@ export async function historyMode(figures, interval1, interval2) {
         line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
         markers: { color: 'rgb(255, 0, 0)', size: 8 },
     };
-    growthFig.layout.title = `$\\gamma=${gamma.toPrecision(5)}$`;
+    growthFig.layout.title.text = `$\\gamma=${gamma.toPrecision(5)}$`;
     growthFig.layout.xaxis.rangeslider = {
         bgcolor: 'rgb(200,200,210)',
     };
@@ -63,7 +67,7 @@ export async function historyMode(figures, interval1, interval2) {
         line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
         markers: { color: 'rgb(255, 0, 0)', size: 8 },
     };
-    freqFig.layout.title = `$\\omega=${omega.toPrecision(5)}$`;
+    freqFig.layout.title.text = `$\\omega=${omega.toPrecision(5)}$`;
     freqFig.layout.xaxis.rangeslider = {
         bgcolor: 'rgb(200,200,210)',
     };
@@ -72,12 +76,19 @@ export async function historyMode(figures, interval1, interval2) {
     let powerSpectrum = cal_spectrum(
         yReals,
         yImages,
-        window.GTCGlobal.timeStep
+        window.GTCGlobal.timeStep,
+        interval2
     );
     spectralFig.data[0] = Object.assign(powerSpectrum, {
         type: 'scatter',
         mode: 'lines',
     });
+
+    if (navigator.clipboard) {
+        await navigator.clipboard.writeText(
+            `${gamma.toPrecision(5)}, ${omega.toPrecision(5)}`
+        );
+    }
 }
 
 export async function snapshotSpectrum(figures) {
@@ -85,17 +96,17 @@ export async function snapshotSpectrum(figures) {
     const torNum = field.length;
     const polNum = field[0].length;
 
-    const mmode = Math.floor(polNum / 5);
-    const pmode = Math.floor(torNum / 5);
+    const mmodes = Math.floor(polNum / 5);
+    const nmodes = Math.floor(torNum / 5);
 
     const modulo = (re, im) => Math.sqrt(re * re + im * im);
 
-    const poloidalSpectrum = Array(mmode).fill(0);
+    const poloidalSpectrum = Array(mmodes).fill(0);
     const planPol = new fftw['r2c']['fft1d'](polNum);
     for (let section of field) {
         const powerSpectrum = planPol.forward(section);
         poloidalSpectrum[0] += powerSpectrum[0];
-        for (let i = 1; i < mmode; i++) {
+        for (let i = 1; i < mmodes; i++) {
             poloidalSpectrum[i] +=
                 2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
         }
@@ -110,145 +121,37 @@ export async function snapshotSpectrum(figures) {
         return result;
     }
 
-    const toroidalSpectrum = Array(pmode).fill(0);
+    const toroidalSpectrum = Array(nmodes).fill(0);
     const planTor = new fftw['r2c']['fft1d'](torNum);
     for (let section of transpose(field)) {
         const powerSpectrum = planTor.forward(section);
         toroidalSpectrum[0] += powerSpectrum[0];
-        for (let i = 1; i < pmode; i++) {
+        for (let i = 1; i < nmodes; i++) {
             toroidalSpectrum[i] +=
                 2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
         }
     }
     planTor.dispose();
 
-    figures[0].data[0].x = [...Array(mmode).keys()];
+    figures[0].data[0].x = [...Array(mmodes).keys()];
     figures[0].data[0].y = poloidalSpectrum.map(
         v => Math.sqrt(v / torNum) / polNum
     );
 
-    figures[1].data[0].x = [...Array(pmode).keys()];
+    figures[1].data[0].x = [...Array(nmodes).keys()];
     figures[1].data[0].y = toroidalSpectrum.map(
         v => Math.sqrt(v / polNum) / torNum
     );
 }
 
-export async function snapshotPoloidal(figures) {
+export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
+    const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
 
-    // add carpet indices
-
-    const theta_mesh = [];
-    const psi_mesh = [];
-    for (let r = 0; r < radNum; ++r) {
-        for (let p = 0; p <= polNum; ++p) {
-            theta_mesh.push(p);
-            psi_mesh.push(r);
-        }
-    }
-
-    figures[0].data[0].a = theta_mesh;
-    figures[0].data[0].b = psi_mesh;
-    figures[0].data[1].a = theta_mesh;
-    figures[0].data[1].b = psi_mesh;
-
-    // draw diagnostic flux indicator
-
+    const flattenedField = figures[0].data[1].z;
     const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
-
     const diagFlux =
         GTCGlobal.basicParameters.diag_flux ?? GTCGlobal.basicParameters.iflux;
-    const diagnostic_flux_line = {
-        name: 'Diagnostic Flux',
-        mode: 'lines',
-        line: {
-            color: diagFluxLineColor,
-            width: 3,
-            shape: 'spline',
-            smoothing: 1,
-        },
-        hoverinfo: 'none',
-        type: 'scatter',
-        showlegend: true,
-        x: figures[0].data[0].x.slice(
-            diagFlux * (polNum + 1),
-            (diagFlux + 1) * (polNum + 1)
-        ),
-        y: figures[0].data[0].y.slice(
-            diagFlux * (polNum + 1),
-            (diagFlux + 1) * (polNum + 1)
-        ),
-    };
-
-    figures[0].data.push(diagnostic_flux_line);
-
-    // calculate spectrum profile on radial grids
-
-    const flattenedField = figures[0].data[1].z;
-    const modeNum = Math.floor(polNum / 10);
-
-    const spectrumFigureData = figures[1].data;
-    for (let i = 0; i < modeNum; i++) {
-        spectrumFigureData.push({
-            y: [],
-            name: `m = ${i}`,
-            showlegend: false,
-            hoverinfo: 'none',
-            max_: -Infinity,
-            max_idx_: 0,
-        });
-    }
-
-    const planConstructor = fftw['r2c']['fft1d'];
-    const plan = new planConstructor(polNum);
-
-    for (let r = 0; r < radNum; r++) {
-        const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        plan.forward(circle)
-            .slice(0, 2 * modeNum)
-            .forEach((amp, i) => {
-                const trace = spectrumFigureData[Math.floor(i / 2)];
-                if (i % 2 == 0) {
-                    spectrumFigureData[i / 2].y.push(amp);
-                } else {
-                    let p = trace.y.pop();
-                    p = Math.sqrt(p * p + amp * amp);
-                    trace.y.push(p);
-                    if (p > trace.max_) {
-                        trace.max_ = p;
-                        trace.max_idx_ = i;
-                    }
-                }
-            });
-    }
-
-    plan.dispose();
-
-    spectrumFigureData
-        .sort((u, v) => {
-            return v.max_ - u.max_;
-        })
-        .some((d, i) => {
-            d.showlegend = true;
-            return i > 6;
-        });
-
-    // add diag flux indicator
-
-    spectrumFigureData.unshift({
-        name: 'Diagnostic Flux',
-        x: [
-            GTCGlobal.basicParameters.diag_flux,
-            GTCGlobal.basicParameters.diag_flux,
-        ],
-        y: [0, spectrumFigureData[0].max_ * 1.1],
-        mode: 'lines',
-        showlegend: true,
-        line: {
-            color: diagFluxLineColor,
-            width: 3,
-        },
-    });
 
     if (1) {
         await drawPoloidalData({
@@ -259,7 +162,286 @@ export async function snapshotPoloidal(figures) {
             z: figures[0].data[1].z,
         });
         figures[0] = { layout: {} };
+    } else {
+        // add carpet indices
+
+        const theta_mesh = [];
+        const psi_mesh = [];
+        for (let r = 0; r < radNum; ++r) {
+            for (let p = 0; p <= polNum; ++p) {
+                theta_mesh.push(p);
+                psi_mesh.push(r);
+            }
+        }
+
+        figures[0].data[0].a = theta_mesh;
+        figures[0].data[0].b = psi_mesh;
+        figures[0].data[1].a = theta_mesh;
+        figures[0].data[1].b = psi_mesh;
+
+        // draw diagnostic flux indicator
+
+        const diagnostic_flux_line = {
+            name: 'Diagnostic Flux',
+            mode: 'lines',
+            line: {
+                color: diagFluxLineColor,
+                width: 3,
+                shape: 'spline',
+                smoothing: 1,
+            },
+            hoverinfo: 'none',
+            type: 'scatter',
+            showlegend: true,
+            x: figures[0].data[0].x.slice(
+                diagFlux * (polNum + 1),
+                (diagFlux + 1) * (polNum + 1)
+            ),
+            y: figures[0].data[0].y.slice(
+                diagFlux * (polNum + 1),
+                (diagFlux + 1) * (polNum + 1)
+            ),
+        };
+
+        figures[0].data.push(diagnostic_flux_line);
     }
+
+    // calculate spectrum profile on radial grids
+
+    const selectedPoloidalModeNum = [
+        ...new Set(window.GTCGlobal.basicParameters.mmodes),
+    ];
+    const modeNum = selectedPoloidalModeNum.length;
+    if (Math.floor(polNum / MIN_PTS) < Math.max(...selectedPoloidalModeNum)) {
+        statusBar.warn = 'm modes in gtc.in is too high!';
+    }
+
+    const spectrumFigureData = [];
+    for (let i = 0; i < 3 * modeNum; i++) {
+        spectrumFigureData.push({
+            y: [],
+            name: `m = ${selectedPoloidalModeNum[Math.floor(i / 3)]}, ${
+                i % 3 == 0 ? 'real' : i % 3 == 1 ? 'imag' : 'modulus'
+            }`,
+            showlegend: true,
+            hoverinfo: 'none',
+            visible: i % 3 == 2,
+            max_: -Infinity,
+            min_: Infinity,
+        });
+    }
+
+    if (!window.GTCGlobal.fftPlan) {
+        const planConstructor = fftw['r2c']['fft1d'];
+        window.GTCGlobal.fftPlan = new planConstructor(polNum);
+    }
+    const plan = window.GTCGlobal.fftPlan;
+
+    const extra_spectrum_data = Array.from(
+        { length: polNum / MIN_PTS },
+        (_, i) => {
+            return {
+                y: [],
+                name: `m = ${i}`,
+                showlegend: false,
+                hoverinfo: 'name',
+                visible: false,
+                max_: -Infinity,
+            };
+        }
+    );
+    for (let r = 0; r < radNum; r++) {
+        const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
+        plan.forward(circle).forEach((amp, i) => {
+            const mode_num = Math.floor(i / 2);
+            if (mode_num < extra_spectrum_data.length) {
+                const extra_trace = extra_spectrum_data[mode_num];
+                if (i % 2 == 0) {
+                    extra_trace.y.push(amp);
+                } else {
+                    const mod = Math.sqrt(
+                        Math.pow(amp, 2) + Math.pow(extra_trace.y.pop(), 2)
+                    );
+                    extra_trace.y.push(mod);
+                    extra_trace.max_ = Math.max(extra_trace.max_, mod);
+                }
+            }
+            if (!selectedPoloidalModeNum.includes(mode_num)) {
+                return;
+            }
+            const trace_index =
+                3 * selectedPoloidalModeNum.indexOf(mode_num) + (i % 2);
+            const trace = spectrumFigureData[trace_index];
+            trace.y.push(amp);
+            if (amp > trace.max_) {
+                trace.max_ = amp;
+            }
+            if (amp < trace.min_) {
+                trace.min_ = amp;
+            }
+            if (i % 2 == 1) {
+                const modulus = Math.sqrt(
+                    Math.pow(spectrumFigureData[trace_index - 1].y.at(-1), 2) +
+                        Math.pow(trace.y.at(-1), 2)
+                );
+                const modulus_trace = spectrumFigureData[trace_index + 1];
+                modulus_trace.y.push(modulus);
+                if (modulus > modulus_trace.max_) {
+                    modulus_trace.max_ = modulus;
+                }
+                if (modulus < modulus_trace.min_) {
+                    modulus_trace.min_ = modulus;
+                }
+            }
+        });
+    }
+
+    extra_spectrum_data
+        .sort((a, b) => b.max_ - a.max_)
+        .forEach((fig, ind) => {
+            if (ind < 8) {
+                fig.showlegend = true;
+            }
+        });
+
+    let min_values = [Infinity, Infinity, Infinity];
+    let max_values = [-Infinity, -Infinity, -Infinity];
+    spectrumFigureData.forEach((trace, ind) => {
+        max_values[ind % 3] =
+            trace.max_ > max_values[ind % 3] ? trace.max_ : max_values[ind % 3];
+        min_values[ind % 3] =
+            trace.min_ < min_values[ind % 3] ? trace.min_ : min_values[ind % 3];
+    });
+
+    spectrumFigureData.push(...extra_spectrum_data);
+
+    const extend_range = (a, b) => [1.1 * a - 0.1 * b, -0.1 * a + 1.1 * b];
+    const limits = extend_range(
+        Math.max(...max_values),
+        Math.min(...min_values)
+    );
+
+    // add rational surface
+
+    const rational_surface = safetyFactor
+        ? getRationalSurface(
+              safetyFactor,
+              window.GTCGlobal.basicParameters.nmodes,
+              window.GTCGlobal.basicParameters.mmodes
+          )
+        : [];
+    const RS_POINT_NUM = 20;
+    spectrumFigureData.unshift(
+        ...rational_surface.map(({ n, m, r }) => {
+            const pos = window.GTCGlobal.basicParameters.mpsi * r;
+            return {
+                name: `${n},${m} surface`,
+                x: Array(RS_POINT_NUM).fill(pos),
+                y: Array.from({ length: RS_POINT_NUM }).map(
+                    (_, i) =>
+                        limits[0] +
+                        ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
+                ),
+                mode: 'lines',
+                showlegend: false,
+                hoverinfo: 'name',
+                line: {
+                    color: diagFluxLineColor,
+                    dash: 'dash',
+                    width: 1,
+                },
+            };
+        })
+    );
+
+    // add diag flux indicator
+
+    spectrumFigureData.unshift({
+        name: 'Diagnostic Flux',
+        x: [
+            GTCGlobal.basicParameters.diag_flux,
+            GTCGlobal.basicParameters.diag_flux,
+        ],
+        y: limits,
+        mode: 'lines',
+        showlegend: true,
+        hoverinfo: 'none',
+        line: {
+            color: diagFluxLineColor,
+            width: 3,
+        },
+    });
+
+    // add control buttons
+    // traces: diag flux | rational surfaces | selected m modes (real, imag, modulus) | some largest m modes
+    const pre_len = 1 + rational_surface.length;
+    const step3_pick = i =>
+        Array.from(
+            spectrumFigureData,
+            (_, ind) =>
+                ind < pre_len ||
+                ((ind - pre_len) % 3 == i &&
+                    ind < pre_len + 3 * selectedPoloidalModeNum.length)
+        );
+    figures[1].data = spectrumFigureData;
+    figures[1].layout.updatemenus = [
+        {
+            x: 0.05,
+            xanchor: 'left',
+            y: 0.9,
+            yanchor: 'top',
+            buttons: [
+                ...[2, 0, 1].map(i => {
+                    return {
+                        method: 'update',
+                        args: [
+                            { visible: step3_pick(i) },
+                            {
+                                'xaxis.range': [
+                                    0,
+                                    window.GTCGlobal.basicParameters.mpsi,
+                                ],
+                                'yaxis.range': extend_range(
+                                    min_values[i],
+                                    max_values[i]
+                                ),
+                            },
+                        ],
+                        label: ['Even Parity', 'Odd Parity', 'Modulus'][i],
+                    };
+                }),
+                ,
+                {
+                    method: 'update',
+                    args: [
+                        {
+                            visible: Array.from(
+                                spectrumFigureData,
+                                (_, ind) =>
+                                    ind < 1 + rational_surface.length ||
+                                    ind >=
+                                        1 +
+                                            rational_surface.length +
+                                            3 * selectedPoloidalModeNum.length
+                            ),
+                        },
+                        {
+                            'xaxis.range': [
+                                0,
+                                window.GTCGlobal.basicParameters.mpsi,
+                            ],
+                            'yaxis.range': extend_range(
+                                0,
+                                extra_spectrum_data[0].max_
+                            ),
+                        },
+                    ],
+                    label: 'Full',
+                },
+            ],
+        },
+    ];
+    figures[1].layout.yaxis.range = extend_range(min_values[2], max_values[2]);
 }
 
 async function drawPoloidalData(data) {
@@ -543,7 +725,9 @@ export async function trackingPlot(figures) {
 export function addSimulationRegion(fig) {
     const [rg0, rg1] = GTCGlobal.basicParameters.radial_region;
     const rgd =
-        GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi;
+        rg0 +
+        (GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi) *
+            (rg1 - rg0);
     const data = fig.data[0].y;
 
     let y_min = Infinity,
@@ -611,7 +795,7 @@ export function addSimulationRegion(fig) {
  *
  * @returns {{gamma: number, measurePts:{x:number, y:number}[]}}} growth rate
  */
-export function cal_gamma(ys, dt, interval = [0.43, 0.98]) {
+export function cal_gamma(ys, dt, interval) {
     let [tIni, tEnd] = interval;
 
     let tIniIndex = Math.floor(tIni * ys.length);
@@ -639,32 +823,40 @@ export function cal_gamma(ys, dt, interval = [0.43, 0.98]) {
  *
  * @returns {{omega:number, measurePts:{x:number, y:number}[]}}
  */
-export function cal_omega_r(yReals, yImages, dt, interval = [0.43, 0.98]) {
+export function cal_omega_r(yReals, yImages, dt, interval) {
     let [tIni, tEnd] = interval;
 
     let tIniIndex = Math.floor(tIni * yReals.length);
     let tEndIndex = Math.floor(tEnd * yReals.length);
 
-    // let maximums = ys.slice(tIniIndex, tEndIndex).filter((y, i, yn) => {
-    //     return i > 0 && i < yn.length - 1
-    //         && y[1] > yn[i - 1][1] && y[1] > yn[i + 1][1];
-    // })
-    let maximums = new Array();
-    // yReals.slice(tIniIndex, tEndIndex).forEach((y, i, arr) => {
-    //     if (i > 0 && i < arr.length - 1 && y > arr[i - 1] && y > arr[i + 1]) {
-    //         maximums.push([i + tIniIndex, y]);
-    //     }
-    // });
-
-    const section = [];
-    for (let i = tIniIndex; i < tEndIndex; ++i) {
-        section.push((yReals[i - 1] + yReals[i] + yReals[i + 1]) / 3);
-    }
-    section.forEach((y, i, arr) => {
-        if (i > 0 && i < arr.length - 1 && y > arr[i - 1] && y > arr[i + 1]) {
-            maximums.push([i + tIniIndex, y]);
+    const findMaximuns = ys => {
+        const maximums = [];
+        const section = [];
+        for (
+            let i = Math.max(tIniIndex, 1);
+            i < Math.min(tEndIndex, yReals.length - 1);
+            ++i
+        ) {
+            section.push((ys[i - 1] + ys[i] + ys[i + 1]) / 3);
         }
-    });
+        section.forEach((y, i, arr) => {
+            if (
+                i > 0 &&
+                i < arr.length - 1 &&
+                y > arr[i - 1] &&
+                y > arr[i + 1]
+            ) {
+                maximums.push([i + tIniIndex, y]);
+            }
+        });
+        return maximums;
+    };
+
+    const realMaximums = findMaximuns(yReals);
+    const imagMaximums = findMaximuns(yImages);
+
+    const maximums =
+        realMaximums.length > imagMaximums.length ? realMaximums : imagMaximums;
 
     let omega;
     let periodNum = maximums.length - 1;
@@ -695,17 +887,20 @@ export function cal_omega_r(yReals, yImages, dt, interval = [0.43, 0.98]) {
  *
  * @returns {{x: Array<Number>, y: Array<Number>}} power spectrum
  */
-export function cal_spectrum(reals, images, timeStep) {
-    const plan = new fftw['c2c']['fft1d'](reals.length);
+export function cal_spectrum(reals, images, timeStep, interval) {
+    const [t_ini, t_end] = interval.map(t => Math.floor(t * reals.length));
+    const len = t_end - t_ini;
+    const halfLen = Math.floor(len / 2);
 
-    const spectrum = unInterleave(plan.forward(interleave(reals, images))).map(
-        ([re, im]) => Math.sqrt(re * re + im * im)
-    );
+    const plan = new fftw['c2c']['fft1d'](len);
+
+    const spectrum = unInterleave(
+        plan.forward(
+            interleave(reals.slice(t_ini, t_end), images.slice(t_ini, t_end))
+        )
+    ).map(([re, im]) => Math.sqrt(re * re + im * im));
 
     plan.dispose();
-
-    const len = reals.length;
-    const halfLen = Math.floor(len / 2);
 
     return {
         x: [...Array(len).keys()].map(
@@ -755,4 +950,39 @@ function packTexArgs(gl, data) {
         gl.UNSIGNED_BYTE,
         data,
     ];
+}
+
+function getRationalSurface(safetyFactor, n_modes, m_modes) {
+    const mode_num = n_modes
+        .map((n, i) => {
+            return { n: n, m: m_modes[i] };
+        })
+        .sort((a, b) => a.m / a.n - b.m / b.n)
+        .filter(function (item, pos, ary) {
+            const last_item = ary[!pos ? 0 : pos - 1];
+            return !pos || item.m * last_item.n != item.n * last_item.m;
+        });
+    const linear_map = (t, x0, x1, y0, y1) =>
+        y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
+
+    const result = [];
+    const [r0, r1] = window.GTCGlobal.basicParameters.radial_region;
+    for (let i = 0; i < safetyFactor.x.length - 1; ++i) {
+        if (safetyFactor.x[i + 1] < r0 || safetyFactor.x[i] > r1) {
+            continue;
+        }
+        mode_num.forEach(mode => {
+            const pos = linear_map(
+                mode.m / mode.n,
+                safetyFactor.y[i],
+                safetyFactor.y[i + 1],
+                safetyFactor.x[i],
+                safetyFactor.x[i + 1]
+            );
+            if (pos >= safetyFactor.x[i] && pos < safetyFactor.x[i + 1]) {
+                result.push({ r: (pos - r0) / (r1 - r0), ...mode });
+            }
+        });
+    }
+    return result;
 }

@@ -1,8 +1,8 @@
 /**
  * PlotlyData is a wrapper for all the data
- *  and options in Plotly figure function. 
+ *  and options in Plotly figure function.
  * It is used for sending data of figure to client.
- * 
+ *
  * @param {Number} len The length of data to be plotted. Set this var
  *  when you want to assign data entries one by one.
  * @param {Array<string>} coordinates
@@ -15,35 +15,39 @@ class PlotlyData {
                 this.data[i] = new Object();
                 coordinates.forEach(coord => {
                     this.data[i][coord] = new Array();
-                })
+                });
             }
         } else {
             this.data = new Array();
         }
 
         this.layout = {
-            title: 'Plot',
+            title: { text: 'Plot' },
             xaxis: {
                 hoverformat: '.4g',
-                tickformat: '.4g'
+                tickformat: '.4g',
+                title: {},
             },
             yaxis: {
                 hoverformat: '.4g',
-                tickformat: '.4g'
-            }
-        }
+                tickformat: '.4g',
+                title: {},
+            },
+        };
     }
 
     /**
      * Add x coordinates [min*dx, (min+1)*dx, ..., (min+n-1)*dx] to a trace.
-     * 
+     *
      * @param {number} dx default value 1
      * @param {number} min default value 1
      */
     addX(dx = 1, min = 1) {
         for (let trace of this.data) {
             if (!trace.x) {
-                trace.x = [...Array(trace.y.length).keys()].map(i => (i + min) * dx);
+                trace.x = [...Array(trace.y.length).keys()].map(
+                    i => (i + min) * dx
+                );
             }
         }
     }
@@ -53,9 +57,9 @@ class PlotlyData {
      */
     hideCarpetGridTicks() {
         let axisStyle = {
-            showticklabels: "none",
+            showticklabels: 'none',
             smoothing: 1,
-        }
+        };
 
         for (let trace of this.data) {
             if (trace.type === 'carpet') {
@@ -73,10 +77,10 @@ class PlotlyData {
         let axisStyle = {
             startline: false,
             endline: false,
-            showticklabels: "none",
+            showticklabels: 'none',
             smoothing: 1,
-            showgrid: false
-        }
+            showgrid: false,
+        };
 
         for (let trace of this.data) {
             if (trace.type === 'carpet') {
@@ -94,7 +98,7 @@ class PlotlyData {
         Object.assign(this.layout.xaxis, {
             scaleanchor: 'y',
             scaleratio: 1,
-            constrain: 'range'
+            constrain: 'range',
         });
     }
 
@@ -102,15 +106,15 @@ class PlotlyData {
      * @param {{ x: string; y: string; }} label
      */
     set axesLabel(label) {
-        this.layout.xaxis.title = label.x;
-        this.layout.yaxis.title = label.y;
+        this.layout.xaxis.title.text = label.x;
+        this.layout.yaxis.title.text = label.y;
     }
 
     /**
      * @param {string} label
      */
     set plotLabel(label) {
-        this.layout.title = label;
+        this.layout.title.text = label;
     }
 }
 

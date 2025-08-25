@@ -6,7 +6,7 @@ html(lang="en")
         link(rel="stylesheet" href="stylesheets/tabs.css")
         script(src="javascripts/plotly-custom.min.js" defer)
         script(type="module" src="javascripts/index.js" defer)
-        script(src="libs/mathjax/MathJax.js?config=TeX-AMS-MML_SVG" defer)
+        script(id="MathJax-script" src="libs/mathjax/tex-svg.js" defer)
         script(src="libs/fftw-js/bundle.js" defer) 
     body
         code(id='outputTag' style="display:none")= outputTag
@@ -25,7 +25,7 @@ html(lang="en")
         div(id="tabs")
             each panel in types
                 div
-                    input(id=panel, type="radio" name="plot-type" class="tab-l0-switch")
+                    input(id=panel, type="radio" name="plot-type" class="tab-l0-switch" disabled)
                     label(for=panel, class="tab-l0-label")= panel
                     if panel === 'Snapshot'
                         div(id="files" class='dropdown')

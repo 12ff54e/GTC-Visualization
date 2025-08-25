@@ -1,34 +1,35 @@
 {
-  "name": "gtc-visualization",
-  "version": "1.0.0",
-  "description": "Online plotting tools for GTC.",
-  "main": "server.js",
-  "scripts": {
-    "test": "nodemon ./server/server.js",
-    "start": "node ./server-prod.js",
-    "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
-    "pack-server": "webpack --config webpack.config.js",
-    "pack": "npm install && npm run pack-server && node ./util/pack.js"
-  },
-  "keywords": [
-    "Visualization"
-  ],
-  "author": "Q. Zhong",
-  "license": "MIT",
-  "devDependencies": {
-    "ify-loader": "^1.1.0",
-    "mathjax": "^2.7.7",
-    "nodemon": "^2.0.2",
-    "plotly.js": "2.26",
-    "transform-loader": "^0.2.4",
-    "webpack": "^4.42.0",
-    "webpack-cli": "^3.3.11"
-  },
-  "dependencies": {
-    "ajv": "6.9.1",
-    "compression": "^1.7.4",
-    "dotenv": "^8.2.0",
-    "express": "^4.17.1",
-    "pug": "^3.0.2"
-  }
+    "name": "gtc-visualization",
+    "version": "1.0.0",
+    "description": "Online plotting tools for GTC.",
+    "main": "server.js",
+    "scripts": {
+        "test": "nodemon ./server/server.js",
+        "start": "node ./server-prod.js",
+        "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
+        "pack-server": "webpack --config webpack.config.js",
+        "pack": "npm install && npm run pack-custom-plotly && npm run pack-server && node ./util/pack.js"
+    },
+    "keywords": [
+        "Visualization"
+    ],
+    "author": "Q. Zhong",
+    "license": "MIT",
+    "devDependencies": {
+        "css-loader": "^7.1.2",
+        "ify-loader": "^1.1.0",
+        "mathjax": "^3.2.2",
+        "nodemon": "^3.1.9",
+        "plotly.js": "3.0.1",
+        "transform-loader": "^0.2.4",
+        "webpack": "^5.97.1",
+        "webpack-cli": "^6.0.1"
+    },
+    "dependencies": {
+        "ajv": "6.12.6",
+        "compression": "^1.7.4",
+        "dotenv": "^8.2.0",
+        "express": "^4.17.1",
+        "pug": "^3.0.2"
+    }
 }

@@ -15,9 +15,10 @@ Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
 4. run
     ```bash
     npm install
+    npm run pack-custom-plotly
     npm test
     ```
-**Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run `npm pack` and all necessary files are packed into a compressed file, which you can upload to your server. Then you can unpack files and start the server by
+**Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run `npm pack` and all necessary files are packed into a compressed file, which you can upload to your server. Or download the latest version from [here](https://github.com/12ff54e/GTC-Visualization/releases/download/latest/GTC-Visualization.tar.gz). Then you can unpack files and start the server by
    ```bash
    tar -xf GTC-Visualization.tar.gz
    cd GTC-Visualization

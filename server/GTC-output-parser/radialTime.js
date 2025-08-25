@@ -15,12 +15,16 @@ class RadialTime extends PlotType {
         this.isTimeSeriesData = true;
 
         this.plotTypes = [
-            ...this.existingParticles.map(t => particlePlotTypes
-                .slice(0, this.particlePlotTypeNumber)
-                .map(p => t + '-' + p)),
-            ...PlotType.fieldID.map(f => fieldPlotTypes
-                .slice(0, this.fieldPlotTypeNumber)
-                .map(p => f + '-' + p))
+            ...PlotType.fieldID.map(f =>
+                fieldPlotTypes
+                    .slice(0, this.fieldPlotTypeNumber)
+                    .map(p => f + '-' + p)
+            ),
+            ...this.existingParticles.map(t =>
+                particlePlotTypes
+                    .slice(0, this.particlePlotTypeNumber)
+                    .map(p => t + '-' + p)
+            ),
         ];
     }
 
@@ -37,6 +41,8 @@ class RadialTime extends PlotType {
         this.entryPerStep = this.radialGridPtNumber *
             (this.speciesNumber * this.particlePlotTypeNumber +
                 this.fieldNumber * this.fieldPlotTypeNumber)
+
+        this.deal_with_particle_species(particlePlotTypes);
 
         // Initialize
         this.data = new Object();

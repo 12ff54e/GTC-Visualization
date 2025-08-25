@@ -23,10 +23,10 @@ class Snapshot extends PlotType {
         this.isTimeSeriesData = false;
 
         this.plotTypes = [
+            ...PlotType.fieldID.map(f => fieldPlotTypes.map(p => f + '-' + p)),
             ...this.existingParticles.map(t =>
                 particlePlotTypes.map(p => t + '-' + p)
             ),
-            ...PlotType.fieldID.map(f => fieldPlotTypes.map(p => f + '-' + p)),
         ];
 
         // particle data, including profile of torques and pdf of energy and pitch angle
@@ -44,6 +44,8 @@ class Snapshot extends PlotType {
         this.poloidalGridPtNumber = parseInt(yield) - 1;
         this.toroidalGridPtNumber = parseInt(yield);
         this.maxEnergy = parseFloat(yield);
+
+        this.deal_with_particle_species(particlePlotTypes);
 
         // read data
         for (let particle of this.existingParticles) {
