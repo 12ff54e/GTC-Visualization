@@ -154,7 +154,7 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
         GTCGlobal.basicParameters.diag_flux ?? GTCGlobal.basicParameters.iflux;
 
     if (1) {
-        await drawPoloidalData({
+        await drawPoloidalDataWebGL({
             radNum,
             polNum,
             x: figures[0].data[0].x,
@@ -163,47 +163,13 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
         });
         figures[0] = { layout: {} };
     } else {
-        // add carpet indices
-
-        const theta_mesh = [];
-        const psi_mesh = [];
-        for (let r = 0; r < radNum; ++r) {
-            for (let p = 0; p <= polNum; ++p) {
-                theta_mesh.push(p);
-                psi_mesh.push(r);
-            }
-        }
-
-        figures[0].data[0].a = theta_mesh;
-        figures[0].data[0].b = psi_mesh;
-        figures[0].data[1].a = theta_mesh;
-        figures[0].data[1].b = psi_mesh;
-
-        // draw diagnostic flux indicator
-
-        const diagnostic_flux_line = {
-            name: 'Diagnostic Flux',
-            mode: 'lines',
-            line: {
-                color: diagFluxLineColor,
-                width: 3,
-                shape: 'spline',
-                smoothing: 1,
-            },
-            hoverinfo: 'none',
-            type: 'scatter',
-            showlegend: true,
-            x: figures[0].data[0].x.slice(
-                diagFlux * (polNum + 1),
-                (diagFlux + 1) * (polNum + 1)
-            ),
-            y: figures[0].data[0].y.slice(
-                diagFlux * (polNum + 1),
-                (diagFlux + 1) * (polNum + 1)
-            ),
-        };
-
-        figures[0].data.push(diagnostic_flux_line);
+        drawPoloidalDataPlotly(
+            figures[0],
+            radNum,
+            polNum,
+            diagFlux,
+            diagFluxLineColor
+        );
     }
 
     // calculate spectrum profile on radial grids
@@ -444,7 +410,57 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
     figures[1].layout.yaxis.range = extend_range(min_values[2], max_values[2]);
 }
 
-async function drawPoloidalData(data) {
+function drawPoloidalDataPlotly(
+    figure,
+    rad_num,
+    pol_num,
+    diag_flux,
+    diag_line_color
+) {
+    // add carpet indices
+
+    const theta_mesh = [];
+    const psi_mesh = [];
+    for (let r = 0; r < rad_num; ++r) {
+        for (let p = 0; p <= pol_num; ++p) {
+            theta_mesh.push(p);
+            psi_mesh.push(r);
+        }
+    }
+
+    figure.data[0].a = theta_mesh;
+    figure.data[0].b = psi_mesh;
+    figure.data[1].a = theta_mesh;
+    figure.data[1].b = psi_mesh;
+
+    // draw diagnostic flux indicator
+
+    const diagnostic_flux_line = {
+        name: 'Diagnostic Flux',
+        mode: 'lines',
+        line: {
+            color: diag_line_color,
+            width: 3,
+            shape: 'spline',
+            smoothing: 1,
+        },
+        hoverinfo: 'none',
+        type: 'scatter',
+        showlegend: true,
+        x: figure.data[0].x.slice(
+            diag_flux * (pol_num + 1),
+            (diag_flux + 1) * (pol_num + 1)
+        ),
+        y: figure.data[0].y.slice(
+            diag_flux * (pol_num + 1),
+            (diag_flux + 1) * (pol_num + 1)
+        ),
+    };
+
+    figure.data.push(diagnostic_flux_line);
+}
+
+async function drawPoloidalDataWebGL(data) {
     // create canvas
 
     const create_canvas = id => {
@@ -486,13 +502,6 @@ async function drawPoloidalData(data) {
     ]);
     const legend_width = 0.1 * (x_max - x_min);
     const legend_left_padding = 0.1 * (x_max - x_min);
-    const color_map = createColorMap(
-        gl,
-        color_map_data,
-        [x_max + legend_left_padding, y_min + 0.1 * (y_max - y_min)],
-        [legend_width, 0.8 * (y_max - y_min)],
-        z_range
-    );
 
     // bounding box should be aware of color map
 
@@ -503,6 +512,16 @@ async function drawPoloidalData(data) {
         dim: [1.05 * (x_max_total - x_min), 1.05 * (y_max - y_min)],
         z_range,
     };
+
+    const color_map = createColorMap(
+        gl,
+        ctx,
+        color_map_data,
+        [x_max + legend_left_padding, y_min + 0.1 * (y_max - y_min)],
+        [legend_width, 0.8 * (y_max - y_min)],
+        bounding_box,
+        z_range
+    );
 
     // create shader program
     const shader_program = buildShaderProgram(gl, [
@@ -629,18 +648,20 @@ function buildShaderProgram(gl, shader_info) {
 /**
  *
  * @param {WebGL2RenderingContext} gl
+ * @param {CanvasRenderingContext2D} ctx For drawing ticks
  * @param {Uint8Array} data
  * @param {[number, number]} corner lower left corner
- * @param {[number, number]} dim
+ * @param {[number, number]} dim width and height
+ * @param {{center:[number, number], dim:[number, number], z_range:[number, number]}} bounding_box
  * @param {[number, number]} z_range
  */
-function createColorMap(gl, data, corner, dim, z_range) {
+function createColorMap(gl, ctx, data, corner, dim, bounding_box, z_range) {
     const color_map_texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, color_map_texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-    gl.texImage2D(...packTexArgs(gl, data));
+    gl.texImage2D(...packTextureArgs(gl, data));
 
     // As far as I'm using another draw call for color map, creating separate vbo/ebo
     //  for it should not be a performance issue.
@@ -700,6 +721,30 @@ function createColorMap(gl, data, corner, dim, z_range) {
             this.bindToTextureUnit(gl.TEXTURE0);
             gl.bindVertexArray(VAO);
             gl.drawElements(gl.TRIANGLES, color_num * 6, gl.UNSIGNED_INT, 0);
+
+            ctx.textBaseline = 'middle';
+            const ticks = getTicks(z_range, color_num);
+            const canvas_width = ctx.canvas.width;
+            const canvas_height = ctx.canvas.height;
+
+            const {
+                center: [cx, cy],
+                dim: [w, h],
+            } = bounding_box;
+            const tick_x =
+                5 +
+                (x1 - cx) * Math.min(canvas_width / w, canvas_height / h) +
+                0.5 * canvas_width;
+
+            ticks.forEach((tick, idx) => {
+                const tick_y =
+                    canvas_height -
+                    ((y0 + (idx + 1) * dy - cy) *
+                        Math.min(canvas_width / w, canvas_height / h) +
+                        0.5 * canvas_height);
+                const label = tick.toExponential(2);
+                ctx.fillText(label, tick_x, tick_y);
+            });
         },
     };
 }
@@ -938,7 +983,7 @@ function min_max(arr) {
  * @param {WebGL2RenderingContext} gl
  * @param {Uint8Array} data
  */
-function packTexArgs(gl, data) {
+function packTextureArgs(gl, data) {
     return [
         gl.TEXTURE_2D,
         0,
@@ -950,6 +995,19 @@ function packTexArgs(gl, data) {
         gl.UNSIGNED_BYTE,
         data,
     ];
+}
+
+function getTicks([min, max], num) {
+    const range = max - min;
+    const exp = Math.floor(Math.log10(range / num));
+    const keep2digit = x => 0.02 * Math.floor(50 * x);
+    const step =
+        keep2digit((range / num) * Math.pow(10, -exp)) * Math.pow(10, exp);
+
+    return Array.from(
+        { length: num - 1 },
+        (_, idx) => (idx + Math.ceil(min / step + 0.5)) * step
+    );
 }
 
 function getRationalSurface(safetyFactor, n_modes, m_modes) {
