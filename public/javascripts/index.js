@@ -2,6 +2,7 @@
 import {
     historyMode,
     snapshotPoloidal,
+    snapshotPoloidalPreview,
     snapshotSpectrum,
     trackingPlot,
     addSimulationRegion,
@@ -435,6 +436,31 @@ async function openPanel(clean_beforehand = true) {
 
     if (this.id.startsWith('snap')) {
         addSnapshotPlayer(panel, create_l1_group);
+
+        panel.querySelectorAll('button').forEach(btn => {
+            if (btn.id.endsWith('-poloidal')) {
+                btn.classList.add('can-preview');
+                btn.addEventListener(
+                    'mouseenter',
+                    wrap(async () => {
+                        document.querySelector(
+                            '#poloidal-preview'
+                        ).style.display = 'initial';
+                        const res = await fetch(
+                            `plot/data/${btn.id}?dir=${
+                                document.querySelector('#outputTag').innerText
+                            }`
+                        );
+                        await propagateFetchError(res);
+                        await snapshotPoloidalPreview(await res.json());
+                    })
+                );
+                btn.addEventListener('mouseleave', ev => {
+                    document.querySelector('#poloidal-preview').style.display =
+                        'none';
+                });
+            }
+        });
     }
 }
 

@@ -144,6 +144,18 @@ export async function snapshotSpectrum(figures) {
     );
 }
 
+export async function snapshotPoloidalPreview(figures) {
+    const { polNum, radNum } = figures.pop();
+
+    await drawPoloidalDataWebGL(document.querySelector('#poloidal-preview'), {
+        radNum,
+        polNum,
+        x: figures[0].data[0].x,
+        y: figures[0].data[0].y,
+        z: figures[0].data[1].z,
+    });
+}
+
 export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
     const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
@@ -153,24 +165,13 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
     const diagFlux =
         GTCGlobal.basicParameters.diag_flux ?? GTCGlobal.basicParameters.iflux;
 
-    if (1) {
-        await drawPoloidalDataWebGL({
-            radNum,
-            polNum,
-            x: figures[0].data[0].x,
-            y: figures[0].data[0].y,
-            z: figures[0].data[1].z,
-        });
-        figures[0] = { layout: {} };
-    } else {
-        drawPoloidalDataPlotly(
-            figures[0],
-            radNum,
-            polNum,
-            diagFlux,
-            diagFluxLineColor
-        );
-    }
+    drawPoloidalDataPlotly(
+        figures[0],
+        radNum,
+        polNum,
+        diagFlux,
+        diagFluxLineColor
+    );
 
     // calculate spectrum profile on radial grids
 
@@ -460,7 +461,11 @@ function drawPoloidalDataPlotly(
     figure.data.push(diagnostic_flux_line);
 }
 
-async function drawPoloidalDataWebGL(data) {
+/**
+ * @param {HTMLDivElement} container
+ * @param {{radNum: number, polNum:number, x:[number], y:[number], z:[number]}} data
+ */
+async function drawPoloidalDataWebGL(container, data) {
     // create canvas
 
     const create_canvas = id => {
@@ -469,13 +474,13 @@ async function drawPoloidalDataWebGL(data) {
         canvas.width = canvas.height = 700;
         return canvas;
     };
-    document.querySelector('canvas#pol-canvas');
-    const figure_canvas = create_canvas('pol-canvas');
-    const overlay_canvas = create_canvas('pol-canvas-overlay');
-
-    document
-        .querySelector('#figure-1')
-        .replaceChildren(figure_canvas, overlay_canvas);
+    const figure_canvas = (id =>
+        document.getElementById(id) ?? create_canvas(id))('pol-canvas');
+    const overlay_canvas = (id =>
+        document.getElementById(id) ?? create_canvas(id))('pol-canvas-overlay');
+    if (container.childElementCount == 0) {
+        container.append(figure_canvas, overlay_canvas);
+    }
 
     // webgl2 context
     const gl = figure_canvas.getContext('webgl2');
@@ -726,6 +731,7 @@ function createColorMap(gl, ctx, data, corner, dim, bounding_box, z_range) {
             const ticks = getTicks(z_range, color_num);
             const canvas_width = ctx.canvas.width;
             const canvas_height = ctx.canvas.height;
+            ctx.clearRect(0, 0, canvas_width, canvas_height);
 
             const {
                 center: [cx, cy],
