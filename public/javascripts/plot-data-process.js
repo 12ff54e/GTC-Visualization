@@ -483,7 +483,7 @@ async function drawPoloidalDataWebGL(container, data) {
     }
 
     // webgl2 context
-    const gl = figure_canvas.getContext('webgl2');
+    const gl = figure_canvas.getContext('webgl2', { alpha: true });
     if (!gl) {
         throw 'Your browser do not support webgl2!';
     }
@@ -599,7 +599,7 @@ async function drawPoloidalDataWebGL(container, data) {
     color_map.bindToTextureUnit(gl.TEXTURE0);
 
     // Clear canvas with white background color
-    gl.clearColor(1, 1, 1, 0);
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // draw call

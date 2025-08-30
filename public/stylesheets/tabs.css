@@ -168,6 +168,10 @@ p {
     height: auto;
 }
 
+#pol-canvas {
+    background-color: transparent;
+}
+
 #pol-canvas-overlay {
     position: absolute;
     left: 0;
