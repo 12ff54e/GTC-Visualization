@@ -529,16 +529,20 @@ async function drawPoloidalDataWebGL(container, data) {
     );
 
     // create shader program
-    const shader_program = buildShaderProgram(gl, [
-        {
-            type: gl.VERTEX_SHADER,
-            code: await (await fetch('/shader/pol.vert')).text(),
-        },
-        {
-            type: gl.FRAGMENT_SHADER,
-            code: await (await fetch('/shader/pol.frag')).text(),
-        },
-    ]);
+    const shader_program =
+        container.gl_shader ??
+        buildShaderProgram(gl, [
+            {
+                type: gl.VERTEX_SHADER,
+                code: await (await fetch('/shader/pol.vert')).text(),
+            },
+            {
+                type: gl.FRAGMENT_SHADER,
+                code: await (await fetch('/shader/pol.frag')).text(),
+            },
+        ]);
+
+    container.gl_shader = shader_program;
 
     // set uniforms
     gl.useProgram(shader_program);
