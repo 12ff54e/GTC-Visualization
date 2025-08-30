@@ -500,10 +500,16 @@ async function drawPoloidalDataWebGL(container, data) {
 
     // create color map texture
 
-    // ColorData["ThermometerColors"] from Mathematica
+    // Sampling from ColorData["ThermometerColors"]
+    // const color_map_data = new Uint8Array([
+    //     41, 30, 202, 87, 113, 234, 151, 191, 241, 203, 226, 225, 229, 217, 188,
+    //     224, 168, 137, 191, 91, 86, 136, 21, 42,
+    // ]);
+    // Blend between blue and red (not pure blue and red though, they are actually cf[0] and cf[1], with
+    //  cf = ColorData["TemperatureMap"])
     const color_map_data = new Uint8Array([
-        41, 30, 202, 87, 113, 234, 151, 191, 241, 203, 226, 225, 229, 217, 188,
-        224, 168, 137, 191, 91, 86, 136, 21, 42,
+        45, 77, 238, 97, 122, 242, 150, 166, 246, 202, 210, 250, 255, 255, 255,
+        243, 199, 201, 231, 144, 148, 220, 89, 95, 208, 34, 41,
     ]);
     const legend_width = 0.1 * (x_max - x_min);
     const legend_left_padding = 0.1 * (x_max - x_min);
