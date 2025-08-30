@@ -1004,15 +1004,26 @@ function packTextureArgs(gl, data) {
 }
 
 function getTicks([min, max], num) {
-    const range = max - min;
-    const exp = Math.floor(Math.log10(range / num));
-    const keep2digit = x => 0.02 * Math.floor(50 * x);
-    const step =
-        keep2digit((range / num) * Math.pow(10, -exp)) * Math.pow(10, exp);
+    const get_exp = x => Math.floor(Math.log10(Math.abs(x)));
+    const get_mantissa = (x, n) => x * Math.pow(10, -(n ?? get_exp(x)));
+
+    const tweak_mantissa = (x, f, n) =>
+        f(get_mantissa(x, n)) * Math.pow(10, n ?? get_exp(x));
+
+    const truncated_mid_pt = tweak_mantissa(
+        0.5 * (max + min),
+        Math.floor,
+        Math.max(get_exp(max), get_exp(min))
+    );
+
+    const step = tweak_mantissa(
+        (2 * Math.max(truncated_mid_pt - min, max - truncated_mid_pt)) / num,
+        x => 0.04 * Math.floor(25 * x)
+    );
 
     return Array.from(
         { length: num - 1 },
-        (_, idx) => (idx + Math.ceil(min / step + 0.5)) * step
+        (_, idx) => (idx - 0.5 * (num - 2)) * step
     );
 }
 
