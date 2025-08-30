@@ -1,5 +1,5 @@
 :root {
-    --preview-bg: azure
+    --preview-bg: azure;
 }
 
 #breadcrumb-container {
@@ -430,4 +430,10 @@ input.eq-1d-y:checked + label {
     background-color: var(--preview-bg);
     z-index: 30;
     display: none;
+}
+
+.can-preview::after {
+    content: '(peek)';
+    color: red;
+    font-weight: bold;
 }
