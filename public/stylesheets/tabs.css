@@ -1,3 +1,7 @@
+:root {
+    --preview-bg: azure;
+}
+
 #breadcrumb-container {
     font-size: large;
     height: 1rem;
@@ -168,6 +172,16 @@ p {
     height: auto;
 }
 
+#pol-canvas {
+    background-color: transparent;
+}
+
+#pol-canvas-overlay {
+    position: absolute;
+    left: 0;
+    background-color: transparent;
+}
+
 #tabs > div {
     padding: 2px 0;
 }
@@ -249,6 +263,10 @@ div#files {
 
 #files > button:hover {
     background-color: rgba(73, 73, 228, 0.267);
+}
+
+#files > button.snapshot-selected {
+    background-color: rgba(73, 73, 228, 0.42);
 }
 
 div header {
@@ -366,24 +384,27 @@ input.eq-1d-y:checked + label {
     transition: 0.3s ease-in-out;
 }
 #summary-page > .summary-figure-container-show {
-    height: 400px;
+    height: calc(400px + 4em + 20px);
 }
 .summary-figure-wrapper {
     width: 600px;
     margin: 0 auto;
     position: relative;
 }
+.summary-figure-plot-div {
+    width: 100%;
+    height: 400px;
+}
 .summary-figure-button-div {
-    position: absolute;
-    top: 0.5rem;
-    left: 1rem;
-    width: 7em;
-    display: flex;
-    flex-wrap: wrap;
+    margin: 0em 1em 0.5em;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     align-items: stretch;
+    justify-content: space-evenly;
 }
 .summary-figure-button-div > button {
     padding-block: 0;
+    margin: 0 0 5px 2em;
 }
 
 #summary-page span.good {
@@ -394,4 +415,29 @@ input.eq-1d-y:checked + label {
 }
 #summary-page span.error {
     color: crimson;
+}
+
+#summary-page .hover_text {
+    transition: all 0.35s;
+}
+#summary-page .hover_text:hover {
+    color: gray;
+}
+
+#poloidal-preview {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 700px;
+    height: 700px;
+    border: outset 10px var(--preview-bg);
+    background-color: var(--preview-bg);
+    z-index: 30;
+    display: none;
+}
+
+.can-preview::after {
+    content: '(peek)';
+    color: red;
+    font-weight: bold;
 }

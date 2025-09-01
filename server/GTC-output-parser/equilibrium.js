@@ -220,6 +220,8 @@ class Equilibrium extends PlotType {
             });
             figure.hideCarpetGrid();
             figure.plotLabel = `$\\text{${type}}$`;
+
+            figure.force_redraw = true;
         } else {
             switch (this.plotTypes.others.indexOf(type)) {
                 case 0: // magnetic field along poloidal direction

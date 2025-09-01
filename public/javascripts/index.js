@@ -2,6 +2,7 @@
 import {
     historyMode,
     snapshotPoloidal,
+    snapshotPoloidalPreview,
     snapshotSpectrum,
     trackingPlot,
     addSimulationRegion,
@@ -62,6 +63,13 @@ function getStatusBar() {
 }
 
 // global vars
+//  {
+//      hist_mode_range;
+//      basicParameters;
+//      timeStep;
+//      current_snapshot_id;
+//      current_snapshot_figure_id;
+//  }
 window.GTCGlobal = new Object();
 
 // use for history mode interaction
@@ -89,8 +97,11 @@ window.addEventListener('load', () => {
                 'change',
                 wrap(async e => {
                     // collapse snapshot file list
-                    let div = document.getElementById('files');
+                    const div = document.getElementById('files');
                     div.style.height = '';
+                    for (const btn of div.children) {
+                        btn.classList.remove('snapshot-selected');
+                    }
                     await addLoadingIndicator(callEventTarget(openPanel))(e);
                 })
             );
@@ -102,7 +113,15 @@ window.addEventListener('load', () => {
     for (let btn of document.getElementById('files').children) {
         btn.addEventListener(
             'click',
-            wrap(addLoadingIndicator(callEventTarget(openPanel)))
+            wrap(async e => {
+                for (let b of e.target.parentElement.children) {
+                    b.classList.remove('snapshot-selected');
+                }
+                e.target.classList.add('snapshot-selected');
+                // set current snapshot file
+                window.GTCGlobal.current_snapshot = e.target;
+                await addLoadingIndicator(callEventTarget(openPanel))(e);
+            })
         );
     }
 
@@ -112,7 +131,7 @@ window.addEventListener('load', () => {
     wrap(async () => {
         const res = await fetch('/fileTree');
         await propagateFetchError(res);
-        const fileTree = await res.json();
+        const { file_tree } = await res.json();
         const navigationBar = document.querySelector(
             '#breadcrumb-container'
         ).firstElementChild;
@@ -150,7 +169,7 @@ window.addEventListener('load', () => {
                 ? currentEntry.content.find(
                       f => f.dirname === seg.firstElementChild.innerText
                   )
-                : fileTree;
+                : file_tree;
 
             seg.appendChild(dropdown.cloneNode());
             seg.lastElementChild.append(
@@ -254,11 +273,11 @@ function addDownloadFunction() {
     );
 }
 
-function registerButtons(buttons) {
+function registerButtons(buttons, cb = getDataThenPlot) {
     buttons.forEach(btn => {
         btn.addEventListener(
             'click',
-            wrap(addLoadingIndicator(callEventTarget(getDataThenPlot)))
+            wrap(addLoadingIndicator(callEventTarget(cb)))
         );
     });
 }
@@ -275,36 +294,9 @@ async function getBasicParameters() {
     }
 }
 
-async function openPanel() {
+async function openPanel(clean_beforehand = true) {
     if (this.id == 'Summary') {
-        await getBasicParameters();
-        const summaryContainer = await generateSummary();
-
-        if (summaryContainer === undefined) {
-            // summary page is already generated
-            return;
-        }
-
-        // register jump button on summary page
-        summaryContainer
-            .querySelectorAll('.summary-jump-button')
-            .forEach(btn => {
-                btn.addEventListener(
-                    'click',
-                    wrap(async e => {
-                        e.preventDefault();
-                        const panelSwitch = document.querySelector(
-                            `#${btn.id.split('-')[1]}`
-                        );
-                        await addLoadingIndicator(
-                            openPanel.bind(panelSwitch)
-                        )();
-
-                        panelSwitch.checked = true;
-                        document.querySelector(`#${btn.id.slice(8)}`).click();
-                    })
-                );
-            });
+        await buildSummaryPage();
         return;
     }
 
@@ -316,28 +308,30 @@ async function openPanel() {
     const statusBar = document.getElementById('status').status;
 
     cleanPanel();
-    cleanPlot();
+    if (clean_beforehand) {
+        cleanPlot();
+    }
     let panel = document.getElementById(panelName);
     panel.style.opacity = 1;
     panel.style.zIndex = 2;
 
     // inform the server about which .out file should be parsed
-    let res = await fetch(
-        `plot/plotType/${this.id}?dir=${
-            document.querySelector('#outputTag').innerText
-        }`
-    );
-    await propagateFetchError(res);
-    // wait for the response, then create buttons for plotting
-    await getBasicParameters();
+    let {
+        info,
+        warn,
+        err,
+        id: btn_id_array,
+    } = await (await requestPlotData(`plotType/${this.id}`)).json();
 
-    let { info, warn, err, id: btn_id_array } = await res.json();
     statusBar.info = info ? info : '';
     statusBar.warn = warn ? warn : '';
     if (err) {
         statusBar.err = err;
         return;
     }
+
+    // wait for the response, then create buttons for plotting
+    await getBasicParameters();
 
     // add buttons
     const node =
@@ -356,9 +350,11 @@ async function openPanel() {
         btn_id_array = [poloidalPlane, others];
         createEqPanel1D(x, y);
     }
-    btn_id_array.map(type => {
+
+    // group is array of strings used as button id
+    const create_l1_group = (group, cb) => {
         let subDiv = document.createElement('div');
-        const btns = type.map(btnID => {
+        const btns = group.map(btnID => {
             let btn = document.createElement('button');
             btn.setAttribute('id', `${majorType}-${btnID}`);
             btn.setAttribute('class', 'tab-l1-btn');
@@ -367,23 +363,89 @@ async function openPanel() {
 
             return btn;
         });
-        registerButtons(btns);
-        panel.appendChild(subDiv);
+        registerButtons(btns, cb);
+        return subDiv;
+    };
+    btn_id_array.forEach(group => {
+        panel.appendChild(create_l1_group(group));
     });
 
     if (this.id === 'History') {
-        if (!window.GTCGlobal.timeStep) {
-            window.GTCGlobal.timeStep =
-                window.GTCGlobal.basicParameters.ndiag *
-                window.GTCGlobal.basicParameters.tstep;
-        }
+        addHistoryRecal(panel);
+    }
 
-        const div = document.createElement('div');
-        const btn = document.createElement('button');
-        btn.innerText =
-            'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
-        btn.classList.add('tab-l1-btn');
-        btn.addEventListener('click', async function () {
+    if (this.id.startsWith('snap')) {
+        addSnapshotPlayer(panel, create_l1_group);
+
+        panel.querySelectorAll('button').forEach(btn => {
+            if (btn.id.endsWith('-poloidal')) {
+                btn.classList.add('can-preview');
+                btn.addEventListener(
+                    'mouseenter',
+                    wrap(async () => {
+                        document.querySelector(
+                            '#poloidal-preview'
+                        ).style.display = 'initial';
+                        const res = await fetch(
+                            `plot/data/${btn.id}?dir=${
+                                document.querySelector('#outputTag').innerText
+                            }`
+                        );
+                        await propagateFetchError(res);
+                        await snapshotPoloidalPreview(await res.json());
+                    })
+                );
+                btn.addEventListener('mouseleave', ev => {
+                    document.querySelector('#poloidal-preview').style.display =
+                        'none';
+                });
+            }
+        });
+    }
+}
+
+async function buildSummaryPage() {
+    await getBasicParameters();
+    const summaryContainer = await generateSummary(getStatusBar());
+
+    if (summaryContainer === undefined) {
+        // summary page is already generated
+        return;
+    }
+
+    // register jump button on summary page
+    summaryContainer.querySelectorAll('.summary-jump-button').forEach(btn => {
+        btn.addEventListener(
+            'click',
+            wrap(async e => {
+                e.preventDefault();
+                const panelSwitch = document.querySelector(
+                    `#${btn.id.split('-')[1]}`
+                );
+                await addLoadingIndicator(openPanel.bind(panelSwitch))();
+
+                panelSwitch.checked = true;
+                document.querySelector(`#${btn.id.slice(8)}`).click();
+            })
+        );
+    });
+}
+
+function addHistoryRecal(panel) {
+    if (!window.GTCGlobal.timeStep) {
+        window.GTCGlobal.timeStep =
+            window.GTCGlobal.basicParameters.ndiag *
+            window.GTCGlobal.basicParameters.tstep;
+    }
+
+    const div = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.innerText =
+        'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+    btn.classList.add('tab-l1-btn');
+    btn.addEventListener(
+        'click',
+        wrap(async function () {
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
@@ -401,18 +463,104 @@ async function openPanel() {
             figures.forEach(figure => {
                 Plotly.react(figure, figure.data, figure.layout);
             });
-        });
+        })
+    );
 
-        div.classList.add('dropdown');
-        div.append(btn);
-        panel.prepend(div);
+    div.classList.add('dropdown');
+    div.append(btn);
+    panel.prepend(div);
+}
+
+async function addSnapshotPlayer(panel, create_l1_group) {
+    panel.appendChild(
+        create_l1_group(
+            [
+                'previous snapshot',
+                'next snapshot',
+                'previous (continuously)',
+                'next (continuously)',
+            ],
+            async function () {
+                let limit = this.innerText.endsWith('(continuously)')
+                    ? Infinity
+                    : 1;
+                const stopper = ev => {
+                    if (ev.key === 's') {
+                        limit = 0;
+                    }
+                };
+                window.addEventListener('keypress', stopper);
+                for (let i = 0; i < limit; ++i) {
+                    let current_snapshot = GTCGlobal.current_snapshot;
+                    if (i > 0) {
+                        await new Promise(resolve => {
+                            setTimeout(resolve, 200);
+                        });
+                    }
+                    if (this.innerText.startsWith('prev')) {
+                        if (current_snapshot.previousElementSibling) {
+                            GTCGlobal.current_snapshot =
+                                current_snapshot.previousElementSibling;
+                        } else {
+                            if (i == 0) {
+                                alert('No previous snapshot');
+                            }
+                            return;
+                        }
+                    } else {
+                        if (current_snapshot.nextElementSibling) {
+                            GTCGlobal.current_snapshot =
+                                current_snapshot.nextElementSibling;
+                        } else {
+                            if (i == 0) {
+                                alert('No next snapshot');
+                            }
+                            return;
+                        }
+                    }
+                    current_snapshot.classList.remove('snapshot-selected');
+                    GTCGlobal.current_snapshot.classList.add(
+                        'snapshot-selected'
+                    );
+                    await openPanel.call(GTCGlobal.current_snapshot, false);
+                    if (GTCGlobal.current_snapshot_figure) {
+                        await getDataThenPlot.call(
+                            GTCGlobal.current_snapshot_figure,
+                            false
+                        );
+                    }
+                }
+                window.removeEventListener('keypress', stopper);
+            }
+        )
+    );
+}
+
+async function requestPlotData(name, optional = false) {
+    // inform the server about which .out file should be parsed
+    let res = await fetch(
+        `plot/${name}?dir=${document.querySelector('#outputTag').innerText}`
+    );
+    try {
+        await propagateFetchError(res);
+    } catch (e) {
+        if (!optional) {
+            throw e;
+        }
     }
+    return res;
 }
 
 function cleanPlot() {
-    for (let fig of document.getElementById('figure-wrapper').children) {
-        fig.classList.remove('active');
+    for (let div of document.getElementById('figure-wrapper').children) {
+        div.classList.remove('active');
+        if (div.firstElementChild?.tagName === 'CANVAS') {
+            div.className = ''; // ensures subsequent Plotly.react works properly
+            div.removeChild(div.firstElementChild);
+        }
     }
+
+    GTCGlobal.current_snapshot_figure = undefined;
 }
 
 function cleanPanel() {
@@ -422,9 +570,9 @@ function cleanPanel() {
         p.style.zIndex = 1;
     }
 
-    const recal = panel.querySelector('#History-panel').firstElementChild;
-    if (recal) {
-        recal.style.height = '0rem';
+    const recalculate = panel.querySelector('#History-panel').firstElementChild;
+    if (recalculate) {
+        recalculate.style.height = '0rem';
     }
 
     const summary = document.querySelector('#container');
@@ -442,8 +590,10 @@ function addLoadingIndicator(func) {
     };
 }
 
-async function getDataThenPlot() {
-    cleanPlot();
+async function getDataThenPlot(clean_beforehand = true) {
+    if (clean_beforehand) {
+        cleanPlot();
+    }
 
     const res = await fetch(
         `plot/data/${this.id}?dir=${
@@ -454,25 +604,18 @@ async function getDataThenPlot() {
     let figures = await res.json();
 
     // some figures need some local calculation
-    const recal = document.getElementById('History-panel').firstElementChild;
+    const recalculate =
+        document.getElementById('History-panel').firstElementChild;
     if (this.id.startsWith('History')) {
-        recal.style.height = '0rem';
+        recalculate.style.height = '0rem';
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
         window.GTCGlobal.hist_mode_range.frequency = undefined;
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
-        recal.style.height = '3.5rem';
-    } else if (
-        this.id.startsWith('Snapshot') &&
-        this.id.endsWith('-spectrum')
-    ) {
-        await snapshotSpectrum(figures);
-    } else if (
-        this.id.startsWith('Snapshot') &&
-        this.id.endsWith('-poloidal')
-    ) {
-        snapshotPoloidal(figures);
+        recalculate.style.height = '3.5rem';
+    } else if (this.id.startsWith('Snapshot')) {
+        await snapshotPreprocess(this, figures);
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
@@ -483,47 +626,89 @@ async function getDataThenPlot() {
     }
 
     await Promise.all(
-        figures.map(({ data, layout }, idx) => {
+        figures.map(({ data, layout, force_redraw }, idx) => {
             const fig_div = document.querySelector(`#figure-${idx + 1}`);
             fig_div.classList.add('active');
             // restore height
             if (layout.height === undefined) {
                 layout.height = 450;
             }
-            return Plotly.react(fig_div, data, layout, {
-                editable: true,
-            });
+            return data
+                ? (force_redraw ? Plotly.newPlot : Plotly.react)(
+                      fig_div,
+                      data,
+                      layout,
+                      {
+                          editable: true,
+                      }
+                  )
+                : Promise.resolve();
         })
     );
 
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        document
-            .getElementById('figure-2')
-            .on('plotly_relayout', function (eventData) {
-                if (eventData['xaxis.range']) {
-                    window.GTCGlobal.hist_mode_range.growthRate =
-                        eventData['xaxis.range'].slice();
-                } else if (eventData['xaxis.range[0]']) {
-                    window.GTCGlobal.hist_mode_range.growthRate = [
-                        eventData['xaxis.range[0]'],
-                        eventData['xaxis.range[1]'],
-                    ];
-                }
-            });
-        document
-            .getElementById('figure-3')
-            .on('plotly_relayout', function (eventData) {
-                if (eventData['xaxis.range']) {
-                    window.GTCGlobal.hist_mode_range.frequency =
-                        eventData['xaxis.range'].slice();
-                } else if (eventData['xaxis.range[0]']) {
-                    window.GTCGlobal.hist_mode_range.frequency = [
-                        eventData['xaxis.range[0]'],
-                        eventData['xaxis.range[1]'],
-                    ];
-                }
-            });
+        if (!window.GTCGlobal.hist_mode_range.ev_listener_added) {
+            updateHistoryModeRange();
+        }
+        window.GTCGlobal.hist_mode_range.ev_listener_added = true;
     }
+}
+
+async function snapshotPreprocess(btn, figures) {
+    if (btn.id.endsWith('-spectrum')) {
+        await snapshotSpectrum(figures);
+    } else if (btn.id.endsWith('-poloidal')) {
+        const res = await requestPlotData('plotType/Equilibrium', true);
+        await (res.ok
+            ? snapshotPoloidal(
+                  figures,
+                  getStatusBar(),
+                  (
+                      await (
+                          await requestPlotData(
+                              'data/Equilibrium-1D-rg_n-q',
+                              true
+                          )
+                      ).json()
+                  )
+                      ?.at(0)
+                      ?.data?.at(0)
+              )
+            : snapshotPoloidal(figures, getStatusBar()));
+        
+    }
+    GTCGlobal.current_snapshot_figure = btn;
+}
+
+function updateHistoryModeRange() {
+    document
+        .getElementById('figure-2')
+        .on('plotly_relayout', function (eventData) {
+            console.log(eventData);
+            if (eventData['xaxis.range']) {
+                window.GTCGlobal.hist_mode_range.growthRate =
+                    eventData['xaxis.range'].slice();
+            } else if (eventData['xaxis.range[0]']) {
+                window.GTCGlobal.hist_mode_range.growthRate = [
+                    eventData['xaxis.range[0]'],
+                    eventData['xaxis.range[1]'],
+                ];
+            }
+        });
+    document
+        .getElementById('figure-3')
+        .on('plotly_relayout', function (eventData) {
+            console.log(eventData);
+            if (eventData['xaxis.range']) {
+                window.GTCGlobal.hist_mode_range.frequency =
+                    eventData['xaxis.range'].slice();
+            } else if (eventData['xaxis.range[0]']) {
+                window.GTCGlobal.hist_mode_range.frequency = [
+                    eventData['xaxis.range[0]'],
+                    eventData['xaxis.range[1]'],
+                ];
+            }
+        });
 }
 
 function createEqPanel1D(xDataTypes, yDataTypes) {

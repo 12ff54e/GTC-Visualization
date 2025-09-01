@@ -7,14 +7,41 @@ html(lang="en")
         link(rel="stylesheet", href="stylesheets/drop-down.css")
         title GTC-Visualization
     body
+        div(id="banner")
+            | Server uptime 
+            span#server_uptime
+            | , last scan 
+            span#last_scan_duration
+            |  ago
         form(method="POST" id="folder_form" action="plot")
             div(id="folder_list")
+                ul(id="recent_ul" class="content")
                 div(class="ctrl")
                     button Expand All
                     button Collapse All
                 ul(id="outer_ul" class="content")
             div(id="submit_area")
-                button(type="submit") Choose this folder
+                div.tooltip_container.long_column
+                    button(type="submit").tooltip
+                        | Choose this folder
+                    span.tooltip_text.tooltip_bottom
+                        | If you don't choose any folder, the most recent one will be selected.
+                div.tooltip_container.normal_grid
+                    button#sync_cache.server_comm.tooltip
+                        | Sync Server Cache
+                        br
+                        | (last sync 
+                        span#duration 0s
+                        |  ago)
+                    span.tooltip_text.tooltip_right
+                        | Sync the folder structure in server cache,
+                        |  not necessarily represents actual content on disk (FAST)
+                div.tooltip_container.normal_grid
+                    button#scan_folder.server_comm.tooltip
+                        | Scan folder now!
+                    span.tooltip_text.tooltip_right
+                        | Send a request to the server to read disk and update cache immediately (SLOW)
+                    
 
         div(id='loading')
             img(src="loading.gif", alt="loading")

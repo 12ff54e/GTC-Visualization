@@ -1,4 +1,4 @@
-export async function generateSummary() {
+export async function generateSummary(status_bar) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -42,28 +42,40 @@ export async function generateSummary() {
     const rgDiag =
         lerp(...bp.radial_region, bp.diag_flux / bp.mpsi) * minorRadius;
     const eqRadialDiagIndex = lower_bound(data.rg, rgDiag) - 1;
-    const safetyFactor = linearMap(
-        rgDiag,
-        data.rg[eqRadialDiagIndex],
-        data.rg[eqRadialDiagIndex + 1],
-        data.q[eqRadialDiagIndex],
-        data.q[eqRadialDiagIndex + 1]
-    );
+    const value_diag_flux = profile_name =>
+        linearMap(
+            rgDiag,
+            data.rg[eqRadialDiagIndex],
+            data.rg[eqRadialDiagIndex + 1],
+            data[profile_name][eqRadialDiagIndex],
+            data[profile_name][eqRadialDiagIndex + 1]
+        );
+    const inverse_scale_length_diag_flux = profile_name =>
+        interpolationDerivativeAt(rgDiag, data['rg'], data[profile_name]) /
+        value_diag_flux(profile_name);
+
+    const qprime = derivative(data['rg'], data['q']);
+
+    const safety_factor = value_diag_flux('q');
     const properModeIndex = bp.nmodes.reduce(
         (acc, val, idx) => {
             const { eps } = acc;
-            const delta = Math.abs(bp.mmodes[idx] / val - safetyFactor);
+            const delta = Math.abs(bp.mmodes[idx] / val - safety_factor);
             return eps > delta ? { eps: delta, minIdx: idx } : acc;
         },
         { minIdx: 0, eps: Infinity }
     ).minIdx;
     const diagFluxProp = `The diagnostic flux you choose locates at \\(${(
         rgDiag / minorRadius
-    ).toPrecision(4)}a_0\\). Here safety factor \\(q=${safetyFactor.toPrecision(
+    ).toPrecision(
+        4
+    )}a_0\\). Here safety factor \\(q=${safety_factor.toPrecision(
         4
     )}\\), shear \\(\\hat{s}=r\\mathrm{d\\,ln}q/\\mathrm{d}r=${(
-        (interpolationDerivativeAt(rgDiag, data.rg, data.q) * rgDiag) /
-        safetyFactor
+        inverse_scale_length_diag_flux('q') * rgDiag
+    ).toFixed(4)}\\), \\(s_{2}=r^{2}q^{\\prime\\prime}/q^{2}=${(
+        interpolationDerivativeAt(rgDiag, data['rg'], qprime) *
+        Math.pow(rgDiag / value_diag_flux('q'), 2)
     ).toFixed(
         4
     )}\\) (<button id="summary-safety-factor" class="summary-figure-button">show/hide figure</button>). Among 8 modes you choose, the ${
@@ -78,6 +90,8 @@ export async function generateSummary() {
         properModeIndex + 1
     }</button>.`;
     addParagraph(diagFluxProp);
+
+    const qpp = derivative(data['rg'], qprime);
 
     const normalizedMinorRadius = {
         tag: '$r$',
@@ -96,15 +110,78 @@ export async function generateSummary() {
             {
                 title: 'Shear',
                 tag: '$\\hat{s}$',
+                data: zip((qp, r, q) => (qp * r) / q, qprime, data.rg, data.q),
+            },
+            {
+                title: 'Reverse Shear Coefficient',
+                tag: '$s_2$',
                 data: zip(
-                    (dq, r, q) => (dq * r * r) / q,
-                    data['dlnq_dpsi'],
+                    (qpp, r, q) => qpp * Math.pow(r / q, 2),
+                    qpp,
                     data.rg,
                     data.q
                 ),
             },
         ]
     );
+
+    const rho_diag_flux =
+        bp['rho0'] *
+        (bp['inorm'] ? 1 : Math.sqrt(value_diag_flux('Te') / data['Te'][0]));
+    const electron_beta_diag_flux =
+        bp['betae'] *
+        (bp['inorm']
+            ? 1
+            : ((value_diag_flux('Te') / data['Te'][0]) *
+                  value_diag_flux('ne')) /
+              data['ne'][0]);
+    const energetic_ion_beta_diag_flux =
+        (electron_beta_diag_flux *
+            value_diag_flux('Tf') *
+            value_diag_flux('nf')) /
+        (value_diag_flux('Te') * value_diag_flux('ne'));
+    const key_dimensionless_parameters = `At diagnostic flux, density gradient \\(\\epsilon_n=${(
+        -1 / inverse_scale_length_diag_flux('ne')
+    ).toFixed(4)},\\) \\(\\eta_\\mathrm{i}=${(
+        inverse_scale_length_diag_flux('Ti') /
+        inverse_scale_length_diag_flux('ni')
+    ).toFixed(4)},\\) ${
+        bp.magnetic
+            ? `\\(\\eta_\\mathrm{e}=${(
+                  inverse_scale_length_diag_flux('Te') /
+                  inverse_scale_length_diag_flux('ne')
+              ).toFixed(
+                  4
+              )},\\) electron beta \\(\\beta_\\mathrm{e}=${electron_beta_diag_flux.toFixed(
+                  4
+              )},\\) ${
+                  bp.fload > 0
+                      ? `energetic ion beta \\(\\beta_\\mathrm{f}=${energetic_ion_beta_diag_flux.toFixed(
+                            4
+                        )},\\) `
+                      : ''
+              }`
+            : ''
+    }temperature ratio \\(\\tau=${(
+        value_diag_flux('Te') / value_diag_flux('Ti')
+    ).toFixed(4)},\\) \\(b_\\theta=\\)${[...new Set(bp['mmodes'])]
+        .map(m => {
+            const k_rho = (m / rgDiag) * rho_diag_flux * Math.sqrt(bp['aion']);
+            return `<span title=${k_rho.toFixed(
+                4
+            )} class="hover_text">\\(${Math.pow(k_rho, 2).toFixed(
+                4
+            )}(${m}),\\)</span>`;
+        })
+        .join(
+            ' '
+        )} for modes in gtc.in respectively, number in bracket is m mode number.`;
+    addParagraph(key_dimensionless_parameters);
+
+    // check rg monotonicity
+    if (data.rg.every((v, i, a) => !i || a[i - 1] <= v)) {
+        status_bar.warn = 'rg is not monotonic';
+    }
 
     const particleLoading = (varName, pload) =>
         pload == 1
@@ -138,7 +215,12 @@ export async function generateSummary() {
     const driveDetails = ` Density and temperature gradients are shown as follows (<button id="summary-gradients" class="summary-figure-button">show/hide figure</button>)`;
     addParagraph(driveDetails);
 
-    const rescale = df => zip((v, r, q) => (v * r) / q, df, data.rg, data.q);
+    const calc_gradient = profile_name =>
+        zip(
+            (d, f) => -d / f,
+            derivative(data['rg'], data[profile_name]),
+            data[profile_name]
+        );
     multipleTraceFigure(
         summary,
         summary.querySelector('#summary-gradients'),
@@ -154,7 +236,7 @@ export async function generateSummary() {
                 title: 'Electron Temperature Gradient',
                 tag: '$\\frac{R_0}{L_\\text{T}}$',
                 buttonText: '\\(R_0/L_\\text{T}\\)<code>(e)</code>',
-                data: rescale(data['dlnTe_dpsi']),
+                data: calc_gradient('Te'),
             },
             {
                 title: 'Electron Density',
@@ -167,7 +249,7 @@ export async function generateSummary() {
                 title: 'Electron Density Gradient',
                 tag: '$\\frac{R_0}{L_\\text{n}}$',
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(e)</code>',
-                data: rescale(data['dlnne_dpsi']),
+                data: calc_gradient('ne'),
             },
             {
                 title: 'Ion Temperature',
@@ -179,7 +261,7 @@ export async function generateSummary() {
                 title: 'Ion Temperature Gradient',
                 tag: '$\\frac{R_0}{L_\\text{T}}$',
                 buttonText: '\\(R_0/L_\\text{T}\\)<code>(i)</code>',
-                data: rescale(data['dlnTi_dpsi']),
+                data: calc_gradient('Ti'),
             },
             {
                 title: 'Ion Density',
@@ -191,16 +273,50 @@ export async function generateSummary() {
                 title: 'Ion Density Gradient',
                 tag: '$\\frac{R_0}{L_\\text{n}}$',
                 buttonText: '\\(R_0/L_\\text{n}\\)<code>(i)</code>',
-                data: rescale(data['dlnni_dpsi']),
+                data: calc_gradient('ni'),
             },
             {
-                title: 'Eta',
+                title: 'Energetic Ion Temperature',
+                tag: '$T_\\text{f}$',
+                buttonText: '\\(T_\\text{f}\\)',
+                data: data['Tf'],
+            },
+            {
+                title: 'Energetic Ion Temperature Gradient',
+                tag: '$\\frac{R_0}{L_\\text{T}}$',
+                buttonText: '\\(R_0/L_\\text{T}\\)<code>(f)</code>',
+                data: calc_gradient('Tf'),
+            },
+            {
+                title: 'Energetic Ion Density',
+                tag: '$n_\\text{f}$',
+                buttonText: '\\(n_\\text{f}\\)',
+                data: data['nf'],
+            },
+            {
+                title: 'Energetic Ion Density Gradient',
+                tag: '$\\frac{R_0}{L_\\text{n}}$',
+                buttonText: '\\(R_0/L_\\text{n}\\)<code>(f)</code>',
+                data: calc_gradient('nf'),
+            },
+            {
+                title: 'Ion Eta',
                 tag: '$\\eta_i$',
-                buttonText: '\\(\\eta\\)',
+                buttonText: '\\(\\eta_\\text{i}\\)',
                 data: zip(
                     (a, b) => a / b,
-                    rescale(data['dlnTi_dpsi']),
-                    rescale(data['dlnni_dpsi'])
+                    calc_gradient('Ti'),
+                    calc_gradient('ni')
+                ),
+            },
+            {
+                title: 'Electron Eta',
+                tag: '$\\eta_e$',
+                buttonText: '\\(\\eta_\\text{e}\\)',
+                data: zip(
+                    (a, b) => a / b,
+                    calc_gradient('Te'),
+                    calc_gradient('ne')
                 ),
             },
         ]
@@ -223,7 +339,8 @@ export async function generateSummary() {
     addParagraph(gridFormation);
 
     // renders math expression
-    MathJax.Hub.Typeset(summary);
+    // MathJax.Hub.Typeset(summary);
+    MathJax.typeset();
 
     return container;
 }
@@ -273,6 +390,8 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
         document.createElement('div')
     );
     figureWrapper.classList.add('summary-figure-wrapper');
+    const buttonDiv = figureWrapper.appendChild(document.createElement('div'));
+    buttonDiv.classList.add('summary-figure-button-div');
     const plotlyRoot = figureWrapper.appendChild(document.createElement('div'));
     plotlyRoot.classList.add('summary-figure-plot-div');
     button.addEventListener('click', e => {
@@ -298,8 +417,6 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
         figureContainer.classList.toggle('summary-figure-container-show');
     });
 
-    const buttonDiv = figureWrapper.appendChild(document.createElement('div'));
-    buttonDiv.classList.add('summary-figure-button-div');
     for (const { title, tag, data, buttonText } of ordinates) {
         const btn = buttonDiv.appendChild(document.createElement('button'));
         btn.innerHTML = buttonText ?? title;
@@ -359,37 +476,31 @@ function interpolationDerivativeAt(x, xs, ys) {
     return d;
 }
 
-function derivative(xs, ys, xNorm = 1) {
+function derivative(xs, ys) {
     const d = xs.map(_ => 0);
-    let dx0, dx1;
-    for (let i = 0; i < xs.length; ++i) {
-        const dx = dx0 + dx1;
-        if (i == 0) {
-            dx0 = xs[1] - xs[0];
-            dx1 = xs[2] - xs[1];
-            d[0] =
-                (-ys[0] * dx1 * (dx + dx0) +
-                    ys[1] * dx * dx -
-                    ys[2] * dx0 * dx0) /
-                (dx0 * dx1 * dx);
-        } else if (i == xs.length - 1) {
-            d[0] =
-                (ys[i - 2] * dx1 * dx1 -
-                    ys[i - 1] * dx * dx +
-                    ys[i] * dx0 * (dx + dx1)) /
-                (dx0 * dx1 * dx);
-        } else {
-            if (i != 1) {
-                dx0 = dx1;
-                dx1 = xs[i + 1] - xs[i];
-            }
-            d[i] =
-                (-ys[i - 1] * dx1 * dx1 +
-                    ys[i] * dx * (dx1 - dx0) +
-                    ys[i + 1] * dx0 * dx0) /
-                (dx0 * dx1 * dx);
+    let dx0 = xs[1] - xs[0];
+    let dx1 = xs[2] - xs[1];
+    let dx = dx0 + dx1;
+    d[0] =
+        (-ys[0] * dx1 * (dx + dx0) + ys[1] * dx * dx - ys[2] * dx0 * dx0) /
+        (dx0 * dx1 * dx);
+    for (let i = 1; i < xs.length - 1; ++i) {
+        if (i != 1) {
+            dx0 = dx1;
+            dx1 = xs[i + 1] - xs[i];
+            dx = dx0 + dx1;
         }
+        d[i] =
+            (-ys[i - 1] * dx1 * dx1 +
+                ys[i] * dx * (dx1 - dx0) +
+                ys[i + 1] * dx0 * dx0) /
+            (dx0 * dx1 * dx);
     }
+    d[xs.length - 1] =
+        (ys[xs.length - 3] * dx0 * dx0 -
+            ys[xs.length - 2] * dx * dx +
+            ys[xs.length - 1] * dx1 * (dx + dx0)) /
+        (dx0 * dx1 * dx);
     return d;
 }
 
