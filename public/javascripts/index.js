@@ -2,6 +2,7 @@
 import {
     historyMode,
     snapshotPoloidal,
+    snapshotPoloidalPreview,
     snapshotSpectrum,
     trackingPlot,
     addSimulationRegion,
@@ -435,6 +436,31 @@ async function openPanel(clean_beforehand = true) {
 
     if (this.id.startsWith('snap')) {
         addSnapshotPlayer(panel, create_l1_group);
+
+        panel.querySelectorAll('button').forEach(btn => {
+            if (btn.id.endsWith('-poloidal')) {
+                btn.classList.add('can-preview');
+                btn.addEventListener(
+                    'mouseenter',
+                    wrap(async () => {
+                        document.querySelector(
+                            '#poloidal-preview'
+                        ).style.display = 'initial';
+                        const res = await fetch(
+                            `plot/data/${btn.id}?dir=${
+                                document.querySelector('#outputTag').innerText
+                            }`
+                        );
+                        await propagateFetchError(res);
+                        await snapshotPoloidalPreview(await res.json());
+                    })
+                );
+                btn.addEventListener('mouseleave', ev => {
+                    document.querySelector('#poloidal-preview').style.display =
+                        'none';
+                });
+            }
+        });
     }
 }
 
@@ -586,8 +612,12 @@ async function requestPlotData(name, optional = false) {
 }
 
 function cleanPlot() {
-    for (let fig of document.getElementById('figure-wrapper').children) {
-        fig.classList.remove('active');
+    for (let div of document.getElementById('figure-wrapper').children) {
+        div.classList.remove('active');
+        if (div.firstElementChild?.tagName === 'CANVAS') {
+            div.className = ''; // ensures subsequent Plotly.react works properly
+            div.removeChild(div.firstElementChild);
+        }
     }
 
     GTCGlobal.current_snapshot_figure = undefined;
@@ -663,14 +693,16 @@ async function getDataThenPlot(clean_beforehand = true) {
             if (layout.height === undefined) {
                 layout.height = 450;
             }
-            return (force_redraw ? Plotly.newPlot : Plotly.react)(
-                fig_div,
-                data,
-                layout,
-                {
-                    editable: true,
-                }
-            );
+            return data
+                ? (force_redraw ? Plotly.newPlot : Plotly.react)(
+                      fig_div,
+                      data,
+                      layout,
+                      {
+                          editable: true,
+                      }
+                  )
+                : Promise.resolve();
         })
     );
 
@@ -687,24 +719,23 @@ async function snapshotPreprocess(btn, figures) {
         await snapshotSpectrum(figures);
     } else if (btn.id.endsWith('-poloidal')) {
         const res = await requestPlotData('plotType/Equilibrium', true);
-        if (res.ok) {
-            snapshotPoloidal(
-                figures,
-                getStatusBar(),
-                (
-                    await (
-                        await requestPlotData(
-                            'data/Equilibrium-1D-rg_n-q',
-                            true
-                        )
-                    ).json()
-                )
-                    ?.at(0)
-                    ?.data?.at(0)
-            );
-        } else {
-            snapshotPoloidal(figures, getStatusBar());
-        }
+        await (res.ok
+            ? snapshotPoloidal(
+                  figures,
+                  getStatusBar(),
+                  (
+                      await (
+                          await requestPlotData(
+                              'data/Equilibrium-1D-rg_n-q',
+                              true
+                          )
+                      ).json()
+                  )
+                      ?.at(0)
+                      ?.data?.at(0)
+              )
+            : snapshotPoloidal(figures, getStatusBar()));
+        
     }
     GTCGlobal.current_snapshot_figure = btn;
 }

@@ -1,3 +1,7 @@
+:root {
+    --preview-bg: azure;
+}
+
 #breadcrumb-container {
     font-size: large;
     height: 1rem;
@@ -162,6 +166,16 @@ p {
 #figure-wrapper > div.active {
     visibility: initial;
     height: auto;
+}
+
+#pol-canvas {
+    background-color: transparent;
+}
+
+#pol-canvas-overlay {
+    position: absolute;
+    left: 0;
+    background-color: transparent;
 }
 
 #tabs > div {
@@ -404,4 +418,22 @@ input.eq-1d-y:checked + label {
 }
 #summary-page .hover_text:hover {
     color: gray;
+}
+
+#poloidal-preview {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 700px;
+    height: 700px;
+    border: outset 10px var(--preview-bg);
+    background-color: var(--preview-bg);
+    z-index: 30;
+    display: none;
+}
+
+.can-preview::after {
+    content: '(peek)';
+    color: red;
+    font-weight: bold;
 }
