@@ -7,20 +7,20 @@ html(lang="en")
         link(rel="stylesheet", href="stylesheets/drop-down.css")
         title GTC-Visualization
     body
-        div(id="banner")
+        #banner
             | Server uptime 
             span#server_uptime
             | , last scan 
             span#last_scan_duration
             |  ago
-        form(method="POST" id="folder_form" action="plot")
-            div(id="folder_list")
-                ul(id="recent_ul" class="content")
-                div(class="ctrl")
+        form#folder_form(method="POST" action="plot")
+            #folder_list
+                ul#recent_ul.content
+                .ctrl
                     button Expand All
                     button Collapse All
-                ul(id="outer_ul" class="content")
-            div(id="submit_area")
+                ul#outer_ul.content
+            #submit_area
                 div.tooltip_container.long_column
                     button(type="submit").tooltip
                         | Choose this folder
@@ -43,6 +43,6 @@ html(lang="en")
                         | Send a request to the server to read disk and update cache immediately (SLOW)
                     
 
-        div(id='loading')
+        #loading
             img(src="loading.gif", alt="loading")
         

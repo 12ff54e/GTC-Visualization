@@ -9,54 +9,57 @@ html(lang="en")
         script(id="MathJax-script" src="libs/mathjax/tex-svg.js" defer)
         script(src="libs/fftw-js/bundle.js" defer) 
     body
-        code(id='outputTag' style="display:none")= outputTag
-        div(id='breadcrumb-container') Current GTC output folder set to 
+        code#outputTag(style="display:none")= outputTag
+        #breadcrumb-container Current GTC output folder set to 
             span= dir
-        div(id='select-compare')
-            input(id="select-compare-goto" type="radio" name="select-compare-radio" checked)
+        #select-compare
+            input#select-compare-goto(type="radio" name="select-compare-radio" checked)
             label(for="select-compare-goto") Go to selected folder
-            input(id="select-compare-compare" type="radio" name="select-compare-radio")
+            input#select-compare-compare(type="radio" name="select-compare-radio")
             label(for="select-compare-compare") Select Folder to Compare
-        p(id='status')
-        form(id='download-output')
-            div(id="download-overlay")
+        p#status
+        form#download-output
+            #download-overlay
                 img(src="loading.gif", alt="loading")
-            input(type="submit" id="download-all" value="Download all files")
+            input#download-all(type="submit" value="Download all files")
             button Expand/Collapse file list
             select(name="file-list" size=fileList.length multiple) 
                 each file in fileList
                     option(value=file)= file
-            input(type="submit" id="download-part" value="Download selected file(s)")
-        div(id="tabs")
+            input#download-part(type="submit" value="Download selected file(s)")
+        #tabs
             each panel in types
                 div
                     input(id=panel, type="radio" name="plot-type" class="tab-l0-switch" disabled)
                     label(for=panel, class="tab-l0-label")= panel
                     if panel === 'Snapshot'
-                        div(id="files" class='dropdown')
+                        #files.dropdown
                             each file in snapFiles
                                 button(id=file)= file
 
-        div(id="panel")
+        #panel
             each panel in types
-                div(id=`${panel}-panel`, class="tabs-l1")
+                .tabs-l1(id=`${panel}-panel`)
                     if panel === 'Equilibrium'
                         form
                             header X
-                            div(id="eq-x")
+                            #eq-x
                             header Y
-                            div(id="eq-y")
+                            #eq-y
                             button(type="submit") Plot Y vs X
                         
 
-        div(id='figure-wrapper')
-            each i in [1, 2, 3, 4]
-                div(id=`figure-${i}`)
+        mixin figure_container(id)
+            div(id=id)
+                each i in [1, 2, 3, 4]
+                    div(id=`figure-${i}`)
+        
+        +figure_container('figure-wrapper')
 
-        div(id='loading')
+        #loading
             img(src="loading.gif", alt="loading")
 
-        div(id='container')
-            div(id='summary-page')
+        #container
+            #summary-page
 
-        div(id='poloidal-preview')
+        #poloidal-preview
