@@ -70,13 +70,15 @@ function getStatusBar() {
 //      current_snapshot_id;
 //      current_snapshot_figure_id;
 //  }
-window.GTCGlobal = new Object();
+const GTCGlobal = (window.GTCGlobal = new Object());
 
 // use for history mode interaction
-window.GTCGlobal.hist_mode_range = {
+GTCGlobal.hist_mode_range = {
     growthRate: undefined,
     frequency: undefined,
 };
+
+const default_figure_wrapper = document.querySelector('#figure-wrapper');
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
@@ -526,7 +528,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                     if (GTCGlobal.current_snapshot_figure) {
                         await getDataThenPlot.call(
                             GTCGlobal.current_snapshot_figure,
-                            false
+                            { clean_beforehand: false }
                         );
                     }
                 }
@@ -554,10 +556,6 @@ async function requestPlotData(name, optional = false) {
 function cleanPlot() {
     for (let div of document.getElementById('figure-wrapper').children) {
         div.classList.remove('active');
-        if (div.firstElementChild?.tagName === 'CANVAS') {
-            div.className = ''; // ensures subsequent Plotly.react works properly
-            div.removeChild(div.firstElementChild);
-        }
     }
 
     GTCGlobal.current_snapshot_figure = undefined;
@@ -590,7 +588,10 @@ function addLoadingIndicator(func) {
     };
 }
 
-async function getDataThenPlot(clean_beforehand = true) {
+async function getDataThenPlot(opts) {
+    const clean_beforehand = opts?.clean_beforehand ?? true;
+    const container = opts?.container ?? default_figure_wrapper;
+
     if (clean_beforehand) {
         cleanPlot();
     }
@@ -627,7 +628,7 @@ async function getDataThenPlot(clean_beforehand = true) {
 
     await Promise.all(
         figures.map(({ data, layout, force_redraw }, idx) => {
-            const fig_div = document.querySelector(`#figure-${idx + 1}`);
+            const fig_div = container.querySelector(`#figure-${idx + 1}`);
             fig_div.classList.add('active');
             // restore height
             if (layout.height === undefined) {
@@ -675,7 +676,6 @@ async function snapshotPreprocess(btn, figures) {
                       ?.data?.at(0)
               )
             : snapshotPoloidal(figures, getStatusBar()));
-        
     }
     GTCGlobal.current_snapshot_figure = btn;
 }
