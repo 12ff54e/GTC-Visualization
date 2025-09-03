@@ -155,21 +155,29 @@ p {
     transition: all 0.35s;
 }
 
-#figure-wrapper {
+.figure-wrapper {
     float: left;
     position: absolute;
     left: 36%;
     top: 6rem;
 }
 
-#figure-wrapper > div {
+.figure-wrapper > div {
     overflow-y: hidden;
     visibility: hidden;
     height: 0;
 }
-#figure-wrapper > div.active {
+.figure-wrapper > div.active {
     visibility: initial;
     height: auto;
+}
+
+#figure-wrapper {
+    left: 36%;
+}
+
+#figure-wrapper-compare {
+    left: calc(36% + 700px);
 }
 
 #pol-canvas {

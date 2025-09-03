@@ -50,11 +50,12 @@ html(lang="en")
                         
 
         mixin figure_container(id)
-            div(id=id)
+            div.figure-wrapper(id=id)
                 each i in [1, 2, 3, 4]
-                    div(id=`figure-${i}`)
+                    div(id=`${id}-figure-${i}`)
         
         +figure_container('figure-wrapper')
+        +figure_container('figure-wrapper-compare')
 
         #loading
             img(src="loading.gif", alt="loading")

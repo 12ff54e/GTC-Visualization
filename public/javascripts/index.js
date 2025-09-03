@@ -69,6 +69,7 @@ function getStatusBar() {
 //      timeStep;
 //      current_snapshot_id;
 //      current_snapshot_figure_id;
+//      current_figure_id;
 //  }
 const GTCGlobal = (window.GTCGlobal = new Object());
 
@@ -130,71 +131,10 @@ window.addEventListener('load', () => {
     addDownloadFunction();
 
     // initial breadcrumb
-    wrap(async () => {
-        const res = await fetch('/fileTree');
-        await propagateFetchError(res);
-        const { file_tree } = await res.json();
-        const navigationBar = document.querySelector(
-            '#breadcrumb-container'
-        ).firstElementChild;
-        const [root, ...pathname] = navigationBar.innerText.split('/');
+    wrap(addLoadingIndicator(initialBreadcrumb))();
 
-        const pathSegments = [root, ...pathname].map(seg => {
-            const span = document.createElement('span');
-            span.classList.add('breadcrumb-item');
-            const a = document.createElement('a');
-            a.classList.add('breadcrumb-anchor');
-            a.innerText = seg;
-            span.appendChild(a);
-            return span;
-        });
-        // navigationBar.innerText = root;
-        navigationBar.after(...pathSegments);
-        navigationBar.remove();
-
-        // add drop down list
-        const dropdown = document.createElement('div');
-        dropdown.classList.add('breadcrumb-dropdown');
-        const clearDropdown = () => {
-            pathSegments.forEach(s => {
-                s.classList.remove('active');
-                for (const child of s.children) {
-                    child.classList.remove('active');
-                }
-            });
-        };
-
-        let currentEntry = undefined;
-        pathSegments.forEach(seg => {
-            const parentEntry = currentEntry;
-            currentEntry = currentEntry
-                ? currentEntry.content.find(
-                      f => f.dirname === seg.firstElementChild.innerText
-                  )
-                : file_tree;
-
-            seg.appendChild(dropdown.cloneNode());
-            seg.lastElementChild.append(
-                constructFolderContentList(parentEntry, currentEntry)
-            );
-            seg.addEventListener('click', event => {
-                clearDropdown();
-                for (const child of event.currentTarget.children) {
-                    child.classList.add('active');
-                }
-            });
-        });
-        // clear dropdown when clicked on other parts on the page
-        document.addEventListener('click', event => {
-            if (
-                !nodeIs(event.target, elem =>
-                    elem.classList.contains('breadcrumb-item')
-                )
-            ) {
-                clearDropdown();
-            }
-        });
-    })();
+    default_figure_wrapper.output_tag =
+        document.querySelector('#outputTag').innerText;
 });
 
 window.addEventListener('error', () => {
@@ -277,10 +217,15 @@ function addDownloadFunction() {
 
 function registerButtons(buttons, cb = getDataThenPlot) {
     buttons.forEach(btn => {
-        btn.addEventListener(
-            'click',
-            wrap(addLoadingIndicator(callEventTarget(cb)))
-        );
+        btn.addEventListener('click', ev => {
+            GTCGlobal.current_figure_id = btn.id;
+            wrap(addLoadingIndicator(cb.bind(ev.target)))();
+
+            const container = document.querySelector('#figure-wrapper-compare');
+            if (container.output_tag) {
+                wrap(addLoadingIndicator(cb.bind(ev.target)))({ container });
+            }
+        });
     });
 }
 
@@ -449,7 +394,9 @@ function addHistoryRecal(panel) {
         'click',
         wrap(async function () {
             const figures = [1, 2, 3, 4].map(i =>
-                document.getElementById(`figure-${i}`)
+                document.getElementById(
+                    `${default_figure_wrapper.id}-figure-${i}`
+                )
             );
             const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
             await historyMode(
@@ -553,8 +500,8 @@ async function requestPlotData(name, optional = false) {
     return res;
 }
 
-function cleanPlot() {
-    for (let div of document.getElementById('figure-wrapper').children) {
+function cleanPlot(container = default_figure_wrapper) {
+    for (let div of container.children) {
         div.classList.remove('active');
     }
 
@@ -593,14 +540,10 @@ async function getDataThenPlot(opts) {
     const container = opts?.container ?? default_figure_wrapper;
 
     if (clean_beforehand) {
-        cleanPlot();
+        cleanPlot(container);
     }
 
-    const res = await fetch(
-        `plot/data/${this.id}?dir=${
-            document.querySelector('#outputTag').innerText
-        }`
-    );
+    const res = await fetch(`plot/data/${this.id}?dir=${container.output_tag}`);
     await propagateFetchError(res);
     let figures = await res.json();
 
@@ -628,7 +571,9 @@ async function getDataThenPlot(opts) {
 
     await Promise.all(
         figures.map(({ data, layout, force_redraw }, idx) => {
-            const fig_div = container.querySelector(`#figure-${idx + 1}`);
+            const fig_div = container.querySelector(
+                `#${container.id}-figure-${idx + 1}`
+            );
             fig_div.classList.add('active');
             // restore height
             if (layout.height === undefined) {
@@ -682,9 +627,8 @@ async function snapshotPreprocess(btn, figures) {
 
 function updateHistoryModeRange() {
     document
-        .getElementById('figure-2')
+        .getElementById(`${default_figure_wrapper.id}-figure-2`)
         .on('plotly_relayout', function (eventData) {
-            console.log(eventData);
             if (eventData['xaxis.range']) {
                 window.GTCGlobal.hist_mode_range.growthRate =
                     eventData['xaxis.range'].slice();
@@ -696,9 +640,8 @@ function updateHistoryModeRange() {
             }
         });
     document
-        .getElementById('figure-3')
+        .getElementById(`${default_figure_wrapper.id}-figure-3`)
         .on('plotly_relayout', function (eventData) {
-            console.log(eventData);
             if (eventData['xaxis.range']) {
                 window.GTCGlobal.hist_mode_range.frequency =
                     eventData['xaxis.range'].slice();
@@ -771,9 +714,10 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
                 return;
             }
 
+            GTCGlobal.current_figure_id = `${type}-1D-${xType}-${yType}`;
             await addLoadingIndicator(
                 getDataThenPlot.bind({
-                    id: `${type}-1D-${xType}-${yType}`,
+                    id: GTCGlobal.current_figure_id,
                 })
             )();
         })
@@ -792,13 +736,11 @@ function nodeIs(node, predict) {
     }
 }
 
-function constructFolderContentList(parent, child) {
+function constructFolderContentList(clear_func, parent, child) {
     const constructPath = entry => {
-        return entry
-            ? `${constructPath(entry.parent)}/${entry.dirname}`
-            : '';
+        return entry ? `${constructPath(entry.parent)}/${entry.dirname}` : '';
     };
-    
+
     const ul = document.createElement('ul');
 
     if (parent === undefined) {
@@ -830,7 +772,13 @@ function constructFolderContentList(parent, child) {
         if (entry.mTimeMs) {
             // a gtc output folder
             a.addEventListener('click', () => {
-                postForm('/plot', { gtc_output: constructPath(entry) });
+                const gtc_output = constructPath(entry);
+                if (document.querySelector('#select-compare-goto').checked) {
+                    postForm('/plot', { gtc_output });
+                } else {
+                    clear_func();
+                    wrap(addLoadingIndicator(requsetForCompare))(gtc_output);
+                }
             });
             const span = document.createElement('span');
             span.innerText = 'gtc.out';
@@ -841,7 +789,7 @@ function constructFolderContentList(parent, child) {
         if (entry.count.folders > 1) {
             // a folder contains subfolders
             li.classList.add('folder');
-            li.appendChild(constructFolderContentList(entry));
+            li.appendChild(constructFolderContentList(clear_func, entry));
             li.addEventListener('click', event => {
                 event.stopPropagation();
                 event.currentTarget.classList.toggle('folder-expand');
@@ -851,7 +799,7 @@ function constructFolderContentList(parent, child) {
     }
 
     return ul;
-};
+}
 
 function postForm(url, content) {
     const form = document.createElement('form');
@@ -871,4 +819,91 @@ function postForm(url, content) {
 
     document.body.appendChild(form);
     form.submit();
+}
+
+async function requsetForCompare(gtc_output) {
+    const container = document.querySelector('#figure-wrapper-compare');
+    container.output_tag = gtc_output;
+
+    const res = await fetch(`/plot`, {
+        method: 'post',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            gtc_output,
+        }).toString(),
+    });
+    await propagateFetchError(res);
+
+    await getDataThenPlot.call(
+        { id: GTCGlobal.current_figure_id },
+        { container }
+    );
+}
+
+async function initialBreadcrumb() {
+    const res = await fetch('/fileTree');
+    await propagateFetchError(res);
+    const { file_tree } = await res.json();
+    const navigationBar = document.querySelector(
+        '#breadcrumb-container'
+    ).firstElementChild;
+    const [root, ...pathname] = navigationBar.innerText.split('/');
+
+    const pathSegments = [root, ...pathname].map(seg => {
+        const span = document.createElement('span');
+        span.classList.add('breadcrumb-item');
+        const a = document.createElement('a');
+        a.classList.add('breadcrumb-anchor');
+        a.innerText = seg;
+        span.appendChild(a);
+        return span;
+    });
+    // navigationBar.innerText = root;
+    navigationBar.after(...pathSegments);
+    navigationBar.remove();
+
+    // add drop down list
+    const dropdown = document.createElement('div');
+    dropdown.classList.add('breadcrumb-dropdown');
+    const clearDropdown = () => {
+        pathSegments.forEach(s => {
+            s.classList.remove('active');
+            for (const child of s.children) {
+                child.classList.remove('active');
+            }
+        });
+    };
+
+    let currentEntry = undefined;
+    pathSegments.forEach(seg => {
+        const parentEntry = currentEntry;
+        currentEntry = currentEntry
+            ? currentEntry.content.find(
+                  f => f.dirname === seg.firstElementChild.innerText
+              )
+            : file_tree;
+
+        seg.appendChild(dropdown.cloneNode());
+        seg.lastElementChild.append(
+            constructFolderContentList(clearDropdown, parentEntry, currentEntry)
+        );
+        seg.addEventListener('click', event => {
+            clearDropdown();
+            for (const child of event.currentTarget.children) {
+                child.classList.add('active');
+            }
+        });
+    });
+    // clear dropdown when clicked on other parts on the page
+    document.addEventListener('click', event => {
+        if (
+            !nodeIs(event.target, elem =>
+                elem.classList.contains('breadcrumb-item')
+            )
+        ) {
+            clearDropdown();
+        }
+    });
 }
