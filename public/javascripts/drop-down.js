@@ -2,7 +2,7 @@ window.addEventListener(
     'load',
     wrap(
         addLoadingIndicator(async () => {
-            const file_tree = await fetch_and_populate_folder('/fileTree');
+            fetch_and_populate_folder('/fileTree');
 
             for (let btn of document.querySelector('.ctrl').children) {
                 btn.addEventListener('click', event => {
@@ -42,21 +42,7 @@ window.addEventListener(
                 });
             }
 
-            const recent_entries = getRecent(file_tree);
-            const recent_entry_virtual_folder = {
-                dirname: 'Recent Tasks',
-                content: recent_entries,
-                count: { files: recent_entries.length },
-            };
-            const recent_ul = document.querySelector('#recent_ul');
-            recent_ul.append(
-                generateListEntry(recent_entry_virtual_folder, '#recent', 1)
-            );
-            recent_ul.classList.add('active_list');
-            recent_ul.style.height = `${1.3 * calcListHeight(recent_ul)}em`;
-
-            setup_sync_btn();
-            setup_scan_folder_btn();
+            setup_server_comm_btns();
 
             document
                 .querySelector('#folder_form')
@@ -305,33 +291,38 @@ function getRecent(file_tree) {
     return recent_entries;
 }
 
-function setup_scan_folder_btn() {
-    document.querySelector('#scan_folder').addEventListener(
-        'click',
-        wrap(
-            addLoadingIndicator(async event => {
-                event.preventDefault();
-                await fetch_and_populate_folder('/scan');
-            })
-        )
+function populate_recent(file_tree) {
+    const recent_entries = getRecent(file_tree);
+    const recent_entry_virtual_folder = {
+        dirname: 'Recent Tasks',
+        content: recent_entries,
+        count: { files: recent_entries.length },
+    };
+    const recent_ul = document.querySelector('#recent_ul');
+    recent_ul.replaceChildren(
+        generateListEntry(recent_entry_virtual_folder, '#recent', 1)
     );
+    recent_ul.classList.add('active_list');
+    recent_ul.style.height = `${1.3 * calcListHeight(recent_ul)}em`;
 }
 
-function setup_sync_btn() {
-    const btn = document.querySelector('#sync_cache');
-    btn.addEventListener(
-        'click',
+function setup_server_comm_btns() {
+    const get_file_tree = api =>
         wrap(
             addLoadingIndicator(async event => {
                 event.preventDefault();
-                await fetch_and_populate_folder('/fileTree');
+                await fetch_and_populate_folder(api);
             })
-        )
-    );
+        );
+    const sync_btn = document.querySelector('#sync_cache');
+    sync_btn.addEventListener('click', get_file_tree('/fileTree'));
+    document
+        .querySelector('#scan_folder')
+        .addEventListener('click', get_file_tree('/scan'));
 
-    const duration_span = document.querySelector('#duration');
+    const duration_span = sync_btn.querySelector('#duration');
     function update_timer() {
-        const duration = (Date.now() - btn.sync_time) / 1000;
+        const duration = (Date.now() - sync_btn.sync_time) / 1000;
         if (duration < 120) {
             setTimeout(update_timer, 1000);
             duration_span.innerText = `${duration.toFixed()}s`;
@@ -351,12 +342,11 @@ async function fetch_and_populate_folder(api) {
     ).json();
     document.querySelector('#duration').innerText = '0s';
 
-    update_file_tree(file_tree);
+    bind_file_tree(file_tree);
+    populate_recent(file_tree);
     show_banner(server_uptime, last_scan_time);
     document.querySelector('#sync_cache').sync_time = Date.now();
     toggle_server_comm_btn();
-
-    return file_tree;
 }
 
 function toggle_server_comm_btn() {
@@ -365,7 +355,7 @@ function toggle_server_comm_btn() {
     });
 }
 
-function update_file_tree(file_tree) {
+function bind_file_tree(file_tree) {
     const outer_ul = document.querySelector('#outer_ul');
     outer_ul.firstElementChild?.remove();
     outer_ul.append(generateListEntry(file_tree));
