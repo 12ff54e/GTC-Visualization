@@ -14,7 +14,7 @@ export async function generateSummary(status_bar) {
     }
 
     const data = await res.json();
-    const minorRadius = data.rg.at(-1);
+    const minorRadius = data.minor.at(-1);
 
     const addParagraph = str => {
         const p = document.createElement('p');
@@ -53,6 +53,8 @@ export async function generateSummary(status_bar) {
     const inverse_scale_length_diag_flux = profile_name =>
         interpolationDerivativeAt(rgDiag, data['rg'], data[profile_name]) /
         value_diag_flux(profile_name);
+
+    const minorDiag = value_diag_flux('minor');
 
     const qprime = derivative(data['rg'], data['q']);
 
@@ -166,7 +168,8 @@ export async function generateSummary(status_bar) {
         value_diag_flux('Te') / value_diag_flux('Ti')
     ).toFixed(4)},\\) \\(b_\\theta=\\)${[...new Set(bp['mmodes'])]
         .map(m => {
-            const k_rho = (m / rgDiag) * rho_diag_flux * Math.sqrt(bp['aion']);
+            const k_rho =
+                (m / minorDiag) * rho_diag_flux * Math.sqrt(bp['aion']);
             return `<span title=${k_rho.toFixed(
                 4
             )} class="hover_text">\\(${Math.pow(k_rho, 2).toFixed(

@@ -400,6 +400,7 @@ async function prepareSummaryData(currentOutput) {
     await currentOutput.readData('Equilibrium');
     const data = {};
     [
+        'minor',
         'rg',
         'q',
         'dlnq_dpsi',
