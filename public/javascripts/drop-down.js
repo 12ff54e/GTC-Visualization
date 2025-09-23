@@ -48,6 +48,9 @@ window.addEventListener(
                 .querySelector('#folder_form')
                 .addEventListener('formdata', ev => {
                     const data = ev.formData;
+                    const recent_entries =
+                        document.querySelector('#recent_ul').firstElementChild
+                            .firstElementChild.dirObj.content;
 
                     if (!data.has('gtc_output') && recent_entries.length > 0) {
                         data.set('gtc_output', recent_entries[0].path);
