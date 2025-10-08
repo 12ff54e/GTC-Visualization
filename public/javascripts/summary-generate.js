@@ -1,4 +1,4 @@
-export async function generateSummary(status_bar) {
+export async function generateSummary(gtc_instance, status_bar) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -22,7 +22,7 @@ export async function generateSummary(status_bar) {
         return p;
     };
 
-    const bp = GTCGlobal.basicParameters;
+    const bp = gtc_instance.basicParameters;
     const basicInfo = `This is a ${bp.nonlinear ? 'non' : ''}linear electro${
         bp.magnetic ? 'magnetic' : 'static'
     } run. The equilibrium is ${

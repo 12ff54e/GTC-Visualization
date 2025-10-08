@@ -62,24 +62,33 @@ function getStatusBar() {
     return document.querySelector('#status').status;
 }
 
-// global vars
-//  {
-//      hist_mode_range;
-//      basicParameters;
-//      timeStep;
-//      current_snapshot_id;
-//      current_snapshot_figure_id;
-//      current_figure_id;
-//  }
-const GTCGlobal = (window.GTCGlobal = new Object());
-
-// use for history mode interaction
-GTCGlobal.hist_mode_range = {
-    growthRate: undefined,
-    frequency: undefined,
-};
-
+// This script is deferred
 const default_figure_wrapper = document.querySelector('#figure-wrapper');
+
+class GTC_Instance {
+    constructor(path, container = default_figure_wrapper) {
+        this.hist_range = {
+            growth_rate: undefined,
+            frequency: undefined,
+        };
+        this.basicParameters = undefined;
+        this.time_step = -1;
+        this.current_panel = '';
+        this.current_snapshot = '';
+        this.current_figure_id = '';
+        this.path = path;
+        this.container = container;
+    }
+
+    reset_hist_range() {
+        this.hist_range.growth_rate = undefined;
+        this.hist_range.frequency = undefined;
+    }
+}
+
+const GTCGlobals = (window.GTCGlobals = [
+    new GTC_Instance(document.querySelector('#outputTag').innerText),
+]);
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
@@ -92,8 +101,10 @@ window.addEventListener('load', () => {
                 // expand snapshot file list
                 let div = document.getElementById('files');
                 div.style.height = `${div.childElementCount * 1.3 + 0.2}rem`;
-                cleanPlot();
                 cleanPanel();
+                GTCGlobals.forEach(gtc_instance => {
+                    cleanPlot(gtc_instance);
+                });
             });
         } else {
             swc.addEventListener(
@@ -122,7 +133,7 @@ window.addEventListener('load', () => {
                 }
                 e.target.classList.add('snapshot-selected');
                 // set current snapshot file
-                window.GTCGlobal.current_snapshot = e.target;
+                GTCGlobals[0].current_snapshot = e.target;
                 await addLoadingIndicator(callEventTarget(openPanel))(e);
             })
         );
@@ -132,9 +143,6 @@ window.addEventListener('load', () => {
 
     // initial breadcrumb
     wrap(addLoadingIndicator(initialBreadcrumb))();
-
-    default_figure_wrapper.output_tag =
-        document.querySelector('#outputTag').innerText;
 });
 
 window.addEventListener('error', () => {
@@ -218,32 +226,38 @@ function addDownloadFunction() {
 function registerButtons(buttons, cb = getDataThenPlot) {
     buttons.forEach(btn => {
         btn.addEventListener('click', ev => {
-            GTCGlobal.current_figure_id = btn.id;
-            wrap(addLoadingIndicator(cb.bind(ev.target)))();
-
-            const container = document.querySelector('#figure-wrapper-compare');
-            if (container.output_tag) {
-                wrap(addLoadingIndicator(cb.bind(ev.target)))({ container });
-            }
+            GTCGlobals.forEach(gtc_instance => {
+                wrap(addLoadingIndicator(cb.bind(ev.target)))(gtc_instance);
+            });
         });
     });
 }
 
-async function getBasicParameters() {
-    if (!window.GTCGlobal.basicParameters) {
-        const res = await fetch(
-            `plot/data/basicParameters?dir=${
-                document.querySelector('#outputTag').innerText
-            }`
-        );
-        await propagateFetchError(res);
-        window.GTCGlobal.basicParameters = await res.json();
-    }
+async function fetchBasicParameters() {
+    return Promise.all(
+        GTCGlobals.map(async gtc_instance => {
+            if (!gtc_instance.basicParameters) {
+                const res = await fetch(
+                    `plot/data/basicParameters?dir=${
+                        document.querySelector('#outputTag').innerText
+                    }`
+                );
+                await propagateFetchError(res);
+                gtc_instance.basicParameters = await res.json();
+                gtc_instance.time_step =
+                    gtc_instance.basicParameters.ndiag *
+                    gtc_instance.basicParameters.tstep;
+            }
+        })
+    );
 }
 
 async function openPanel(clean_beforehand = true) {
+    // TODO: Check all gtc instances and combine their figure buttons
+    const gtc_instance = GTCGlobals[0];
+    gtc_instance.current_panel = this.id;
     if (this.id == 'Summary') {
-        await buildSummaryPage();
+        await buildSummaryPage(gtc_instance);
         return;
     }
 
@@ -256,7 +270,9 @@ async function openPanel(clean_beforehand = true) {
 
     cleanPanel();
     if (clean_beforehand) {
-        cleanPlot();
+        GTCGlobals.forEach(gtc_instance => {
+            cleanPlot(gtc_instance);
+        });
     }
     let panel = document.getElementById(panelName);
     panel.style.opacity = 1;
@@ -267,8 +283,10 @@ async function openPanel(clean_beforehand = true) {
         info,
         warn,
         err,
-        id: btn_id_array,
-    } = await (await requestPlotData(`plotType/${this.id}`)).json();
+        id: btn_id_array, // [[...],...]
+    } = await (
+        await requestPlotData(gtc_instance.path, `plotType/${this.id}`)
+    ).json();
 
     statusBar.info = info ? info : '';
     statusBar.warn = warn ? warn : '';
@@ -278,7 +296,7 @@ async function openPanel(clean_beforehand = true) {
     }
 
     // wait for the response, then create buttons for plotting
-    await getBasicParameters();
+    await fetchBasicParameters();
 
     // add buttons
     const node =
@@ -318,11 +336,11 @@ async function openPanel(clean_beforehand = true) {
     });
 
     if (this.id === 'History') {
-        addHistoryRecal(panel);
+        addHistoryRecalculation(gtc_instance, panel);
     }
 
     if (this.id.startsWith('snap')) {
-        addSnapshotPlayer(panel, create_l1_group);
+        addSnapshotPlayer(gtc_instance, panel, create_l1_group);
 
         panel.querySelectorAll('button').forEach(btn => {
             if (btn.id.endsWith('-poloidal')) {
@@ -351,9 +369,12 @@ async function openPanel(clean_beforehand = true) {
     }
 }
 
-async function buildSummaryPage() {
-    await getBasicParameters();
-    const summaryContainer = await generateSummary(getStatusBar());
+async function buildSummaryPage(gtc_instance) {
+    await fetchBasicParameters();
+    const summaryContainer = await generateSummary(
+        gtc_instance,
+        getStatusBar()
+    );
 
     if (summaryContainer === undefined) {
         // summary page is already generated
@@ -378,13 +399,7 @@ async function buildSummaryPage() {
     });
 }
 
-function addHistoryRecal(panel) {
-    if (!window.GTCGlobal.timeStep) {
-        window.GTCGlobal.timeStep =
-            window.GTCGlobal.basicParameters.ndiag *
-            window.GTCGlobal.basicParameters.tstep;
-    }
-
+function addHistoryRecalculation(gtc_instance, panel) {
     const div = document.createElement('div');
     const btn = document.createElement('button');
     btn.innerText =
@@ -398,16 +413,7 @@ function addHistoryRecal(panel) {
                     `${default_figure_wrapper.id}-figure-${i}`
                 )
             );
-            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
-            await historyMode(
-                figures,
-                window.GTCGlobal.hist_mode_range.growthRate &&
-                    window.GTCGlobal.hist_mode_range.growthRate.map(
-                        i => i / len
-                    ),
-                window.GTCGlobal.hist_mode_range.frequency &&
-                    window.GTCGlobal.hist_mode_range.frequency.map(i => i / len)
-            );
+            await historyMode(gtc_instance, figures);
 
             figures.forEach(figure => {
                 Plotly.react(figure, figure.data, figure.layout);
@@ -420,7 +426,7 @@ function addHistoryRecal(panel) {
     panel.prepend(div);
 }
 
-async function addSnapshotPlayer(panel, create_l1_group) {
+async function addSnapshotPlayer(gtc_instance, panel, create_l1_group) {
     panel.appendChild(
         create_l1_group(
             [
@@ -440,7 +446,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                 };
                 window.addEventListener('keypress', stopper);
                 for (let i = 0; i < limit; ++i) {
-                    let current_snapshot = GTCGlobal.current_snapshot;
+                    let current_snapshot = gtc_instance.current_snapshot;
                     if (i > 0) {
                         await new Promise(resolve => {
                             setTimeout(resolve, 200);
@@ -448,7 +454,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                     }
                     if (this.innerText.startsWith('prev')) {
                         if (current_snapshot.previousElementSibling) {
-                            GTCGlobal.current_snapshot =
+                            gtc_instance.current_snapshot =
                                 current_snapshot.previousElementSibling;
                         } else {
                             if (i == 0) {
@@ -458,7 +464,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                         }
                     } else {
                         if (current_snapshot.nextElementSibling) {
-                            GTCGlobal.current_snapshot =
+                            gtc_instance.current_snapshot =
                                 current_snapshot.nextElementSibling;
                         } else {
                             if (i == 0) {
@@ -468,14 +474,14 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                         }
                     }
                     current_snapshot.classList.remove('snapshot-selected');
-                    GTCGlobal.current_snapshot.classList.add(
+                    gtc_instance.current_snapshot.classList.add(
                         'snapshot-selected'
                     );
-                    await openPanel.call(GTCGlobal.current_snapshot, false);
-                    if (GTCGlobal.current_snapshot_figure) {
+                    await openPanel.call(gtc_instance.current_snapshot, false);
+                    if (gtc_instance.current_figure_id) {
                         await getDataThenPlot.call(
-                            GTCGlobal.current_snapshot_figure,
-                            { clean_beforehand: false }
+                            { id: gtc_instance.current_figure_id },
+                            { ...gtc_instance, clean_beforehand: false }
                         );
                     }
                 }
@@ -485,11 +491,9 @@ async function addSnapshotPlayer(panel, create_l1_group) {
     );
 }
 
-async function requestPlotData(name, optional = false) {
+async function requestPlotData(path, name, optional = false) {
     // inform the server about which .out file should be parsed
-    let res = await fetch(
-        `plot/${name}?dir=${document.querySelector('#outputTag').innerText}`
-    );
+    let res = await fetch(`plot/${name}?dir=${path}`);
     try {
         await propagateFetchError(res);
     } catch (e) {
@@ -500,12 +504,12 @@ async function requestPlotData(name, optional = false) {
     return res;
 }
 
-function cleanPlot(container = default_figure_wrapper) {
-    for (let div of container.children) {
+function cleanPlot(gtc_instance = GTCGlobals[0]) {
+    for (let div of gtc_instance.container.children) {
         div.classList.remove('active');
     }
 
-    GTCGlobal.current_snapshot_figure = undefined;
+    gtc_instance.current_figure_id = '';
 }
 
 function cleanPanel() {
@@ -535,15 +539,20 @@ function addLoadingIndicator(func) {
     };
 }
 
+/**
+ *
+ * @param {GTC_Instance & {clean_beforehand: bool}} opts
+ * @returns
+ */
 async function getDataThenPlot(opts) {
     const clean_beforehand = opts?.clean_beforehand ?? true;
-    const container = opts?.container ?? default_figure_wrapper;
+    const gtc_instance = opts ?? GTCGlobals[0];
 
     if (clean_beforehand) {
-        cleanPlot(container);
+        cleanPlot(gtc_instance);
     }
 
-    const res = await fetch(`plot/data/${this.id}?dir=${container.output_tag}`);
+    const res = await fetch(`plot/data/${this.id}?dir=${gtc_instance.path}`);
     await propagateFetchError(res);
     let figures = await res.json();
 
@@ -554,25 +563,26 @@ async function getDataThenPlot(opts) {
         recalculate.style.height = '0rem';
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        await historyMode(figures);
-        window.GTCGlobal.hist_mode_range.frequency = undefined;
-        window.GTCGlobal.hist_mode_range.growthRate = undefined;
+        // TODO: This behaviour might not be desired. A better solution might be remembering
+        // range of each mode of each gtc instance
+        gtc_instance.reset_hist_range();
+        await historyMode(gtc_instance, figures);
         recalculate.style.height = '3.5rem';
     } else if (this.id.startsWith('Snapshot')) {
-        await snapshotPreprocess(this, figures);
+        await snapshotPreprocess(this, figures, gtc_instance);
     } else if (this.id.startsWith('Tracking')) {
         await trackingPlot(figures);
         return;
     } else if (this.id.startsWith('Equilibrium-1D-rg_n')) {
         figures.forEach(fig => {
-            addSimulationRegion(fig);
+            addSimulationRegion(gtc_instance, fig);
         });
     }
 
     await Promise.all(
         figures.map(({ data, layout, force_redraw }, idx) => {
-            const fig_div = container.querySelector(
-                `#${container.id}-figure-${idx + 1}`
+            const fig_div = gtc_instance.container.querySelector(
+                `#${gtc_instance.container.id}-figure-${idx + 1}`
             );
             fig_div.classList.add('active');
             // restore height
@@ -593,25 +603,39 @@ async function getDataThenPlot(opts) {
     );
 
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        if (!window.GTCGlobal.hist_mode_range.ev_listener_added) {
-            updateHistoryModeRange();
+        if (!gtc_instance.hist_range.ev_listener_added) {
+            updateHistoryModeRange(gtc_instance);
         }
-        window.GTCGlobal.hist_mode_range.ev_listener_added = true;
+        gtc_instance.hist_range.ev_listener_added = true;
     }
+
+    gtc_instance.current_figure_id = this.id;
 }
 
-async function snapshotPreprocess(btn, figures) {
+/**
+ *
+ * @param {*} btn
+ * @param {*} figures
+ * @param {GTC_Instance} gtc_instance
+ */
+async function snapshotPreprocess(btn, figures, gtc_instance) {
     if (btn.id.endsWith('-spectrum')) {
         await snapshotSpectrum(figures);
     } else if (btn.id.endsWith('-poloidal')) {
-        const res = await requestPlotData('plotType/Equilibrium', true);
+        const res = await requestPlotData(
+            gtc_instance.path,
+            'plotType/Equilibrium',
+            true
+        );
         await (res.ok
             ? snapshotPoloidal(
+                  gtc_instance,
                   figures,
                   getStatusBar(),
                   (
                       await (
                           await requestPlotData(
+                              gtc_instance.path,
                               'data/Equilibrium-1D-rg_n-q',
                               true
                           )
@@ -620,20 +644,19 @@ async function snapshotPreprocess(btn, figures) {
                       ?.at(0)
                       ?.data?.at(0)
               )
-            : snapshotPoloidal(figures, getStatusBar()));
+            : snapshotPoloidal(gtc_instance, figures, getStatusBar()));
     }
-    GTCGlobal.current_snapshot_figure = btn;
 }
 
-function updateHistoryModeRange() {
+function updateHistoryModeRange(gtc_instance) {
     document
         .getElementById(`${default_figure_wrapper.id}-figure-2`)
         .on('plotly_relayout', function (eventData) {
             if (eventData['xaxis.range']) {
-                window.GTCGlobal.hist_mode_range.growthRate =
+                gtc_instance.hist_range.growth_rate =
                     eventData['xaxis.range'].slice();
             } else if (eventData['xaxis.range[0]']) {
-                window.GTCGlobal.hist_mode_range.growthRate = [
+                gtc_instance.hist_range.growth_rate = [
                     eventData['xaxis.range[0]'],
                     eventData['xaxis.range[1]'],
                 ];
@@ -643,10 +666,10 @@ function updateHistoryModeRange() {
         .getElementById(`${default_figure_wrapper.id}-figure-3`)
         .on('plotly_relayout', function (eventData) {
             if (eventData['xaxis.range']) {
-                window.GTCGlobal.hist_mode_range.frequency =
+                gtc_instance.hist_range.frequency =
                     eventData['xaxis.range'].slice();
             } else if (eventData['xaxis.range[0]']) {
-                window.GTCGlobal.hist_mode_range.frequency = [
+                gtc_instance.hist_range.frequency = [
                     eventData['xaxis.range[0]'],
                     eventData['xaxis.range[1]'],
                 ];
@@ -714,12 +737,16 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
                 return;
             }
 
-            GTCGlobal.current_figure_id = `${type}-1D-${xType}-${yType}`;
-            await addLoadingIndicator(
-                getDataThenPlot.bind({
-                    id: GTCGlobal.current_figure_id,
+            return Promise.all(
+                GTCGlobals.map(async gtc_instance => {
+                    gtc_instance.current_figure_id = `${type}-1D-${xType}-${yType}`;
+                    await addLoadingIndicator(
+                        getDataThenPlot.bind({
+                            id: gtc_instance.current_figure_id,
+                        })
+                    )();
                 })
-            )();
+            );
         })
     );
 }
@@ -777,7 +804,7 @@ function constructFolderContentList(clear_func, parent, child) {
                     postForm('/plot', { gtc_output });
                 } else {
                     clear_func();
-                    wrap(addLoadingIndicator(requsetForCompare))(gtc_output);
+                    wrap(addLoadingIndicator(requestForCompare))(gtc_output);
                 }
             });
             const span = document.createElement('span');
@@ -821,25 +848,54 @@ function postForm(url, content) {
     form.submit();
 }
 
-async function requsetForCompare(gtc_output) {
-    const container = document.querySelector('#figure-wrapper-compare');
-    container.output_tag = gtc_output;
+async function requestForCompare(path) {
+    GTCGlobals.push(
+        new GTC_Instance(
+            path,
+            document.querySelector('#figure-wrapper-compare')
+        )
+    );
 
+    // request server to check the selected gtc output folder
     const res = await fetch(`/plot`, {
         method: 'post',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-            gtc_output,
+            gtc_output: path,
         }).toString(),
     });
     await propagateFetchError(res);
 
-    await getDataThenPlot.call(
-        { id: GTCGlobal.current_figure_id },
-        { container }
-    );
+    const gtc_instance = GTCGlobals[0];
+    if (gtc_instance.current_panel) {
+        // request server to read specific .out file
+        const pt_res = await requestPlotData(
+            path,
+            `plotType/${gtc_instance.current_panel}`
+        );
+        await propagateFetchError(pt_res);
+        const { id: btn_id_array } = await pt_res.json();
+
+        const majorType = gtc_instance.current_panel.startsWith('snap')
+            ? 'Snapshot'
+            : gtc_instance.current_panel;
+        // plot the same figure as the original gtc output folder if possible
+        if (
+            btn_id_array
+                .flat()
+                .map(id => `${majorType}-${id}`)
+                .includes(gtc_instance.current_figure_id)
+        ) {
+            await getDataThenPlot.call(
+                {
+                    id: gtc_instance.current_figure_id,
+                },
+                GTCGlobals.at(-1)
+            );
+        }
+    }
 }
 
 async function initialBreadcrumb() {

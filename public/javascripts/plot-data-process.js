@@ -1,18 +1,21 @@
 'use strict';
 
-export async function historyMode(
-    figures,
-    interval1 = [0.43, 0.98],
-    interval2 = [0.43, 0.98]
-) {
+export async function historyMode(gtc_instance, figures) {
+    const len = figures[0].data[0].x.at(-1);
+
+    const default_range = [0.43, 0.98];
+    const growth_rate_measure_interval =
+        gtc_instance.hist_range.growth_rate?.map(i => i / len) ?? default_range;
+    const freq_measure_interval =
+        gtc_instance.hist_range.frequency?.map(i => i / len) ?? default_range;
     // deconstructing figures
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
     // growth rate figure
     let { gamma, measurePts } = cal_gamma(
         growthFig.data[0].y,
-        window.GTCGlobal.timeStep,
-        interval1
+        gtc_instance.time_step,
+        growth_rate_measure_interval
     );
     growthFig.data[1] = {
         x: [measurePts[0].x, measurePts[1].x],
@@ -30,23 +33,21 @@ export async function historyMode(
     let y0 = componentsFig.data[0].y[0];
     y0 = y0 == 0 ? 1 : y0;
     let yReals = componentsFig.data[0].y.map(
-        (y, i) =>
-            y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0)
+        (y, i) => y / (Math.exp(gamma * (i + 1) * gtc_instance.time_step) * y0)
     );
     let yImages = componentsFig.data[1].y.map(
-        (y, i) =>
-            y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0)
+        (y, i) => y / (Math.exp(gamma * (i + 1) * gtc_instance.time_step) * y0)
     );
     let omega;
     ({ omega, measurePts } = cal_omega_r(
         yReals,
         yImages,
-        window.GTCGlobal.timeStep,
-        interval2
+        gtc_instance.time_step,
+        freq_measure_interval
     ));
     freqFig.data[0] = {
         x: [...Array(yReals.length).keys()].map(
-            i => (i + 1) * window.GTCGlobal.timeStep
+            i => (i + 1) * gtc_instance.time_step
         ),
         y: yReals,
         type: 'scatter',
@@ -54,7 +55,7 @@ export async function historyMode(
     };
     freqFig.data[1] = {
         x: [...Array(yReals.length).keys()].map(
-            i => (i + 1) * window.GTCGlobal.timeStep
+            i => (i + 1) * gtc_instance.time_step
         ),
         y: yImages,
         type: 'scatter',
@@ -76,8 +77,8 @@ export async function historyMode(
     let powerSpectrum = cal_spectrum(
         yReals,
         yImages,
-        window.GTCGlobal.timeStep,
-        interval2
+        gtc_instance.time_step,
+        freq_measure_interval
     );
     spectralFig.data[0] = Object.assign(powerSpectrum, {
         type: 'scatter',
@@ -156,14 +157,20 @@ export async function snapshotPoloidalPreview(figures) {
     });
 }
 
-export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
+export async function snapshotPoloidal(
+    gtc_instance,
+    figures,
+    statusBar,
+    safetyFactor
+) {
     const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
 
     const flattenedField = figures[0].data[1].z;
     const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
     const diagFlux =
-        GTCGlobal.basicParameters.diag_flux ?? GTCGlobal.basicParameters.iflux;
+        gtc_instance.basicParameters.diag_flux ??
+        gtc_instance.basicParameters.iflux;
 
     drawPoloidalDataPlotly(
         figures[0],
@@ -176,7 +183,7 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
     // calculate spectrum profile on radial grids
 
     const selectedPoloidalModeNum = [
-        ...new Set(window.GTCGlobal.basicParameters.mmodes),
+        ...new Set(gtc_instance.basicParameters.mmodes),
     ];
     const modeNum = selectedPoloidalModeNum.length;
     if (Math.floor(polNum / MIN_PTS) < Math.max(...selectedPoloidalModeNum)) {
@@ -198,11 +205,11 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
         });
     }
 
-    if (!window.GTCGlobal.fftPlan) {
+    if (!gtc_instance.fftPlan) {
         const planConstructor = fftw['r2c']['fft1d'];
-        window.GTCGlobal.fftPlan = new planConstructor(polNum);
+        gtc_instance.fftPlan = new planConstructor(polNum);
     }
-    const plan = window.GTCGlobal.fftPlan;
+    const plan = gtc_instance.fftPlan;
 
     const extra_spectrum_data = Array.from(
         { length: polNum / MIN_PTS },
@@ -293,14 +300,15 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
     const rational_surface = safetyFactor
         ? getRationalSurface(
               safetyFactor,
-              window.GTCGlobal.basicParameters.nmodes,
-              window.GTCGlobal.basicParameters.mmodes
+              gtc_instance.basicParameters.nmodes,
+              gtc_instance.basicParameters.mmodes,
+              gtc_instance.basicParameters.radial_region
           )
         : [];
     const RS_POINT_NUM = 20;
     spectrumFigureData.unshift(
         ...rational_surface.map(({ n, m, r }) => {
-            const pos = window.GTCGlobal.basicParameters.mpsi * r;
+            const pos = gtc_instance.basicParameters.mpsi * r;
             return {
                 name: `${n},${m} surface`,
                 x: Array(RS_POINT_NUM).fill(pos),
@@ -326,8 +334,8 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
     spectrumFigureData.unshift({
         name: 'Diagnostic Flux',
         x: [
-            GTCGlobal.basicParameters.diag_flux,
-            GTCGlobal.basicParameters.diag_flux,
+            gtc_instance.basicParameters.diag_flux,
+            gtc_instance.basicParameters.diag_flux,
         ],
         y: limits,
         mode: 'lines',
@@ -366,7 +374,7 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
                             {
                                 'xaxis.range': [
                                     0,
-                                    window.GTCGlobal.basicParameters.mpsi,
+                                    gtc_instance.basicParameters.mpsi,
                                 ],
                                 'yaxis.range': extend_range(
                                     min_values[i],
@@ -395,7 +403,7 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
                         {
                             'xaxis.range': [
                                 0,
-                                window.GTCGlobal.basicParameters.mpsi,
+                                gtc_instance.basicParameters.mpsi,
                             ],
                             'yaxis.range': extend_range(
                                 0,
@@ -783,11 +791,12 @@ export async function trackingPlot(figures) {
     Plotly.newPlot('figure-2', figures[1]);
 }
 
-export function addSimulationRegion(fig) {
-    const [rg0, rg1] = GTCGlobal.basicParameters.radial_region;
+export function addSimulationRegion(gtc_instance, fig) {
+    const [rg0, rg1] = gtc_instance.basicParameters.radial_region;
     const rgd =
         rg0 +
-        (GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi) *
+        (gtc_instance.basicParameters.diag_flux /
+            gtc_instance.basicParameters.mpsi) *
             (rg1 - rg0);
     const data = fig.data[0].y;
 
@@ -1037,7 +1046,7 @@ function getTicks([min, max], num) {
     );
 }
 
-function getRationalSurface(safetyFactor, n_modes, m_modes) {
+function getRationalSurface(safetyFactor, n_modes, m_modes, radial_region) {
     const mode_num = n_modes
         .map((n, i) => {
             return { n: n, m: m_modes[i] };
@@ -1051,7 +1060,7 @@ function getRationalSurface(safetyFactor, n_modes, m_modes) {
         y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
 
     const result = [];
-    const [r0, r1] = window.GTCGlobal.basicParameters.radial_region;
+    const [r0, r1] = radial_region;
     for (let i = 0; i < safetyFactor.x.length - 1; ++i) {
         if (safetyFactor.x[i + 1] < r0 || safetyFactor.x[i] > r1) {
             continue;
