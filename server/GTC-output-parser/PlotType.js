@@ -19,6 +19,11 @@ class PlotType {
             ].filter((_, i) => {
                 return [iload, nhybrid, fload, feload][i] > 0;
             });
+            if (basicParams.magnetic > 0) {
+                this.servingFields = PlotType.fieldID;
+            } else {
+                this.servingFields = PlotType.fieldID.slice(0, 1);
+            }
         }
 
         this.isTimeSeriesData = false;

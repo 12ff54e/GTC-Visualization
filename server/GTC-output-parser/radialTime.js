@@ -15,7 +15,7 @@ class RadialTime extends PlotType {
         this.isTimeSeriesData = true;
 
         this.plotTypes = [
-            ...PlotType.fieldID.map(f =>
+            ...this.servingFields.map(f =>
                 fieldPlotTypes
                     .slice(0, this.fieldPlotTypeNumber)
                     .map(p => f + '-' + p)

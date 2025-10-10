@@ -26,7 +26,7 @@ class History extends PlotType {
 
         this.fieldTypes = PlotType.fieldID;
         this.plotTypes = [
-            ...this.fieldTypes.map(f => [
+            ...this.servingFields.map(f => [
                 f,
                 f + '-RMS',
                 ...range(1, 9).map(i => `${f}-mode${i}`),

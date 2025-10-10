@@ -23,7 +23,9 @@ class Snapshot extends PlotType {
         this.isTimeSeriesData = false;
 
         this.plotTypes = [
-            ...PlotType.fieldID.map(f => fieldPlotTypes.map(p => f + '-' + p)),
+            ...this.servingFields.map(f =>
+                fieldPlotTypes.map(p => f + '-' + p)
+            ),
             ...this.existingParticles.map(t =>
                 particlePlotTypes.map(p => t + '-' + p)
             ),
