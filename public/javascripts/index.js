@@ -284,7 +284,7 @@ async function openPanel(clean_beforehand = true) {
         info,
         warn,
         err,
-        id: btn_id_array, // [[...],...]
+        id: btn_id_array, // [{index: number, id:[...]},...], except for Equilibrium
     } = await (
         await requestPlotData(gtc_instance.path, `plotType/${this.id}`)
     ).json();
@@ -313,14 +313,17 @@ async function openPanel(clean_beforehand = true) {
     // Equilibrium panel needs special care
     if (this.id === 'Equilibrium') {
         let { x, y, poloidalPlane, others } = btn_id_array;
-        btn_id_array = [poloidalPlane, others];
+        btn_id_array = [poloidalPlane, others].map((e, idx) => ({
+            index: idx,
+            id: e,
+        }));
         createEqPanel1D(x, y);
     }
 
-    // group is array of strings used as button id
+    // group: {index:number, id:[...]}
     const create_l1_group = (group, cb) => {
         let subDiv = document.createElement('div');
-        const btns = group.map(btnID => {
+        const btns = group.id.map(btnID => {
             let btn = document.createElement('button');
             btn.setAttribute('id', `${majorType}-${btnID}`);
             btn.setAttribute('class', 'tab-l1-btn');

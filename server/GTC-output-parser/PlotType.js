@@ -11,18 +11,13 @@ class PlotType {
 
         if (basicParams) {
             let { iload, nhybrid, fload, feload } = basicParams;
-            this.existingParticles = [
-                'ion',
-                'electron',
-                'EP',
-                'fast_electron',
-            ].filter((_, i) => {
+            this.existingParticles = PlotType.particle_ID.filter((_, i) => {
                 return [iload, nhybrid, fload, feload][i] > 0;
             });
             if (basicParams.magnetic > 0) {
-                this.servingFields = PlotType.fieldID;
+                this.servingFields = PlotType.field_ID;
             } else {
-                this.servingFields = PlotType.fieldID.slice(0, 1);
+                this.servingFields = PlotType.field_ID.slice(0, 1);
             }
         }
 
@@ -109,7 +104,12 @@ class PlotType {
     }
 }
 
-PlotType.fieldID = ['phi', 'a_para', 'fluid_ne']
+PlotType.field_ID = ['phi', 'a_para', 'fluid_ne'];
+PlotType.particle_ID = ['ion', 'electron', 'EP', 'fast_electron'];
+PlotType.index_lookup = id =>
+    Object.fromEntries(
+        [PlotType.field_ID, PlotType.particle_ID].map((id, idx) => [id, idx])
+    )[id];  
 PlotType.fieldDisplayName = {
     phi: '\\phi',
     a_para: '\\delta A_{\\parallel}',

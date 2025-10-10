@@ -1,14 +1,14 @@
 const PlotlyData = require('./PlotlyData.js');
 const PlotType = require('./PlotType.js');
 
-const particlePlotTypes = [
+const particle_plot_types = [
     'density',
     'flow',
     'energy',
     'PDF_energy',
     'PDF_pitch',
 ];
-const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
+const field_plot_types = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
 
 /**
  * Snapshot class containing all data from snap*******.out
@@ -23,12 +23,14 @@ class Snapshot extends PlotType {
         this.isTimeSeriesData = false;
 
         this.plotTypes = [
-            ...this.servingFields.map(f =>
-                fieldPlotTypes.map(p => f + '-' + p)
-            ),
-            ...this.existingParticles.map(t =>
-                particlePlotTypes.map(p => t + '-' + p)
-            ),
+            ...this.servingFields.map(t => ({
+                index: PlotType.index_lookup(t),
+                id: field_plot_types.map(p => t + '-' + p),
+            })),
+            ...this.existingParticles.map(t => ({
+                index: PlotType.index_lookup(t),
+                id: particle_plot_types.map(p => t + '-' + p),
+            })),
         ];
 
         // particle data, including profile of torques and pdf of energy and pitch angle
@@ -78,7 +80,7 @@ class Snapshot extends PlotType {
         }
 
         this.fieldData['poloidalPlane'] = new Object();
-        for (let field of PlotType.fieldID.concat(['x', 'y'])) {
+        for (let field of PlotType.field_ID.concat(['x', 'y'])) {
             let tmp = (this.fieldData['poloidalPlane'][field] = []);
             for (let r = 0; r < this.radialGridPtNumber; ++r) {
                 for (let p = 0; p <= this.poloidalGridPtNumber; ++p)
@@ -87,7 +89,7 @@ class Snapshot extends PlotType {
         }
 
         this.fieldData['fluxData'] = new Object();
-        for (let field of PlotType.fieldID) {
+        for (let field of PlotType.field_ID) {
             let tmp = (this.fieldData['fluxData'][field] = Array.from(
                 { length: this.toroidalGridPtNumber },
                 _ => []
@@ -114,7 +116,7 @@ class Snapshot extends PlotType {
         let figureContainer = new Array();
         let fig = new PlotlyData();
 
-        if (PlotType.fieldID.includes(cat)) {
+        if (PlotType.field_ID.includes(cat)) {
             // field
             let index = fieldPlotTypes.indexOf(type);
             switch (index) {

@@ -2,7 +2,12 @@ const PlotlyData = require('./PlotlyData.js');
 const PlotType = require('./PlotType.js');
 const { range, add_to_subscript } = require('./util.js');
 
-const particlePlotTypes = [
+const field_plot_types = [
+    'point_value',
+    'RMS',
+    ...range(1, 9).map(i => `mode${i}`),
+];
+const particle_plot_types = [
     'density',
     'momentum',
     'energy',
@@ -24,16 +29,16 @@ class History extends PlotType {
         super(filePath, basicParams);
         this.isTimeSeriesData = true;
 
-        this.fieldTypes = PlotType.fieldID;
+        this.fieldTypes = PlotType.field_ID;
         this.plotTypes = [
-            ...this.servingFields.map(f => [
-                f,
-                f + '-RMS',
-                ...range(1, 9).map(i => `${f}-mode${i}`),
-            ]),
-            ...this.existingParticles.map(t =>
-                particlePlotTypes.map(p => t + '-' + p)
-            ),
+            ...this.servingFields.map(t => ({
+                index: PlotType.index_lookup(t),
+                id: field_plot_types.map(p => t + '-' + p),
+            })),
+            ...this.existingParticles.map(t => ({
+                index: PlotType.index_lookup(t),
+                id: particle_plot_types.map(p => t + '-' + p),
+            })),
         ];
 
         // pre-allocate data containers
@@ -60,7 +65,7 @@ class History extends PlotType {
             this.fieldNumber *
                 (this.fieldDiagnosticNumber + 2 * this.fieldModeNumber);
 
-        this.deal_with_particle_species(particlePlotTypes);
+        this.deal_with_particle_species(particle_plot_types);
 
         // Initialize
         this.existingParticles.forEach(particle => {
@@ -115,16 +120,15 @@ class History extends PlotType {
      */
     plotData(id, basicParams) {
         let [cat, type] = id.split('-');
-        type = type ? type : 'point';
         let figureContainer = new Array();
         let timeStep = basicParams.ndiag * basicParams.tstep;
         const tu = '$R_0/c_s$';
 
-        if (PlotType.fieldID.includes(cat)) {
+        if (PlotType.field_ID.includes(cat)) {
             // field
             if (!type.includes('mode')) {
                 // point value
-                let plot_type_index = type === 'point' ? 0 : 2;
+                let plot_type_index = type === field_plot_types[0] ? 0 : 2;
                 for (let i = 0; i < 2; i++) {
                     let figure = new PlotlyData();
                     figure.data.push({
@@ -135,7 +139,7 @@ class History extends PlotType {
                     });
                     figure.addX(timeStep);
                     figure.plotLabel =
-                        type === 'point'
+                        type === field_plot_types[0]
                             ? i == 0
                                 ? `$${PlotType.fieldDisplayName[cat]} (\\theta=\\zeta=0)$`
                                 : `$${add_to_subscript(
@@ -230,7 +234,7 @@ class History extends PlotType {
         } else {
             // particle
             // Each plot type has two sub-figure
-            let plotType = particlePlotTypes.indexOf(type);
+            let plotType = particle_plot_types.indexOf(type);
             for (let i = 0; i < 2; i++) {
                 let figure = new PlotlyData();
                 figure.data.push({
