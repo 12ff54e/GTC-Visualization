@@ -1,5 +1,7 @@
 'use strict';
 
+import { interleave, min_max, unInterleave } from './utils.js';
+
 export async function historyMode(gtc_instance, figures) {
     const len = figures[0].data[0].x.at(-1);
 
@@ -980,28 +982,6 @@ export function cal_spectrum(reals, images, timeStep, interval) {
             Array.from(spectrum.slice(0, len - halfLen))
         ),
     };
-}
-
-function interleave(as, bs) {
-    return as.flatMap((val, idx) => [val, bs[idx]]);
-}
-
-function unInterleave(cs) {
-    return cs.reduce((arr, val, idx) => {
-        if (idx % 2 == 0) {
-            arr.push([val]);
-        } else {
-            arr.at(-1).push(val);
-        }
-        return arr;
-    }, []);
-}
-
-function min_max(arr) {
-    return arr.reduce(
-        ([min, max], curr) => [Math.min(min, curr), Math.max(max, curr)],
-        [Infinity, -Infinity]
-    );
 }
 
 /**

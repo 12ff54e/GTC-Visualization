@@ -1,3 +1,13 @@
+import {
+    zip,
+    min_max,
+    lerp,
+    linearMap,
+    lower_bound,
+    interpolationDerivativeAt,
+    derivative,
+} from './utils.js';
+
 export async function generateSummary(gtc_instance, status_bar) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
@@ -367,7 +377,7 @@ async function transitionTo(root, data, label, title) {
             duration: 250,
         },
     };
-    const dataRange = minmax(data, 0.2);
+    const dataRange = min_max(data, 0.2);
     await Plotly.animate(
         root,
         {
@@ -428,95 +438,4 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
             transitionTo(plotlyRoot, data, tag, title);
         });
     }
-}
-
-function lerp(a, b, x) {
-    return a + (b - a) * x;
-}
-
-function linearMap(x, a0, b0, a1, b1) {
-    return lerp(a1, b1, (x - a0) / (b0 - a0));
-}
-
-function lower_bound(array, val) {
-    let idx = 0;
-    let step = array.length;
-
-    while (step > 0) {
-        const half = Math.floor(step / 2);
-        if (array[idx + half] > val) {
-            step = half;
-        } else {
-            idx = idx + half + 1;
-            step = step - half - 1;
-        }
-    }
-
-    return idx;
-}
-
-function interpolationDerivativeAt(x, xs, ys) {
-    const idx = lower_bound(xs, x) - 1;
-
-    let d = 0;
-    if (idx == 0 || idx == xs.length - 2) {
-        d = (ys[idx + 1] - ys[idx]) / (xs[idx + 1] - xs[idx]);
-    } else {
-        const threePairSum = (a, b, c) => {
-            return a * b + b * c + c * a;
-        };
-        const x3 = 3 * x * x;
-        const xSum = xs[idx - 1] + xs[idx] + xs[idx + 1] + xs[idx + 2];
-        for (let i = 0; i < 4; ++i) {
-            const localXS = xs.slice(idx - 1, idx + 3);
-            const [localX] = localXS.splice(i, 1);
-            let coef = x3 - 2 * x * (xSum - localX) + threePairSum(...localXS);
-            coef /= localXS.reduce((acc, val) => acc * (localX - val), 1);
-            d += coef * ys[idx - 1 + i];
-        }
-    }
-
-    return d;
-}
-
-function derivative(xs, ys) {
-    const d = xs.map(_ => 0);
-    let dx0 = xs[1] - xs[0];
-    let dx1 = xs[2] - xs[1];
-    let dx = dx0 + dx1;
-    d[0] =
-        (-ys[0] * dx1 * (dx + dx0) + ys[1] * dx * dx - ys[2] * dx0 * dx0) /
-        (dx0 * dx1 * dx);
-    for (let i = 1; i < xs.length - 1; ++i) {
-        if (i != 1) {
-            dx0 = dx1;
-            dx1 = xs[i + 1] - xs[i];
-            dx = dx0 + dx1;
-        }
-        d[i] =
-            (-ys[i - 1] * dx1 * dx1 +
-                ys[i] * dx * (dx1 - dx0) +
-                ys[i + 1] * dx0 * dx0) /
-            (dx0 * dx1 * dx);
-    }
-    d[xs.length - 1] =
-        (ys[xs.length - 3] * dx0 * dx0 -
-            ys[xs.length - 2] * dx * dx +
-            ys[xs.length - 1] * dx1 * (dx + dx0)) /
-        (dx0 * dx1 * dx);
-    return d;
-}
-
-function zip(func, ...arrays) {
-    return arrays[0].map((_, i) => func(...arrays.map(arr => arr[i])));
-}
-
-function minmax(as, padding = 0) {
-    let min = Infinity;
-    let max = -Infinity;
-    as.forEach(v => {
-        min = Math.min(min, v);
-        max = Math.max(max, v);
-    });
-    return [min - (max - min) * padding, max + (max - min) * padding];
 }

@@ -8,6 +8,7 @@ import {
     addSimulationRegion,
 } from './plot-data-process.js';
 import { generateSummary } from './summary-generate.js';
+import { nodeIs } from './utils.js';
 
 // status bar on top
 class StatusBar {
@@ -754,12 +755,6 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
 async function propagateFetchError(res) {
     if (!res.ok) {
         throw await res.text();
-    }
-}
-
-function nodeIs(node, predict) {
-    if (node) {
-        return predict(node) || nodeIs(node.parentElement, predict);
     }
 }
 
