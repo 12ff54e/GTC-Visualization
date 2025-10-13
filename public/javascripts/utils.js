@@ -111,3 +111,69 @@ export function derivative(xs, ys) {
         (dx0 * dx1 * dx);
     return d;
 }
+
+export function merge(arr, compare_fn = (a, b) => a - b) {
+    const shallow_copy = [];
+    const result = [];
+    // nonempty check
+    arr.forEach(subarr => {
+        if (subarr.length > 0) {
+            shallow_copy.push(subarr);
+        }
+    });
+    const iter_indices = shallow_copy.map(_ => 0);
+
+    while (iter_indices.length > 0) {
+        const idx_current_min_array = iter_indices.reduce(
+            (prev, current, idx) => {
+                return compare_fn(
+                    shallow_copy[idx][current],
+                    shallow_copy[prev][iter_indices[prev]]
+                ) < 0
+                    ? idx
+                    : prev;
+            },
+            0
+        );
+        result.push(
+            shallow_copy[idx_current_min_array][
+                iter_indices[idx_current_min_array]
+            ]
+        );
+        // delete drained array
+        if (
+            ++iter_indices[idx_current_min_array] ==
+            shallow_copy[idx_current_min_array].length
+        ) {
+            iter_indices.splice(idx_current_min_array, 1);
+            shallow_copy.splice(idx_current_min_array, 1);
+        }
+    }
+    return result;
+}
+
+export function delete_duplicates(
+    arr,
+    compare_fn = (a, b) => a - b,
+    transform_fn = a => a[0]
+) {
+    const tmp = [];
+    const result = [];
+    for (let i = 0; i < arr.length; ) {
+        const elem = arr[i];
+        if (tmp.length == 0) {
+            tmp.push(elem);
+            i++;
+        } else if (compare_fn(elem, tmp.at(-1)) == 0) {
+            tmp.push(elem);
+            i++;
+        } else {
+            result.push(transform_fn(tmp));
+            tmp.length = 0;
+        }
+    }
+    if (tmp.length > 0) {
+        result.push(transform_fn(tmp));
+    }
+    return result;
+}

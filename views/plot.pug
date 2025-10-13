@@ -64,3 +64,8 @@ html(lang="en")
             #summary-page
 
         #poloidal-preview
+
+        - let n = 0
+        #gtc-instance-indicator-template.gtc-instance-indicator
+            while n < 4
+                div(class=`gtc-instance-${n++}`)

@@ -1,5 +1,10 @@
 :root {
+    --basic-bg: transparent;
     --preview-bg: azure;
+    --instance-color-0: rgb(61, 153, 204);
+    --instance-color-1: rgb(242, 159, 36);
+    --instance-color-2: rgb(116, 178, 53);
+    --instance-color-3: rgb(235, 98, 53);
 }
 
 #breadcrumb-container {
@@ -137,7 +142,7 @@ p {
 }
 
 #select-compare {
-    padding-block-start: .5em;
+    padding-block-start: 0.5em;
 }
 
 #tabs {
@@ -448,4 +453,42 @@ input.eq-1d-y:checked + label {
     content: '(peek)';
     color: red;
     font-weight: bold;
+}
+
+#gtc-instance-indicator-template {
+    display: none;
+}
+
+.gtc-instance-indicator {
+    grid-column: 1/-1;
+    translate: 0 -0.6em;
+    height: 0.5em;
+    text-align: left;
+}
+
+.gtc-instance-indicator > div {
+    width: 0.6em;
+    height: 0.6em;
+    display: inline-block;
+    margin-left: 0.2em;
+    border-radius: 0.3em;
+
+    background-color: var(--basic-bg);
+}
+
+.gtc-instance-indicator > div:nth-child(1) {
+    margin-left: 0.5em;
+}
+
+.gtc-instance-indicator.gtc-instance-has-0 > div:nth-child(1) {
+    background-color: var(--instance-color-0);
+}
+.gtc-instance-indicator.gtc-instance-has-1 > div:nth-child(2) {
+    background-color: var(--instance-color-1);
+}
+.gtc-instance-indicator.gtc-instance-has-2 > div:nth-child(3) {
+    background-color: var(--instance-color-2);
+}
+.gtc-instance-indicator.gtc-instance-has-3 > div:nth-child(4) {
+    background-color: var(--instance-color-3);
 }

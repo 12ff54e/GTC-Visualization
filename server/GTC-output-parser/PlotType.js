@@ -108,7 +108,9 @@ PlotType.field_ID = ['phi', 'a_para', 'fluid_ne'];
 PlotType.particle_ID = ['ion', 'electron', 'EP', 'fast_electron'];
 PlotType.index_lookup = id =>
     Object.fromEntries(
-        [PlotType.field_ID, PlotType.particle_ID].map((id, idx) => [id, idx])
+        [PlotType.field_ID, PlotType.particle_ID]
+            .flat()
+            .map((id, idx) => [id, idx])
     )[id];  
 PlotType.fieldDisplayName = {
     phi: '\\phi',

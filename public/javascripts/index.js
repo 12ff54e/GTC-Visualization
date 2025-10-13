@@ -8,7 +8,7 @@ import {
     addSimulationRegion,
 } from './plot-data-process.js';
 import { generateSummary } from './summary-generate.js';
-import { nodeIs } from './utils.js';
+import { nodeIs, merge, delete_duplicates } from './utils.js';
 
 // status bar on top
 class StatusBar {
@@ -225,42 +225,85 @@ function addDownloadFunction() {
 }
 
 function registerButtons(buttons, cb = getDataThenPlot) {
+    const iter_all_instance = evt =>
+        Promise.all(
+            GTCGlobals.map(async (gtc_instance, idx) => {
+                if (evt.parentElement.gtc_instance_index.includes(idx)) {
+                    await cb.call(evt, gtc_instance);
+                } else {
+                    cleanPlot(gtc_instance);
+                }
+            })
+        );
     buttons.forEach(btn => {
         btn.addEventListener('click', ev => {
-            GTCGlobals.forEach(gtc_instance => {
-                wrap(addLoadingIndicator(cb.bind(ev.target)))(gtc_instance);
-            });
+            wrap(addLoadingIndicator(iter_all_instance))(ev.target);
         });
     });
 }
 
-async function fetchBasicParameters() {
-    return Promise.all(
-        GTCGlobals.map(async gtc_instance => {
-            if (!gtc_instance.basicParameters) {
-                const res = await fetch(
-                    `plot/data/basicParameters?dir=${
-                        document.querySelector('#outputTag').innerText
-                    }`
-                );
-                await propagateFetchError(res);
-                gtc_instance.basicParameters = await res.json();
-                gtc_instance.time_step =
-                    gtc_instance.basicParameters.ndiag *
-                    gtc_instance.basicParameters.tstep;
-            }
-        })
-    );
+async function fetchBasicParameters(gtc_instance = GTCGlobals[0]) {
+    if (!gtc_instance.basicParameters) {
+        gtc_instance.basicParameters = await (
+            await requestPlotData(gtc_instance.path, 'data/basicParameters')
+        ).json();
+        gtc_instance.time_step =
+            gtc_instance.basicParameters.ndiag *
+            gtc_instance.basicParameters.tstep;
+    }
 }
 
 async function openPanel(clean_beforehand = true) {
-    // TODO: Check all gtc instances and combine their figure buttons
-    const gtc_instance = GTCGlobals[0];
-    gtc_instance.current_panel = this.id;
+    // TODO: Deal with summary page
     if (this.id == 'Summary') {
-        await buildSummaryPage(gtc_instance);
+        await buildSummaryPage(GTCGlobals[0]);
         return;
     }
+
+    const gtc_instances = await Promise.all(
+        GTCGlobals.map(async (gtc_instance, idx) => {
+            gtc_instance.current_panel = this.id;
+            if (clean_beforehand) {
+                cleanPlot(gtc_instance);
+            }
+            await fetchBasicParameters(gtc_instance);
+
+            // inform the server about which .out file should be parsed
+            const res = await requestPlotData(
+                gtc_instance.path,
+                `plotType/${this.id}`
+            );
+            await propagateFetchError(res);
+
+            // {info, warn, err, id: [{index: number, id:[...]},...], except for Equilibrium}
+            const data = await res.json();
+            data.id.map(e => (e.gtc_instance_index = idx));
+            return data;
+        })
+    );
+
+    const stat = gtc_instances.reduce(
+        (stat, { info, warn, err }, idx) => {
+            stat.info += info ? `[${idx}] ${info}; ` : '';
+            stat.warn += warn ? `[${idx}] ${warn}; ` : '';
+            stat.err += err ? `[${idx}] ${err}; ` : '';
+            return stat;
+        },
+        { info: '', warn: '', err: '' }
+    );
+
+    const compare_fn = (a, b) => a.index - b.index;
+    const btn_group_array = delete_duplicates(
+        merge(
+            gtc_instances.map(e => e.id),
+            compare_fn
+        ),
+        compare_fn,
+        arr =>
+            Object.assign(arr[0], {
+                gtc_instance_index: arr.map(e => e.gtc_instance_index),
+            })
+    );
 
     // link radio id to panel id
     let majorType = this.id.startsWith('snap') ? 'Snapshot' : this.id;
@@ -270,34 +313,16 @@ async function openPanel(clean_beforehand = true) {
     const statusBar = document.getElementById('status').status;
 
     cleanPanel();
-    if (clean_beforehand) {
-        GTCGlobals.forEach(gtc_instance => {
-            cleanPlot(gtc_instance);
-        });
-    }
     let panel = document.getElementById(panelName);
     panel.style.opacity = 1;
     panel.style.zIndex = 2;
 
-    // inform the server about which .out file should be parsed
-    let {
-        info,
-        warn,
-        err,
-        id: btn_id_array, // [{index: number, id:[...]},...], except for Equilibrium
-    } = await (
-        await requestPlotData(gtc_instance.path, `plotType/${this.id}`)
-    ).json();
-
-    statusBar.info = info ? info : '';
-    statusBar.warn = warn ? warn : '';
-    if (err) {
-        statusBar.err = err;
+    statusBar.info = stat.info;
+    statusBar.warn = stat.warn;
+    if (stat.err) {
+        statusBar.err = stat.err;
         return;
     }
-
-    // wait for the response, then create buttons for plotting
-    await fetchBasicParameters();
 
     // add buttons
     const node =
@@ -320,31 +345,41 @@ async function openPanel(clean_beforehand = true) {
         createEqPanel1D(x, y);
     }
 
-    // group: {index:number, id:[...]}
+    // group: {gtc_instance_index:[number], id:[...]}
     const create_l1_group = (group, cb) => {
-        let subDiv = document.createElement('div');
+        const sub_div = document.createElement('div');
+        sub_div.gtc_instance_index = group.gtc_instance_index;
+
+        const indicator = document
+            .querySelector('#gtc-instance-indicator-template')
+            .cloneNode(true);
+        indicator.removeAttribute('id');
+        indicator.classList.add(
+            ...group.gtc_instance_index.map(i => `gtc-instance-has-${i}`)
+        );
+        sub_div.appendChild(indicator);
         const btns = group.id.map(btnID => {
             let btn = document.createElement('button');
             btn.setAttribute('id', `${majorType}-${btnID}`);
             btn.setAttribute('class', 'tab-l1-btn');
             btn.innerText = btnID;
-            subDiv.appendChild(btn);
+            sub_div.appendChild(btn);
 
             return btn;
         });
         registerButtons(btns, cb);
-        return subDiv;
+        return sub_div;
     };
-    btn_id_array.forEach(group => {
+    btn_group_array.forEach(group => {
         panel.appendChild(create_l1_group(group));
     });
 
     if (this.id === 'History') {
-        addHistoryRecalculation(gtc_instance, panel);
+        addHistoryRecalculation(panel);
     }
 
     if (this.id.startsWith('snap')) {
-        addSnapshotPlayer(gtc_instance, panel, create_l1_group);
+        addSnapshotPlayer(GTCGlobals[0], panel, create_l1_group);
 
         panel.querySelectorAll('button').forEach(btn => {
             if (btn.id.endsWith('-poloidal')) {
@@ -403,7 +438,7 @@ async function buildSummaryPage(gtc_instance) {
     });
 }
 
-function addHistoryRecalculation(gtc_instance, panel) {
+function addHistoryRecalculation(panel) {
     const div = document.createElement('div');
     const btn = document.createElement('button');
     btn.innerText =
@@ -412,16 +447,18 @@ function addHistoryRecalculation(gtc_instance, panel) {
     btn.addEventListener(
         'click',
         wrap(async function () {
-            const figures = [1, 2, 3, 4].map(i =>
-                document.getElementById(
-                    `${default_figure_wrapper.id}-figure-${i}`
-                )
-            );
-            await historyMode(gtc_instance, figures);
+            await Promise.all(
+                GTCGlobals.map(async gtc_instance => {
+                    const figures = [...gtc_instance.container.children];
+                    await historyMode(gtc_instance, figures);
 
-            figures.forEach(figure => {
-                Plotly.react(figure, figure.data, figure.layout);
-            });
+                    await Promise.all(
+                        figures.map(async figure =>
+                            Plotly.react(figure, figure.data, figure.layout)
+                        )
+                    );
+                })
+            );
         })
     );
 
@@ -585,9 +622,7 @@ async function getDataThenPlot(opts) {
 
     await Promise.all(
         figures.map(({ data, layout, force_redraw }, idx) => {
-            const fig_div = gtc_instance.container.querySelector(
-                `#${gtc_instance.container.id}-figure-${idx + 1}`
-            );
+            const fig_div = gtc_instance.container.children[idx];
             fig_div.classList.add('active');
             // restore height
             if (layout.height === undefined) {
@@ -653,9 +688,9 @@ async function snapshotPreprocess(btn, figures, gtc_instance) {
 }
 
 function updateHistoryModeRange(gtc_instance) {
-    document
-        .getElementById(`${default_figure_wrapper.id}-figure-2`)
-        .on('plotly_relayout', function (eventData) {
+    gtc_instance.container.children[1].on(
+        'plotly_relayout',
+        function (eventData) {
             if (eventData['xaxis.range']) {
                 gtc_instance.hist_range.growth_rate =
                     eventData['xaxis.range'].slice();
@@ -665,10 +700,11 @@ function updateHistoryModeRange(gtc_instance) {
                     eventData['xaxis.range[1]'],
                 ];
             }
-        });
-    document
-        .getElementById(`${default_figure_wrapper.id}-figure-3`)
-        .on('plotly_relayout', function (eventData) {
+        }
+    );
+    gtc_instance.container.children[2].on(
+        'plotly_relayout',
+        function (eventData) {
             if (eventData['xaxis.range']) {
                 gtc_instance.hist_range.frequency =
                     eventData['xaxis.range'].slice();
@@ -678,7 +714,8 @@ function updateHistoryModeRange(gtc_instance) {
                     eventData['xaxis.range[1]'],
                 ];
             }
-        });
+        }
+    );
 }
 
 function createEqPanel1D(xDataTypes, yDataTypes) {
