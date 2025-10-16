@@ -49,14 +49,14 @@ class Snapshot extends PlotType {
         this.toroidalGridPtNumber = parseInt(yield);
         this.maxEnergy = parseFloat(yield);
 
-        this.deal_with_particle_species(particlePlotTypes);
+        this.deal_with_particle_species(particle_plot_types);
 
         // read data
         for (let particle of this.existingParticles) {
             this.particleData[particle] = new Object();
             for (let type = 0; type < 3; type++) {
                 const pt = (this.particleData[particle][
-                    particlePlotTypes[type]
+                    particle_plot_types[type]
                 ] = Array.from({ length: 2 }, _ => []));
                 for (let i = 0; i < pt.length; i++) {
                     for (let r = 0; r < this.radialGridPtNumber; r++) {
@@ -69,7 +69,7 @@ class Snapshot extends PlotType {
         for (let particle of this.existingParticles) {
             for (let type = 3; type < 5; type++) {
                 const pt = (this.particleData[particle][
-                    particlePlotTypes[type]
+                    particle_plot_types[type]
                 ] = Array.from({ length: 2 }, _ => []));
                 for (let i = 0; i < pt.length; i++) {
                     for (let v = 0; v < this.velocityGridNumber; v++) {
@@ -118,7 +118,7 @@ class Snapshot extends PlotType {
 
         if (PlotType.field_ID.includes(cat)) {
             // field
-            let index = fieldPlotTypes.indexOf(type);
+            let index = field_plot_types.indexOf(type);
             switch (index) {
                 case 0: // field strength on flux surface
                     fig.data.push({
@@ -241,12 +241,19 @@ class Snapshot extends PlotType {
                                       Math.sqrt(v / this.poloidalGridPtNumber)
                                   )
                             : field
-                                  .reduce((acc, curr, idx) => {
-                                      acc[
-                                          idx % (this.poloidalGridPtNumber + 1)
-                                      ] += curr * curr;
-                                      return acc;
-                                  }, Array(this.poloidalGridPtNumber + 1).fill(0))
+                                  .reduce(
+                                      (acc, curr, idx) => {
+                                          acc[
+                                              idx %
+                                                  (this.poloidalGridPtNumber +
+                                                      1)
+                                          ] += curr * curr;
+                                          return acc;
+                                      },
+                                      Array(this.poloidalGridPtNumber + 1).fill(
+                                          0
+                                      )
+                                  )
                                   .map(v =>
                                       Math.sqrt(
                                           v / (this.radialGridPtNumber - 1)
