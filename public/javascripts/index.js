@@ -74,7 +74,7 @@ class GTC_Instance {
         };
         this.basicParameters = undefined;
         this.time_step = -1;
-        this.current_panel = '';
+        this.current_panel_id = '';
         this.current_snapshot = '';
         this.current_figure_id = '';
         this.path = path;
@@ -90,6 +90,7 @@ class GTC_Instance {
 const GTCGlobals = (window.GTCGlobals = [
     new GTC_Instance(document.querySelector('#outputTag').innerText),
 ]);
+const gtc_instance_count = GTCGlobals.length;
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
@@ -262,7 +263,7 @@ async function openPanel(clean_beforehand = true) {
 
     const gtc_instances = await Promise.all(
         GTCGlobals.map(async (gtc_instance, idx) => {
-            gtc_instance.current_panel = this.id;
+            gtc_instance.current_panel_id = this.id;
             if (clean_beforehand) {
                 cleanPlot(gtc_instance);
             }
@@ -313,7 +314,13 @@ async function openPanel(clean_beforehand = true) {
     const statusBar = document.getElementById('status').status;
 
     cleanPanel();
-    let panel = document.getElementById(panelName);
+    const panel = document.getElementById(panelName);
+    // when new gtc instance is added
+    if (GTCGlobals.length > gtc_instance_count) {
+        while (panel.firstElementChild) {
+            panel.removeChild(panel.lastElementChild);
+        }
+    }
     panel.style.opacity = 1;
     panel.style.zIndex = 2;
 
@@ -329,7 +336,7 @@ async function openPanel(clean_beforehand = true) {
         this.localName === 'input'
             ? this.parentNode
             : this.parentNode.parentNode;
-    if (node.visited) {
+    if (node.visited && GTCGlobals.length == 1) {
         return;
     } else {
         node.visited = true;
@@ -884,7 +891,7 @@ function postForm(url, content) {
 }
 
 async function requestForCompare(path) {
-    GTCGlobals.push(
+    const count = GTCGlobals.push(
         new GTC_Instance(
             path,
             document.querySelector('#figure-wrapper-compare')
@@ -904,29 +911,18 @@ async function requestForCompare(path) {
     await propagateFetchError(res);
 
     const gtc_instance = GTCGlobals[0];
-    if (gtc_instance.current_panel) {
-        // request server to read specific .out file
-        const pt_res = await requestPlotData(
-            path,
-            `plotType/${gtc_instance.current_panel}`
+    if (gtc_instance.current_panel_id) {
+        await openPanel.call(
+            document.getElementById(gtc_instance.current_panel_id),
+            false
         );
-        await propagateFetchError(pt_res);
-        const { id: btn_id_array } = await pt_res.json();
-
-        const majorType = gtc_instance.current_panel.startsWith('snap')
-            ? 'Snapshot'
-            : gtc_instance.current_panel;
-        // plot the same figure as the original gtc output folder if possible
         if (
-            btn_id_array
-                .flat()
-                .map(id => `${majorType}-${id}`)
-                .includes(gtc_instance.current_figure_id)
+            document
+                .getElementById(gtc_instance.current_figure_id)
+                ?.parentElement.gtc_instance_index.includes(count - 1)
         ) {
             await getDataThenPlot.call(
-                {
-                    id: gtc_instance.current_figure_id,
-                },
+                document.getElementById(gtc_instance.current_figure_id),
                 GTCGlobals.at(-1)
             );
         }
