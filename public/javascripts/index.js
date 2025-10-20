@@ -840,11 +840,12 @@ function constructFolderContentList(clear_func, parent, child) {
 
         if (entry.mTimeMs) {
             // a gtc output folder
-            a.addEventListener('click', () => {
+            a.addEventListener('click', ev => {
                 const gtc_output = constructPath(entry);
                 if (document.querySelector('#select-compare-goto').checked) {
                     postForm('/plot', { gtc_output });
                 } else {
+                    ev.stopPropagation();
                     clear_func();
                     wrap(addLoadingIndicator(requestForCompare))(gtc_output);
                 }
