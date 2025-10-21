@@ -278,7 +278,9 @@ async function openPanel(clean_beforehand = true) {
 
             // {info, warn, err, id: [{index: number, id:[...]},...], except for Equilibrium}
             const data = await res.json();
-            data.id.map(e => (e.gtc_instance_index = idx));
+            if (this.id != 'Equilibrium') {
+                data.id.map(e => (e.gtc_instance_index = idx));
+            }
             return data;
         })
     );
@@ -317,7 +319,7 @@ async function openPanel(clean_beforehand = true) {
     const panel = document.getElementById(panelName);
     // when new gtc instance is added
     if (GTCGlobals.length > gtc_instance_count) {
-        while (panel.firstElementChild) {
+        while (panel.lastElementChild?.localName == 'div') {
             panel.removeChild(panel.lastElementChild);
         }
     }
@@ -338,18 +340,21 @@ async function openPanel(clean_beforehand = true) {
             : this.parentNode.parentNode;
     if (node.visited && GTCGlobals.length == 1) {
         return;
-    } else {
-        node.visited = true;
     }
 
     // Equilibrium panel needs special care
-    if (this.id === 'Equilibrium') {
-        let { x, y, poloidalPlane, others } = btn_id_array;
-        btn_id_array = [poloidalPlane, others].map((e, idx) => ({
-            index: idx,
-            id: e,
-        }));
-        createEqPanel1D(x, y);
+    // Just take the output of the first gtc_instance
+    if (majorType === 'Equilibrium') {
+        let { x, y, poloidalPlane, others } = gtc_instances[0].id;
+        btn_group_array.push(
+            ...[poloidalPlane, others].map(id => ({
+                gtc_instance_index: gtc_instances.map((_, idx) => idx),
+                id,
+            }))
+        );
+        if (!node.visited) {
+            createEqPanel1D(x, y);
+        }
     }
 
     // group: {gtc_instance_index:[number], id:[...]}
@@ -413,6 +418,8 @@ async function openPanel(clean_beforehand = true) {
             }
         });
     }
+
+    node.visited = true;
 }
 
 async function buildSummaryPage(gtc_instance) {
@@ -771,31 +778,33 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     const form = document.getElementById('Equilibrium-panel').firstElementChild;
     form.addEventListener(
         'submit',
-        wrap(async e => {
-            e.preventDefault();
+        wrap(
+            addLoadingIndicator(async e => {
+                e.preventDefault();
 
-            const data = new FormData(form);
-            const type = 'Equilibrium';
+                const data = new FormData(form);
+                const type = 'Equilibrium';
 
-            const xType = data.get('x');
-            const yType = data.get('y');
+                const xType = data.get('x');
+                const yType = data.get('y');
 
-            if (!xType || !yType) {
-                alert('Choose X and Y');
-                return;
-            }
+                if (!xType || !yType) {
+                    alert('Choose X and Y');
+                    return;
+                }
 
-            return Promise.all(
-                GTCGlobals.map(async gtc_instance => {
-                    gtc_instance.current_figure_id = `${type}-1D-${xType}-${yType}`;
-                    await addLoadingIndicator(
-                        getDataThenPlot.bind({
-                            id: gtc_instance.current_figure_id,
-                        })
-                    )();
-                })
-            );
-        })
+                return Promise.all(
+                    GTCGlobals.map(async gtc_instance => {
+                        await getDataThenPlot.call(
+                            {
+                                id: `${type}-1D-${xType}-${yType}`,
+                            },
+                            gtc_instance
+                        );
+                    })
+                );
+            })
+        )
     );
 }
 
@@ -911,19 +920,19 @@ async function requestForCompare(path) {
     });
     await propagateFetchError(res);
 
-    const gtc_instance = GTCGlobals[0];
-    if (gtc_instance.current_panel_id) {
+    const first = GTCGlobals[0];
+    if (first.current_panel_id) {
         await openPanel.call(
-            document.getElementById(gtc_instance.current_panel_id),
+            document.getElementById(first.current_panel_id),
             false
         );
         if (
             document
-                .getElementById(gtc_instance.current_figure_id)
+                .getElementById(first.current_figure_id)
                 ?.parentElement.gtc_instance_index.includes(count - 1)
         ) {
             await getDataThenPlot.call(
-                document.getElementById(gtc_instance.current_figure_id),
+                document.getElementById(first.current_figure_id),
                 GTCGlobals.at(-1)
             );
         }
