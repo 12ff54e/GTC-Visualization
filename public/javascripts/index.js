@@ -226,20 +226,24 @@ function addDownloadFunction() {
 }
 
 function registerButtons(buttons, cb = getDataThenPlot) {
-    const iter_all_instance = evt =>
+    const iter_all_instance = ev =>
         Promise.all(
             GTCGlobals.map(async (gtc_instance, idx) => {
-                if (evt.parentElement.gtc_instance_index.includes(idx)) {
-                    await cb.call(evt, gtc_instance);
+                // The list contains gtc instance that has this data for this figure.
+                // All instance can plot this if it is undefined,
+                const list = ev.target.parentElement.gtc_instance_index;
+                if (!list || list.includes(idx)) {
+                    await cb.call(ev.target, gtc_instance);
                 } else {
                     cleanPlot(gtc_instance);
                 }
             })
         );
     buttons.forEach(btn => {
-        btn.addEventListener('click', ev => {
-            wrap(addLoadingIndicator(iter_all_instance))(ev.target);
-        });
+        btn.addEventListener(
+            'click',
+            wrap(addLoadingIndicator(iter_all_instance))
+        );
     });
 }
 
@@ -346,12 +350,7 @@ async function openPanel(clean_beforehand = true) {
     // Just take the output of the first gtc_instance
     if (majorType === 'Equilibrium') {
         let { x, y, poloidalPlane, others } = gtc_instances[0].id;
-        btn_group_array.push(
-            ...[poloidalPlane, others].map(id => ({
-                gtc_instance_index: gtc_instances.map((_, idx) => idx),
-                id,
-            }))
-        );
+        btn_group_array.push(...[poloidalPlane, others].map(id => ({ id })));
         if (!node.visited) {
             createEqPanel1D(x, y);
         }
@@ -366,9 +365,11 @@ async function openPanel(clean_beforehand = true) {
             .querySelector('#gtc-instance-indicator-template')
             .cloneNode(true);
         indicator.removeAttribute('id');
-        indicator.classList.add(
-            ...group.gtc_instance_index.map(i => `gtc-instance-has-${i}`)
-        );
+        if (group.gtc_instance_index) {
+            indicator.classList.add(
+                ...group.gtc_instance_index.map(i => `gtc-instance-has-${i}`)
+            );
+        }
         sub_div.appendChild(indicator);
         const btns = group.id.map(btnID => {
             let btn = document.createElement('button');
@@ -484,12 +485,14 @@ function addHistoryRecalculation(panel) {
 async function addSnapshotPlayer(gtc_instance, panel, create_l1_group) {
     panel.appendChild(
         create_l1_group(
-            [
-                'previous snapshot',
-                'next snapshot',
-                'previous (continuously)',
-                'next (continuously)',
-            ],
+            {
+                id: [
+                    'previous snapshot',
+                    'next snapshot',
+                    'previous (continuously)',
+                    'next (continuously)',
+                ],
+            },
             async function () {
                 let limit = this.innerText.endsWith('(continuously)')
                     ? Infinity
