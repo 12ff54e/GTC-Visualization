@@ -940,18 +940,37 @@ async function requestForCompare(path) {
             );
         }
     }
+
+    // add new breadcrumb
+    const last_breadcrumb = document.getElementById(
+        'folder-path-container'
+    ).lastElementChild;
+    last_breadcrumb.after(last_breadcrumb.cloneNode());
+    await populate_breadcrumb(
+        last_breadcrumb.nextElementSibling,
+        path.slice(1)
+    );
 }
 
 async function initialBreadcrumb() {
+    const breadcrumb = document.getElementById(
+        'folder-path-container'
+    ).firstElementChild;
+
+    await populate_breadcrumb(
+        breadcrumb,
+        breadcrumb.firstElementChild.innerText
+    );
+
+    breadcrumb.firstElementChild.remove();
+}
+
+async function populate_breadcrumb(container, path) {
     const res = await fetch('/fileTree');
     await propagateFetchError(res);
     const { file_tree } = await res.json();
-    const navigationBar = document.querySelector(
-        '#breadcrumb-container'
-    ).firstElementChild;
-    const [root, ...pathname] = navigationBar.innerText.split('/');
 
-    const pathSegments = [root, ...pathname].map(seg => {
+    const pathSegments = path.split('/').map(seg => {
         const span = document.createElement('span');
         span.classList.add('breadcrumb-item');
         const a = document.createElement('a');
@@ -960,9 +979,7 @@ async function initialBreadcrumb() {
         span.appendChild(a);
         return span;
     });
-    // navigationBar.innerText = root;
-    navigationBar.after(...pathSegments);
-    navigationBar.remove();
+    container.append(...pathSegments);
 
     // add drop down list
     const dropdown = document.createElement('div');
@@ -998,11 +1015,7 @@ async function initialBreadcrumb() {
     });
     // clear dropdown when clicked on other parts on the page
     document.addEventListener('click', event => {
-        if (
-            !nodeIs(event.target, elem =>
-                elem.classList.contains('breadcrumb-item')
-            )
-        ) {
+        if (!nodeIs(event.target, elem => elem === container)) {
             clearDropdown();
         }
     });

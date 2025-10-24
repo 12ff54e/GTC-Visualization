@@ -7,22 +7,25 @@
     --instance-color-3: rgb(235, 98, 53);
 }
 
-#breadcrumb-container {
-    font-size: large;
-    height: 1rem;
+#folder-path {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    align-items: center;
 }
-#breadcrumb-container {
+
+.breadcrumb {
+    font-size: large;
     color: gray;
 }
-#breadcrumb-container > span::after {
+.breadcrumb > span::after {
     /* path separator */
     content: ' \2BC8';
 }
-#breadcrumb-container > span + span::after {
+.breadcrumb > span + span::after {
     /* clickable segment (except first one) is bolder */
     font-weight: bolder;
 }
-#breadcrumb-container > span:last-child::after {
+.breadcrumb > span:last-child::after {
     /* No path separator after last segment */
     content: '';
 }

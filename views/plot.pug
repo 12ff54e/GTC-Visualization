@@ -10,8 +10,11 @@ html(lang="en")
         script(src="libs/fftw-js/bundle.js" defer) 
     body
         code#outputTag(style="display:none")= outputTag
-        #breadcrumb-container Current GTC output folder set to 
-            span= dir
+        #folder-path
+            span Current GTC output folder set to
+            #folder-path-container
+                #breadcrumb-container.breadcrumb
+                    span= dir
         #select-compare
             input#select-compare-goto(type="radio" name="select-compare-radio" checked)
             label(for="select-compare-goto") Go to selected folder
