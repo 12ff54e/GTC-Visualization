@@ -8,7 +8,14 @@ const particlePlotTypes = [
     'PDF_energy',
     'PDF_pitch',
 ];
-const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
+const fieldPlotTypes = [
+    'flux',
+    'spectrum',
+    'poloidal',
+    'quick_poloidal',
+    'psi',
+    'theta',
+];
 
 /**
  * Snapshot class containing all data from snap*******.out
@@ -145,6 +152,7 @@ class Snapshot extends PlotType {
                     figureContainer = figs;
                     break;
                 case 2: // field strength on poloidal plane
+                case 3:
                     let polData = this.fieldData['poloidalPlane'];
                     // add carpet
                     const carpet = {
@@ -173,18 +181,19 @@ class Snapshot extends PlotType {
                     fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on poloidal plane}$`;
                     fig.layout.height = 700;
                     figureContainer.push(fig);
-
-                    let fig2 = new PlotlyData();
-                    fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
-                    fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`;
-                    figureContainer.push(fig2);
+                    if (index == 2) {
+                        let fig2 = new PlotlyData();
+                        fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
+                        fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`;
+                        figureContainer.push(fig2);
+                    }
                     figureContainer.push({
                         polNum: this.poloidalGridPtNumber,
                         radNum: this.radialGridPtNumber,
                     });
                     break;
-                case 3:
-                case 4: // profile of field and rms
+                case 4:
+                case 5: // profile of field and rms
                     let field = this.fieldData['poloidalPlane'][cat];
                     // point value
                     let fig0 = new PlotlyData();
@@ -237,12 +246,19 @@ class Snapshot extends PlotType {
                                       Math.sqrt(v / this.poloidalGridPtNumber)
                                   )
                             : field
-                                  .reduce((acc, curr, idx) => {
-                                      acc[
-                                          idx % (this.poloidalGridPtNumber + 1)
-                                      ] += curr * curr;
-                                      return acc;
-                                  }, Array(this.poloidalGridPtNumber + 1).fill(0))
+                                  .reduce(
+                                      (acc, curr, idx) => {
+                                          acc[
+                                              idx %
+                                                  (this.poloidalGridPtNumber +
+                                                      1)
+                                          ] += curr * curr;
+                                          return acc;
+                                      },
+                                      Array(this.poloidalGridPtNumber + 1).fill(
+                                          0
+                                      )
+                                  )
                                   .map(v =>
                                       Math.sqrt(
                                           v / (this.radialGridPtNumber - 1)

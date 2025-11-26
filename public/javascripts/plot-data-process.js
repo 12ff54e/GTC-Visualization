@@ -156,7 +156,12 @@ export async function snapshotPoloidalPreview(figures) {
     });
 }
 
-export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
+export async function snapshotPoloidal(
+    figures,
+    statusBar,
+    safetyFactor,
+    quick
+) {
     const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
 
@@ -172,6 +177,10 @@ export async function snapshotPoloidal(figures, statusBar, safetyFactor) {
         diagFlux,
         diagFluxLineColor
     );
+
+    if (quick) {
+        return;
+    }
 
     // calculate spectrum profile on radial grids
 

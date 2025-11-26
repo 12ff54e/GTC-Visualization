@@ -715,10 +715,11 @@ async function getDataThenPlot(clean_beforehand = true) {
 }
 
 async function snapshotPreprocess(btn, figures) {
-    if (btn.id.endsWith('-spectrum')) {
+    if (btn.id.endsWith('spectrum')) {
         await snapshotSpectrum(figures);
-    } else if (btn.id.endsWith('-poloidal')) {
+    } else if (btn.id.endsWith('poloidal')) {
         const res = await requestPlotData('plotType/Equilibrium', true);
+        const quick = btn.id.endsWith('quick_poloidal');
         await (res.ok
             ? snapshotPoloidal(
                   figures,
@@ -732,10 +733,10 @@ async function snapshotPreprocess(btn, figures) {
                       ).json()
                   )
                       ?.at(0)
-                      ?.data?.at(0)
+                      ?.data?.at(0),
+                  quick
               )
-            : snapshotPoloidal(figures, getStatusBar()));
-        
+            : snapshotPoloidal(figures, getStatusBar(), quick));
     }
     GTCGlobal.current_snapshot_figure = btn;
 }
