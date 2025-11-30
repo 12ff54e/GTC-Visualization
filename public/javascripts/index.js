@@ -541,42 +541,45 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                 'next (continuously)',
             ],
             async function () {
-                let limit = this.innerText.endsWith('(continuously)')
-                    ? Infinity
-                    : 1;
+                let cont = this.innerText.endsWith('(continuously)');
+                const prev = this.innerText.startsWith('prev');
                 const stopper = ev => {
                     if (ev.key === 's') {
-                        limit = 0;
+                        cont = false;
                     }
                 };
                 window.GTCGlobal.snapshot_playing = true;
                 window.addEventListener('keypress', stopper);
-                for (let i = 0; i < limit; ++i) {
-                    let current_snapshot = GTCGlobal.current_snapshot;
-                    if (i > 0) {
-                        await new Promise(resolve => {
-                            setTimeout(resolve, 200);
-                        });
+
+                const delay = 300; // shortest possible frame inteval
+                // real frame interval might be larger due to network and/or render
+                let last_time = document.timeline.currentTime - delay;
+
+                const animate = async timestamp => {
+                    if (timestamp - last_time < delay) {
+                        requestAnimationFrame(animate);
+                        return;
                     }
-                    if (this.innerText.startsWith('prev')) {
+                    const current_snapshot = GTCGlobal.current_snapshot;
+                    if (prev) {
                         if (current_snapshot.previousElementSibling) {
                             GTCGlobal.current_snapshot =
                                 current_snapshot.previousElementSibling;
                         } else {
-                            if (i == 0) {
+                            if (!cont) {
                                 alert('No previous snapshot');
                             }
-                            break;
+                            cont = false;
                         }
                     } else {
                         if (current_snapshot.nextElementSibling) {
                             GTCGlobal.current_snapshot =
                                 current_snapshot.nextElementSibling;
                         } else {
-                            if (i == 0) {
+                            if (!cont) {
                                 alert('No next snapshot');
                             }
-                            break;
+                            cont = false;
                         }
                     }
                     await openPanel.call(GTCGlobal.current_snapshot, false);
@@ -590,9 +593,17 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                     GTCGlobal.current_snapshot.classList.add(
                         'snapshot-selected'
                     );
-                }
-                window.removeEventListener('keypress', stopper);
-                window.GTCGlobal.snapshot_playing = false;
+
+                    last_time = timestamp;
+                    if (cont) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // cleanup
+                        window.removeEventListener('keypress', stopper);
+                        window.GTCGlobal.snapshot_playing = false;
+                    }
+                };
+                requestAnimationFrame(animate);
             }
         )
     );
