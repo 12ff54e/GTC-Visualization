@@ -549,6 +549,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                         limit = 0;
                     }
                 };
+                window.GTCGlobal.snapshot_playing = true;
                 window.addEventListener('keypress', stopper);
                 for (let i = 0; i < limit; ++i) {
                     let current_snapshot = GTCGlobal.current_snapshot;
@@ -565,7 +566,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                             if (i == 0) {
                                 alert('No previous snapshot');
                             }
-                            return;
+                            break;
                         }
                     } else {
                         if (current_snapshot.nextElementSibling) {
@@ -575,13 +576,9 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                             if (i == 0) {
                                 alert('No next snapshot');
                             }
-                            return;
+                            break;
                         }
                     }
-                    current_snapshot.classList.remove('snapshot-selected');
-                    GTCGlobal.current_snapshot.classList.add(
-                        'snapshot-selected'
-                    );
                     await openPanel.call(GTCGlobal.current_snapshot, false);
                     if (GTCGlobal.current_snapshot_figure) {
                         await getDataThenPlot.call(
@@ -589,8 +586,13 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                             false
                         );
                     }
+                    current_snapshot.classList.remove('snapshot-selected');
+                    GTCGlobal.current_snapshot.classList.add(
+                        'snapshot-selected'
+                    );
                 }
                 window.removeEventListener('keypress', stopper);
+                window.GTCGlobal.snapshot_playing = false;
             }
         )
     );
@@ -658,7 +660,7 @@ async function getDataThenPlot(clean_beforehand = true) {
     const res = await fetch(
         `plot/data/${this.id}?dir=${
             document.querySelector('#outputTag').innerText
-        }`
+        }${window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : ''}`
     );
     await propagateFetchError(res);
     let figures = await res.json();
@@ -718,8 +720,18 @@ async function snapshotPreprocess(btn, figures) {
     if (btn.id.endsWith('spectrum')) {
         await snapshotSpectrum(figures);
     } else if (btn.id.endsWith('poloidal')) {
-        const res = await requestPlotData('plotType/Equilibrium', true);
         const quick = btn.id.endsWith('quick_poloidal');
+        const playing = window.GTCGlobal.snapshot_playing;
+        // quick: do not fft; playing: data scheme is different
+        if (playing) {
+            const fig = document.getElementById('figure-1');
+            const [z] = figures.splice(0, 1, {
+                data: fig.data,
+                layout: fig.layout,
+            });
+            figures[0].data[1].z = z;
+        }
+        const res = await requestPlotData('plotType/Equilibrium', true);
         await (res.ok
             ? snapshotPoloidal(
                   figures,
@@ -734,9 +746,10 @@ async function snapshotPreprocess(btn, figures) {
                   )
                       ?.at(0)
                       ?.data?.at(0),
-                  quick
+                  quick,
+                  playing
               )
-            : snapshotPoloidal(figures, getStatusBar(), quick));
+            : snapshotPoloidal(figures, getStatusBar(), quick, playing));
     }
     GTCGlobal.current_snapshot_figure = btn;
 }

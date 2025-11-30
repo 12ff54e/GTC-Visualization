@@ -4,7 +4,7 @@ const read_para = require('./read_para.js');
 
 /**
  * GTC output data parser class
- * 
+ *
  */
 class GTCOutput {
     /**
@@ -12,7 +12,7 @@ class GTCOutput {
      */
     constructor(dir) {
         this.dir = dir;
-        this.data = {}
+        this.data = {};
     }
 
     /**
@@ -27,7 +27,10 @@ class GTCOutput {
         if (this.particleTrackingExist === undefined) {
             try {
                 const dir = await fs.readdir(
-                    path.join(this.dir, this.constructor.index['Tracking'].fileName)
+                    path.join(
+                        this.dir,
+                        this.constructor.index['Tracking'].fileName
+                    )
                 );
                 this.particleTrackingExist = dir.length !== 0;
             } catch (err) {
@@ -38,7 +41,7 @@ class GTCOutput {
 
     /**
      * get snapshot file name
-     * 
+     *
      * it is also possible to get snapshot file name from gtc.out,
      *  but one must consider the case when the gtc task still running
      */
@@ -72,44 +75,46 @@ class GTCOutput {
             await this.readData('Equilibrium');
         }
         let { classConstructor, fileName } = GTCOutput.index[type];
-        this.data[type] =
-            await classConstructor.readDataFile(
-                path.join(this.dir, fileName ? fileName : this.snapshotFileName),
-                this.parameters);
+        this.data[type] = await classConstructor.readDataFile(
+            path.join(this.dir, fileName ? fileName : this.snapshotFileName),
+            this.parameters
+        );
     }
 
-    getPlotData(type, id) {
+    getPlotData(type, id, query) {
         if (type === 'Tracking') {
-            return this.data[type].plotData(id, this.data['Equilibrium']);
+            return this.data[type].plotData(
+                id,
+                this.data['Equilibrium'],
+                query
+            );
         } else {
-            return this.data[type].plotData(id, this.parameters);
+            return this.data[type].plotData(id, this.parameters, query);
         }
     }
 }
 
 GTCOutput.index = {
-    'History': {
+    History: {
         classConstructor: require('./history.js'),
-        fileName: 'history.out'
+        fileName: 'history.out',
     },
-    'Snapshot': {
+    Snapshot: {
         classConstructor: require('./snapshot.js'),
-        fileName: ''
+        fileName: '',
     },
-    'Equilibrium': {
+    Equilibrium: {
         classConstructor: require('./equilibrium.js'),
-        fileName: 'equilibrium.out'
+        fileName: 'equilibrium.out',
     },
-    'RadialTime': {
+    RadialTime: {
         classConstructor: require('./radialTime.js'),
-        fileName: 'data1d.out'
+        fileName: 'data1d.out',
     },
-    'Tracking': {
+    Tracking: {
         classConstructor: require('./tracking.js'),
-        fileName: 'trackp_dir'
-    }
-}
-
-
+        fileName: 'trackp_dir',
+    },
+};
 
 module.exports = GTCOutput;

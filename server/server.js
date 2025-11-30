@@ -218,7 +218,7 @@ app.get('/plot/data/:typeid', (req, res) => {
     const then = performance.now();
 
     try {
-        res.json(req.body.gtcOutput.getPlotData(plotType, plotId));
+        res.json(req.body.gtcOutput.getPlotData(plotType, plotId, req.query));
         console.log(
             `${plotId} using ${(performance.now() - then).toFixed(2)}ms.`
         );

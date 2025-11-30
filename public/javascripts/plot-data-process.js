@@ -160,7 +160,8 @@ export async function snapshotPoloidal(
     figures,
     statusBar,
     safetyFactor,
-    quick
+    quick,
+    playing
 ) {
     const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
@@ -170,13 +171,15 @@ export async function snapshotPoloidal(
     const diagFlux =
         GTCGlobal.basicParameters.diag_flux ?? GTCGlobal.basicParameters.iflux;
 
-    drawPoloidalDataPlotly(
-        figures[0],
-        radNum,
-        polNum,
-        diagFlux,
-        diagFluxLineColor
-    );
+    if (!playing) {
+        drawPoloidalDataPlotly(
+            figures[0],
+            radNum,
+            polNum,
+            diagFlux,
+            diagFluxLineColor
+        );
+    }
 
     if (quick) {
         return;
