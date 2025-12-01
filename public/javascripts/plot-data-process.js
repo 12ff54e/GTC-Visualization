@@ -300,60 +300,73 @@ export async function snapshotPoloidal(
         Math.min(...min_values)
     );
 
-    // add rational surface
-
-    const rational_surface = safetyFactor
-        ? getRationalSurface(
-              safetyFactor,
-              window.GTCGlobal.basicParameters.nmodes,
-              window.GTCGlobal.basicParameters.mmodes
-          )
-        : [];
     const RS_POINT_NUM = 20;
-    spectrumFigureData.unshift(
-        ...rational_surface.map(({ n, m, r }) => {
-            const pos = window.GTCGlobal.basicParameters.mpsi * r;
-            return {
-                name: `${n},${m} surface`,
-                x: Array(RS_POINT_NUM).fill(pos),
-                y: Array.from({ length: RS_POINT_NUM }).map(
-                    (_, i) =>
-                        limits[0] +
-                        ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
-                ),
-                mode: 'lines',
-                showlegend: false,
-                hoverinfo: 'name',
-                line: {
-                    color: diagFluxLineColor,
-                    dash: 'dash',
-                    width: 1,
-                },
-            };
-        })
-    );
+    if (playing) {
+        for (let i = 0; i < GTCGlobal.rational_surface_count + 1; i++) {
+            const vl = figures[1].data[i];
+            if (i == 0) {
+                vl.y = limits;
+                continue;
+            }
+            vl.y = Array.from({ length: RS_POINT_NUM }).map(
+                (_, i) =>
+                    limits[0] +
+                    ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
+            );
+        }
+    } else {
+        // add rational surface
+        const rational_surface = safetyFactor
+            ? getRationalSurface(
+                  safetyFactor,
+                  window.GTCGlobal.basicParameters.nmodes,
+                  window.GTCGlobal.basicParameters.mmodes
+              )
+            : [];
+        GTCGlobal.rational_surface_count = rational_surface.length;
+        spectrumFigureData.unshift(
+            ...rational_surface.map(({ n, m, r }) => {
+                const pos = window.GTCGlobal.basicParameters.mpsi * r;
+                return {
+                    name: `${n},${m} surface`,
+                    x: Array(RS_POINT_NUM).fill(pos),
+                    y: Array.from({ length: RS_POINT_NUM }).map(
+                        (_, i) =>
+                            limits[0] +
+                            ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
+                    ),
+                    mode: 'lines',
+                    showlegend: false,
+                    hoverinfo: 'name',
+                    line: {
+                        color: diagFluxLineColor,
+                        dash: 'dash',
+                        width: 1,
+                    },
+                };
+            })
+        );
+        // add diag flux indicator
 
-    // add diag flux indicator
-
-    spectrumFigureData.unshift({
-        name: 'Diagnostic Flux',
-        x: [
-            GTCGlobal.basicParameters.diag_flux,
-            GTCGlobal.basicParameters.diag_flux,
-        ],
-        y: limits,
-        mode: 'lines',
-        showlegend: true,
-        hoverinfo: 'none',
-        line: {
-            color: diagFluxLineColor,
-            width: 3,
-        },
-    });
-
+        spectrumFigureData.unshift({
+            name: 'Diagnostic Flux',
+            x: [
+                GTCGlobal.basicParameters.diag_flux,
+                GTCGlobal.basicParameters.diag_flux,
+            ],
+            y: limits,
+            mode: 'lines',
+            showlegend: true,
+            hoverinfo: 'none',
+            line: {
+                color: diagFluxLineColor,
+                width: 3,
+            },
+        });
+    }
     // add control buttons
     // traces: diag flux | rational surfaces | selected m modes (real, imag, modulus) | some largest m modes
-    const pre_len = 1 + rational_surface.length;
+    const pre_len = 1 + GTCGlobal.rational_surface_count;
     const step3_pick = i =>
         Array.from(
             spectrumFigureData,
@@ -362,7 +375,15 @@ export async function snapshotPoloidal(
                 ((ind - pre_len) % 3 == i &&
                     ind < pre_len + 3 * selectedPoloidalModeNum.length)
         );
-    figures[1].data = spectrumFigureData;
+    if (playing) {
+        figures[1].data.splice(
+            1 + GTCGlobal.rational_surface_count,
+            Infinity,
+            ...spectrumFigureData
+        );
+    } else {
+        figures[1].data = spectrumFigureData;
+    }
     figures[1].layout.updatemenus = [
         {
             x: 0.05,
@@ -397,10 +418,11 @@ export async function snapshotPoloidal(
                             visible: Array.from(
                                 spectrumFigureData,
                                 (_, ind) =>
-                                    ind < 1 + rational_surface.length ||
+                                    ind <
+                                        1 + GTCGlobal.rational_surface_count ||
                                     ind >=
                                         1 +
-                                            rational_surface.length +
+                                            GTCGlobal.rational_surface_count +
                                             3 * selectedPoloidalModeNum.length
                             ),
                         },

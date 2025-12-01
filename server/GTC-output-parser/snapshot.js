@@ -153,8 +153,9 @@ class Snapshot extends PlotType {
                 case 2: // field strength on poloidal plane
                 case 3:
                     const polData = this.fieldData['poloidalPlane'];
+                    const playing = query.snapshot_playing !== undefined;
                     // send z data only when playing snapshots
-                    if (query.snapshot_playing !== undefined) {
+                    if (playing) {
                         figureContainer = [polData[cat]];
                     } else {
                         // add carpet
@@ -185,7 +186,7 @@ class Snapshot extends PlotType {
                         fig.layout.height = 700;
                         figureContainer.push(fig);
                     }
-                    if (index == 2) {
+                    if (index == 2 && !playing) {
                         let fig2 = new PlotlyData();
                         fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
                         fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`;

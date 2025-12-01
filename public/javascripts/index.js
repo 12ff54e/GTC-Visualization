@@ -734,33 +734,46 @@ async function snapshotPreprocess(btn, figures) {
         const quick = btn.id.endsWith('quick_poloidal');
         const playing = window.GTCGlobal.snapshot_playing;
         // quick: do not fft; playing: data scheme is different
+        let safety_factor = null;
         if (playing) {
-            const fig = document.getElementById('figure-1');
-            const [z] = figures.splice(0, 1, {
-                data: fig.data,
-                layout: fig.layout,
-            });
+            const fig_1 = document.getElementById('figure-1');
+            const fig_2 = document.getElementById('figure-2');
+            const [z] = figures.splice(
+                0,
+                1,
+                {
+                    data: fig_1.data,
+                    layout: fig_1.layout,
+                },
+                {
+                    data: fig_2.data,
+                    layout: fig_2.layout,
+                }
+            );
             figures[0].data[1].z = z;
-        }
-        const res = await requestPlotData('plotType/Equilibrium', true);
-        await (res.ok
-            ? snapshotPoloidal(
-                  figures,
-                  getStatusBar(),
-                  (
+        } else {
+            const res = await requestPlotData('plotType/Equilibrium', true);
+            safety_factor = res.ok
+                ? (
                       await (
                           await requestPlotData(
                               'data/Equilibrium-1D-rg_n-q',
                               true
                           )
-                      ).json()
+                      )?.json()
                   )
+
                       ?.at(0)
-                      ?.data?.at(0),
-                  quick,
-                  playing
-              )
-            : snapshotPoloidal(figures, getStatusBar(), quick, playing));
+                      ?.data?.at(0)
+                : null;
+        }
+        await snapshotPoloidal(
+            figures,
+            getStatusBar(),
+            safety_factor,
+            quick,
+            playing
+        );
     }
     GTCGlobal.current_snapshot_figure = btn;
 }
