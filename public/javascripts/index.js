@@ -84,11 +84,11 @@ window.addEventListener('load', () => {
     // register plot type tabs
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
         swc.visited = false;
+        const div = document.getElementById('files');
         if (swc.id === 'Snapshot') {
             swc.addEventListener('change', e => {
                 // expand snapshot file list
-                let div = document.getElementById('files');
-                div.style.height = `${div.childElementCount * 1.3 + 0.2}rem`;
+                div.classList.add('active');
                 cleanPlot();
                 cleanPanel();
             });
@@ -97,8 +97,7 @@ window.addEventListener('load', () => {
                 'change',
                 wrap(async e => {
                     // collapse snapshot file list
-                    const div = document.getElementById('files');
-                    div.style.height = '';
+                    div.classList.remove('active');
                     for (const btn of div.children) {
                         btn.classList.remove('snapshot-selected');
                     }
@@ -527,6 +526,7 @@ function addHistoryRecal(panel) {
     );
 
     div.classList.add('dropdown');
+    div.style['overflow'] = 'hidden';
     div.append(btn);
     panel.prepend(div);
 }
@@ -645,7 +645,7 @@ function cleanPanel() {
 
     const recalculate = panel.querySelector('#History-panel').firstElementChild;
     if (recalculate) {
-        recalculate.style.height = '0rem';
+        recalculate.classList.remove('active');
     }
 
     const summary = document.querySelector('#container');
@@ -680,13 +680,13 @@ async function getDataThenPlot(clean_beforehand = true) {
     const recalculate =
         document.getElementById('History-panel').firstElementChild;
     if (this.id.startsWith('History')) {
-        recalculate.style.height = '0rem';
+        recalculate.classList.remove('active');
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
         window.GTCGlobal.hist_mode_range.frequency = undefined;
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
-        recalculate.style.height = '3.5rem';
+        recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);
     } else if (this.id.startsWith('Tracking')) {
