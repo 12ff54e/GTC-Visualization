@@ -84,11 +84,11 @@ window.addEventListener('load', () => {
     // register plot type tabs
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
         swc.visited = false;
+        const div = document.getElementById('files');
         if (swc.id === 'Snapshot') {
             swc.addEventListener('change', e => {
                 // expand snapshot file list
-                let div = document.getElementById('files');
-                div.style.height = `${div.childElementCount * 1.3 + 0.2}rem`;
+                div.classList.add('active');
                 cleanPlot();
                 cleanPanel();
             });
@@ -97,8 +97,7 @@ window.addEventListener('load', () => {
                 'change',
                 wrap(async e => {
                     // collapse snapshot file list
-                    const div = document.getElementById('files');
-                    div.style.height = '';
+                    div.classList.remove('active');
                     for (const btn of div.children) {
                         btn.classList.remove('snapshot-selected');
                     }
@@ -527,6 +526,7 @@ function addHistoryRecal(panel) {
     );
 
     div.classList.add('dropdown');
+    div.style['overflow'] = 'hidden';
     div.append(btn);
     panel.prepend(div);
 }
@@ -541,47 +541,47 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                 'next (continuously)',
             ],
             async function () {
-                let limit = this.innerText.endsWith('(continuously)')
-                    ? Infinity
-                    : 1;
+                let cont = this.innerText.endsWith('(continuously)');
+                const prev = this.innerText.startsWith('prev');
                 const stopper = ev => {
                     if (ev.key === 's') {
-                        limit = 0;
+                        cont = false;
                     }
                 };
+                window.GTCGlobal.snapshot_playing = true;
                 window.addEventListener('keypress', stopper);
-                for (let i = 0; i < limit; ++i) {
-                    let current_snapshot = GTCGlobal.current_snapshot;
-                    if (i > 0) {
-                        await new Promise(resolve => {
-                            setTimeout(resolve, 200);
-                        });
+
+                const delay = 300; // shortest possible frame inteval
+                // real frame interval might be larger due to network and/or render
+                let last_time = document.timeline.currentTime - delay;
+
+                const animate = async timestamp => {
+                    if (timestamp - last_time < delay) {
+                        requestAnimationFrame(animate);
+                        return;
                     }
-                    if (this.innerText.startsWith('prev')) {
+                    const current_snapshot = GTCGlobal.current_snapshot;
+                    if (prev) {
                         if (current_snapshot.previousElementSibling) {
                             GTCGlobal.current_snapshot =
                                 current_snapshot.previousElementSibling;
                         } else {
-                            if (i == 0) {
+                            if (!cont) {
                                 alert('No previous snapshot');
                             }
-                            return;
+                            cont = false;
                         }
                     } else {
                         if (current_snapshot.nextElementSibling) {
                             GTCGlobal.current_snapshot =
                                 current_snapshot.nextElementSibling;
                         } else {
-                            if (i == 0) {
+                            if (!cont) {
                                 alert('No next snapshot');
                             }
-                            return;
+                            cont = false;
                         }
                     }
-                    current_snapshot.classList.remove('snapshot-selected');
-                    GTCGlobal.current_snapshot.classList.add(
-                        'snapshot-selected'
-                    );
                     await openPanel.call(GTCGlobal.current_snapshot, false);
                     if (GTCGlobal.current_snapshot_figure) {
                         await getDataThenPlot.call(
@@ -589,8 +589,21 @@ async function addSnapshotPlayer(panel, create_l1_group) {
                             false
                         );
                     }
-                }
-                window.removeEventListener('keypress', stopper);
+                    current_snapshot.classList.remove('snapshot-selected');
+                    GTCGlobal.current_snapshot.classList.add(
+                        'snapshot-selected'
+                    );
+
+                    last_time = timestamp;
+                    if (cont) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // cleanup
+                        window.removeEventListener('keypress', stopper);
+                        window.GTCGlobal.snapshot_playing = false;
+                    }
+                };
+                requestAnimationFrame(animate);
             }
         )
     );
@@ -632,7 +645,7 @@ function cleanPanel() {
 
     const recalculate = panel.querySelector('#History-panel').firstElementChild;
     if (recalculate) {
-        recalculate.style.height = '0rem';
+        recalculate.classList.remove('active');
     }
 
     const summary = document.querySelector('#container');
@@ -658,7 +671,7 @@ async function getDataThenPlot(clean_beforehand = true) {
     const res = await fetch(
         `plot/data/${this.id}?dir=${
             document.querySelector('#outputTag').innerText
-        }`
+        }${window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : ''}`
     );
     await propagateFetchError(res);
     let figures = await res.json();
@@ -667,13 +680,13 @@ async function getDataThenPlot(clean_beforehand = true) {
     const recalculate =
         document.getElementById('History-panel').firstElementChild;
     if (this.id.startsWith('History')) {
-        recalculate.style.height = '0rem';
+        recalculate.classList.remove('active');
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
         window.GTCGlobal.hist_mode_range.frequency = undefined;
         window.GTCGlobal.hist_mode_range.growthRate = undefined;
-        recalculate.style.height = '3.5rem';
+        recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);
     } else if (this.id.startsWith('Tracking')) {
@@ -715,27 +728,52 @@ async function getDataThenPlot(clean_beforehand = true) {
 }
 
 async function snapshotPreprocess(btn, figures) {
-    if (btn.id.endsWith('-spectrum')) {
+    if (btn.id.endsWith('spectrum')) {
         await snapshotSpectrum(figures);
-    } else if (btn.id.endsWith('-poloidal')) {
-        const res = await requestPlotData('plotType/Equilibrium', true);
-        await (res.ok
-            ? snapshotPoloidal(
-                  figures,
-                  getStatusBar(),
-                  (
+    } else if (btn.id.endsWith('poloidal')) {
+        const quick = btn.id.endsWith('quick_poloidal');
+        const playing = window.GTCGlobal.snapshot_playing;
+        // quick: do not fft; playing: data scheme is different
+        let safety_factor = null;
+        if (playing) {
+            const fig_1 = document.getElementById('figure-1');
+            const fig_2 = document.getElementById('figure-2');
+            const [z] = figures.splice(
+                0,
+                1,
+                {
+                    data: fig_1.data,
+                    layout: fig_1.layout,
+                },
+                {
+                    data: fig_2.data,
+                    layout: fig_2.layout,
+                }
+            );
+            figures[0].data[1].z = z;
+        } else {
+            const res = await requestPlotData('plotType/Equilibrium', true);
+            safety_factor = res.ok
+                ? (
                       await (
                           await requestPlotData(
                               'data/Equilibrium-1D-rg_n-q',
                               true
                           )
-                      ).json()
+                      )?.json()
                   )
+
                       ?.at(0)
                       ?.data?.at(0)
-              )
-            : snapshotPoloidal(figures, getStatusBar()));
-        
+                : null;
+        }
+        await snapshotPoloidal(
+            figures,
+            getStatusBar(),
+            safety_factor,
+            quick,
+            playing
+        );
     }
     GTCGlobal.current_snapshot_figure = btn;
 }

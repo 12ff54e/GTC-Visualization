@@ -8,3 +8,6 @@ public/javascripts/plotly-custom.min.js
 public/javascripts/plotly-custom.min.js.LICENSE.txt
 
 *.tar.gz
+
+*.swp
+*.swo

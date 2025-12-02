@@ -8,7 +8,14 @@ const particlePlotTypes = [
     'PDF_energy',
     'PDF_pitch',
 ];
-const fieldPlotTypes = ['flux', 'spectrum', 'poloidal', 'psi', 'theta'];
+const fieldPlotTypes = [
+    'flux',
+    'spectrum',
+    'poloidal',
+    'quick_poloidal',
+    'psi',
+    'theta',
+];
 
 /**
  * Snapshot class containing all data from snap*******.out
@@ -105,13 +112,12 @@ class Snapshot extends PlotType {
      *
      * @returns {Array<PlotlyData>}
      */
-    plotData(id) {
+    plotData(id, _, query) {
         // cat is the category of the plot, could be particle name or field name
         // type is the type of the plot, one of strings in particlePlotType or fieldPlotType
         let [cat, type] = id.split('-');
         let figureContainer = new Array();
         let fig = new PlotlyData();
-
         if (PlotType.fieldID.includes(cat)) {
             // field
             let index = fieldPlotTypes.indexOf(type);
@@ -145,46 +151,54 @@ class Snapshot extends PlotType {
                     figureContainer = figs;
                     break;
                 case 2: // field strength on poloidal plane
-                    let polData = this.fieldData['poloidalPlane'];
-                    // add carpet
-                    const carpet = {
-                        x: polData['x'],
-                        y: polData['y'],
-                        type: 'carpet',
-                    };
-                    // add contour
-                    const field_contour = {
-                        z: polData[cat],
-                        type: 'contourcarpet',
-                        contours: {
-                            showlines: false,
-                        },
-                        colorbar: {
-                            tickformat: '.4g',
-                            y: 0,
-                            yanchor: 'bottom',
-                            len: 0.85,
-                        },
-                    };
-                    fig.data.push(carpet, field_contour);
-                    fig.axisEqual();
-                    fig.hideCarpetGrid();
-                    fig.axesLabel = { x: '$\\text{R}$', y: '$\\text{Z}$' };
-                    fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on poloidal plane}$`;
-                    fig.layout.height = 700;
-                    figureContainer.push(fig);
-
-                    let fig2 = new PlotlyData();
-                    fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
-                    fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`;
-                    figureContainer.push(fig2);
+                case 3:
+                    const polData = this.fieldData['poloidalPlane'];
+                    const playing = query.snapshot_playing !== undefined;
+                    // send z data only when playing snapshots
+                    if (playing) {
+                        figureContainer = [polData[cat]];
+                    } else {
+                        // add carpet
+                        const carpet = {
+                            x: polData['x'],
+                            y: polData['y'],
+                            type: 'carpet',
+                        };
+                        // add contour
+                        const field_contour = {
+                            z: polData[cat],
+                            type: 'contourcarpet',
+                            contours: {
+                                showlines: false,
+                            },
+                            colorbar: {
+                                tickformat: '.4g',
+                                y: 0,
+                                yanchor: 'bottom',
+                                len: 0.85,
+                            },
+                        };
+                        fig.data.push(carpet, field_contour);
+                        fig.axisEqual();
+                        fig.hideCarpetGrid();
+                        fig.axesLabel = { x: '$\\text{R}$', y: '$\\text{Z}$' };
+                        fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on poloidal plane}$`;
+                        fig.layout.height = 700;
+                        figureContainer.push(fig);
+                    }
+                    if (index == 2 && !playing) {
+                        let fig2 = new PlotlyData();
+                        fig2.axesLabel = { x: '$\\text{mpsi}$', y: '' };
+                        fig2.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ mode profile}$`;
+                        figureContainer.push(fig2);
+                    }
                     figureContainer.push({
                         polNum: this.poloidalGridPtNumber,
                         radNum: this.radialGridPtNumber,
                     });
                     break;
-                case 3:
-                case 4: // profile of field and rms
+                case 4:
+                case 5: // profile of field and rms
                     let field = this.fieldData['poloidalPlane'][cat];
                     // point value
                     let fig0 = new PlotlyData();
@@ -237,12 +251,19 @@ class Snapshot extends PlotType {
                                       Math.sqrt(v / this.poloidalGridPtNumber)
                                   )
                             : field
-                                  .reduce((acc, curr, idx) => {
-                                      acc[
-                                          idx % (this.poloidalGridPtNumber + 1)
-                                      ] += curr * curr;
-                                      return acc;
-                                  }, Array(this.poloidalGridPtNumber + 1).fill(0))
+                                  .reduce(
+                                      (acc, curr, idx) => {
+                                          acc[
+                                              idx %
+                                                  (this.poloidalGridPtNumber +
+                                                      1)
+                                          ] += curr * curr;
+                                          return acc;
+                                      },
+                                      Array(this.poloidalGridPtNumber + 1).fill(
+                                          0
+                                      )
+                                  )
                                   .map(v =>
                                       Math.sqrt(
                                           v / (this.radialGridPtNumber - 1)

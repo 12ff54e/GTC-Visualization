@@ -192,8 +192,8 @@ p {
     /* for horizontal center alignment*/
     margin: 0 auto;
     /* for vertical center alignment*/
-    height: 100px;
-    line-height: 100px;
+    height: 80px;
+    line-height: 80px;
     border: outset;
     border-radius: 10px;
 }
@@ -270,9 +270,13 @@ div header {
 }
 
 .dropdown {
-    height: 0rem;
-    overflow: hidden;
+    max-height: 0px;
+    overflow: auto;
     transition: all 0.35s;
+}
+
+.dropdown.active {
+    max-height: 400px;
 }
 
 .tabs-l1 > .dropdown {
