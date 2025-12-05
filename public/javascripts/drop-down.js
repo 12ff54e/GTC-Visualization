@@ -60,31 +60,16 @@ window.addEventListener(
     )
 );
 
-function calcListHeight(ul) {
-    return ul.classList.contains('active_list')
-        ? Array.from(ul.children).reduce((sum, curr) => {
-              return (
-                  sum +
-                  (curr.classList.contains('tip')
-                      ? 1
-                      : 1 + calcListHeight(curr.lastElementChild))
-              );
-          }, 0)
-        : 0;
-}
-
-function setHeight(elem, height) {
+// recursively set height of all ancestor elements, ends at outermost ul
+function setHeight(elem, hight) {
     if (elem.localName === 'ul') {
-        const prevHeight = elem.style.height.split(/[a-zA-Z]/, 1)[0];
-        if (height < 0 && prevHeight.length == 0) {
-            return;
-        }
+        const prev_height = elem.style.height.split(/[a-zA-Z]/, 1)[0];
         elem.style.height = `${
-            height + (prevHeight ? parseFloat(prevHeight) : 0)
-        }em`;
-        setHeight(elem.parentElement, height);
+            hight + (prev_height ? parseFloat(prev_height) : 0)
+        }px`;
+        setHeight(elem.parentElement, hight);
     } else if (elem.localName === 'li') {
-        setHeight(elem.parentElement, height);
+        setHeight(elem.parentElement, hight);
     }
 }
 
@@ -100,14 +85,10 @@ function toggleList(btn, tag_suffix = '', max_depth = -1) {
     const contentUL = getButtonContent(btn, tag_suffix, max_depth);
     contentUL.classList.toggle('active_list');
     if (contentUL.classList.contains('active_list')) {
-        setHeight(contentUL, 1.3 * calcListHeight(contentUL));
+        setHeight(contentUL, contentUL.scrollHeight);
         btn.innerText = '-';
     } else {
-        setHeight(
-            contentUL.parentElement,
-            -parseFloat(contentUL.style.height.split(/[a-zA-Z]/, 1)[0])
-        );
-        contentUL.style.height = '';
+        setHeight(contentUL, -contentUL.scrollHeight);
         btn.innerText = '+';
     }
 }
@@ -306,7 +287,7 @@ function populate_recent(file_tree) {
         generateListEntry(recent_entry_virtual_folder, '#recent', 1)
     );
     recent_ul.classList.add('active_list');
-    recent_ul.style.height = `${1.3 * calcListHeight(recent_ul)}em`;
+    recent_ul.style.height = `${recent_ul.scrollHeight}px`;
 }
 
 function setup_server_comm_btns() {
@@ -365,7 +346,7 @@ function bind_file_tree(file_tree) {
 
     // Set outer ul height
     outer_ul.classList.add('active_list');
-    outer_ul.style.height = `${1.3 * calcListHeight(outer_ul)}em`;
+    outer_ul.style.height = `${outer_ul.scrollHeight}px`;
 }
 
 function show_banner(server_uptime, last_scan_time) {
