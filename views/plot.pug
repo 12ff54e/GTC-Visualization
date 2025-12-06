@@ -7,10 +7,12 @@ html(lang="en")
         script(src="javascripts/plotly-custom.min.js" defer)
         script(type="module" src="javascripts/index.js" defer)
         script(id="MathJax-script" src="libs/mathjax/tex-svg.js" defer)
-        script(src="libs/fftw-js/bundle.js" defer) 
+        script(src="libs/fftw-js/bundle.js" defer)
     body
-        code(id='outputTag' style="display:none")= outputTag
-        div(id='breadcrumb-container') Current GTC output folder set to 
+        code#output-tag.secret-corner= output_tag
+        code#path-prefix.secret-corner= path_prefix
+        div(id='breadcrumb-container') Current GTC output folder set to
+            button#copy-path.material-symbols-outlined.copy-content content_copy
             span= dir
         p(id='status')
         form(id='download-output')
@@ -18,7 +20,7 @@ html(lang="en")
                 img(src="loading.gif", alt="loading")
             input(type="submit" id="download-all" value="Download all files")
             button Expand/Collapse file list
-            select(name="file-list" size=fileList.length multiple) 
+            select(name="file-list" size=fileList.length multiple)
                 each file in fileList
                     option(value=file)= file
             input(type="submit" id="download-part" value="Download selected file(s)")

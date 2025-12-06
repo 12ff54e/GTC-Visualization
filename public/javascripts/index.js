@@ -133,7 +133,7 @@ window.addEventListener('load', () => {
         const { file_tree } = await res.json();
         const navigationBar = document.querySelector(
             '#breadcrumb-container'
-        ).firstElementChild;
+        ).lastElementChild;
         const [root, ...pathname] = navigationBar.innerText.split('/');
 
         const constructPath = entry => {
@@ -252,6 +252,28 @@ window.addEventListener('load', () => {
             }
         });
     })();
+
+    // button for copy path
+    document.getElementById('copy-path').addEventListener(
+        'click',
+        wrap(async ev => {
+            if (!navigator.clipboard) {
+                return;
+            }
+            await navigator.clipboard.writeText(
+                document.getElementById('path-prefix').innerText +
+                    document.getElementById('output-tag').innerText
+            );
+            const btn = ev.target;
+            const icon = btn.innerText;
+            btn.innerText = 'check';
+            btn.disabled = true;
+            setTimeout(() => {
+                btn.innerText = icon;
+                btn.disabled = false;
+            }, 500);
+        })
+    );
 });
 
 window.addEventListener('error', () => {
@@ -288,7 +310,7 @@ function addDownloadFunction() {
                 const loading = downloadForm.querySelector('#download-overlay');
                 loading.style.visibility = 'initial';
                 const url = `/plot/data/download?dir=${
-                    document.querySelector('#outputTag').innerText
+                    document.querySelector('#output-tag').innerText
                 }${e.target.id.endsWith('all') ? '&all' : ''}`;
 
                 const data = new URLSearchParams();
@@ -345,7 +367,7 @@ async function getBasicParameters() {
     if (!window.GTCGlobal.basicParameters) {
         const res = await fetch(
             `plot/data/basicParameters?dir=${
-                document.querySelector('#outputTag').innerText
+                document.querySelector('#output-tag').innerText
             }`
         );
         await propagateFetchError(res);
@@ -447,7 +469,7 @@ async function openPanel(clean_beforehand = true) {
                         ).style.display = 'initial';
                         const res = await fetch(
                             `plot/data/${btn.id}?dir=${
-                                document.querySelector('#outputTag').innerText
+                                document.querySelector('#output-tag').innerText
                             }`
                         );
                         await propagateFetchError(res);
@@ -612,7 +634,7 @@ async function addSnapshotPlayer(panel, create_l1_group) {
 async function requestPlotData(name, optional = false) {
     // inform the server about which .out file should be parsed
     let res = await fetch(
-        `plot/${name}?dir=${document.querySelector('#outputTag').innerText}`
+        `plot/${name}?dir=${document.querySelector('#output-tag').innerText}`
     );
     try {
         await propagateFetchError(res);
@@ -670,7 +692,7 @@ async function getDataThenPlot(clean_beforehand = true) {
 
     const res = await fetch(
         `plot/data/${this.id}?dir=${
-            document.querySelector('#outputTag').innerText
+            document.querySelector('#output-tag').innerText
         }${window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : ''}`
     );
     await propagateFetchError(res);

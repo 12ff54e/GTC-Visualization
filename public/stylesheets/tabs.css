@@ -1,3 +1,23 @@
+@font-face {
+    font-family: 'Material Symbols Outlined';
+    font-style: normal;
+    src: url(/fonts/Material-Symbol-Outlined.woff2) format('woff2');
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 24px; /* Preferred icon size */
+    display: inline-block;
+    line-height: 1;
+    text-transform: none;
+    letter-spacing: normal;
+    word-wrap: normal;
+    white-space: nowrap;
+    direction: ltr;
+}
+
 :root {
     --preview-bg: azure;
 }
@@ -5,26 +25,25 @@
 #breadcrumb-container {
     font-size: large;
     height: 1rem;
-}
-#breadcrumb-container {
     color: gray;
+
+    display: flex;
+    align-items: center;
 }
-#breadcrumb-container > span::after {
+#breadcrumb-container > span {
+    margin-left: 0.2em;
+}
+#breadcrumb-container > span.breadcrumb-item::after {
     /* path separator */
     content: ' \2BC8';
 }
-#breadcrumb-container > span + span::after {
-    /* clickable segment (except first one) is bolder */
-    font-weight: bolder;
-}
-#breadcrumb-container > span:last-child::after {
+#breadcrumb-container > span.breadcrumb-item:last-child::after {
     /* No path separator after last segment */
     content: '';
 }
 .breadcrumb-item {
     cursor: pointer;
     position: relative;
-    margin-left: 0.2em;
 }
 .breadcrumb-item:hover {
     color: black;
@@ -96,6 +115,15 @@
     position: relative;
     visibility: initial;
     display: block;
+}
+
+.copy-content {
+    border: none;
+    color: black;
+    background-color: transparent;
+}
+.copy-content:hover {
+    background-color: rgba(73, 73, 228, 0.267);
 }
 
 p {
@@ -440,4 +468,8 @@ input.eq-1d-y:checked + label {
     content: '(peek)';
     color: red;
     font-weight: bold;
+}
+
+.secret-corner {
+    display: none;
 }

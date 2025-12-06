@@ -14,9 +14,10 @@ const { tmpdir } = require('os');
 const { unlink, readdir } = require('fs/promises');
 
 const app = express();
-const port = process.env.PORT || 3000;
-const processLimit = process.env.LIMIT || 50;
+const port = Number(process.env.PORT || 3000);
+const processLimit = Number(process.env.LIMIT || 50);
 const host_dir = process.env.HOST_DIR || require('os').homedir();
+const show_path = process.env.SHOW_PATH == 'true';
 const SCAN_PERIOD = 3600; // scan host_dir every hour
 
 validateInputSchema().catch(err => {
@@ -102,7 +103,8 @@ app.post(
         const plotTypes = [...Object.keys(GTCOutput.index), 'Summary'];
         res.send(
             pug.renderFile(pugView('plot'), {
-                outputTag: req.body.gtc_output,
+                output_tag: req.body.gtc_output,
+                path_prefix: show_path ? path.dirname(host_dir) : '',
                 dir: path
                     .relative(path.dirname(host_dir), GTC_outputDir)
                     .split(path.sep)

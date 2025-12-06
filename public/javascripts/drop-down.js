@@ -245,6 +245,7 @@ function getRecent(file_tree) {
         }
     };
 
+    // DFS
     const folder_stack = [[file_tree, 0]];
     while (folder_stack.length > 0) {
         const [current_folder, idx] = folder_stack.at(-1);
@@ -255,10 +256,12 @@ function getRecent(file_tree) {
                 continue;
             }
             if (entry.mTimeMs) {
-                entry.path = folder_stack
-                    .map(p => p[0].dirname)
-                    .join('/')
-                    .concat(`/${entry.dirname}`);
+                entry.path =
+                    '/' +
+                    folder_stack
+                        .map(p => p[0].dirname)
+                        .join('/')
+                        .concat(`/${entry.dirname}`);
                 add_to_recent(entry);
             }
             if (entry.count.folders > 1) {
