@@ -365,12 +365,7 @@ function registerButtons(buttons, cb = getDataThenPlot) {
 
 async function getBasicParameters() {
     if (!window.GTCGlobal.basicParameters) {
-        const res = await fetch(
-            `plot/data/basicParameters?dir=${
-                document.querySelector('#output-tag').innerText
-            }`
-        );
-        await propagateFetchError(res);
+        const res = await requestPlotData('data/basicParameters');
         window.GTCGlobal.basicParameters = await res.json();
     }
 }
@@ -467,12 +462,7 @@ async function openPanel(clean_beforehand = true) {
                         document.querySelector(
                             '#poloidal-preview'
                         ).style.display = 'initial';
-                        const res = await fetch(
-                            `plot/data/${btn.id}?dir=${
-                                document.querySelector('#output-tag').innerText
-                            }`
-                        );
-                        await propagateFetchError(res);
+                        const res = await requestPlotData(`data/${btn.id}`);
                         await snapshotPoloidalPreview(await res.json());
                     })
                 );
@@ -487,7 +477,11 @@ async function openPanel(clean_beforehand = true) {
 
 async function buildSummaryPage() {
     await getBasicParameters();
-    const summaryContainer = await generateSummary(getStatusBar());
+    const summary_data = await (await requestPlotData('Summary')).json();
+    const summaryContainer = await generateSummary(
+        summary_data,
+        getStatusBar()
+    );
 
     if (summaryContainer === undefined) {
         // summary page is already generated
@@ -631,10 +625,11 @@ async function addSnapshotPlayer(panel, create_l1_group) {
     );
 }
 
-async function requestPlotData(name, optional = false) {
-    // inform the server about which .out file should be parsed
-    let res = await fetch(
-        `plot/${name}?dir=${document.querySelector('#output-tag').innerText}`
+async function requestPlotData(name, opts) {
+    const optional = opts?.optional ?? false;
+    const query = opts?.query ?? '';
+    const res = await fetch(
+        `plot/${name}?dir=${document.querySelector('#output-tag').innerText}${query}`
     );
     try {
         await propagateFetchError(res);
@@ -690,12 +685,9 @@ async function getDataThenPlot(clean_beforehand = true) {
         cleanPlot();
     }
 
-    const res = await fetch(
-        `plot/data/${this.id}?dir=${
-            document.querySelector('#output-tag').innerText
-        }${window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : ''}`
-    );
-    await propagateFetchError(res);
+    const res = await requestPlotData(`data/${this.id}`, {
+        query: window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : '',
+    });
     let figures = await res.json();
 
     // some figures need some local calculation
@@ -774,14 +766,15 @@ async function snapshotPreprocess(btn, figures) {
             );
             figures[0].data[1].z = z;
         } else {
-            const res = await requestPlotData('plotType/Equilibrium', true);
+            const res = await requestPlotData('plotType/Equilibrium', {
+                optional: true,
+            });
             safety_factor = res.ok
                 ? (
                       await (
-                          await requestPlotData(
-                              'data/Equilibrium-1D-rg_n-q',
-                              true
-                          )
+                          await requestPlotData('data/Equilibrium-1D-rg_n-q', {
+                              optional: true,
+                          })
                       )?.json()
                   )
 

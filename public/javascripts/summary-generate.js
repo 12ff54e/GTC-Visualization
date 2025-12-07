@@ -1,4 +1,4 @@
-export async function generateSummary(status_bar) {
+export async function generateSummary(data, status_bar) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -6,14 +6,6 @@ export async function generateSummary(status_bar) {
         return;
     }
 
-    const res = await fetch(
-        `plot/Summary?dir=${document.querySelector('#outputTag').innerText}`
-    );
-    if (!res.ok) {
-        throw `ERROR, CODE: ${res.status}`;
-    }
-
-    const data = await res.json();
     const minorRadius = data.minor.at(-1);
 
     const addParagraph = str => {
