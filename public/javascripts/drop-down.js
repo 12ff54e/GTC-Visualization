@@ -329,8 +329,30 @@ async function fetch_and_populate_folder(api) {
     ).json();
     document.querySelector('#duration').innerText = '0s';
 
-    bind_file_tree(file_tree);
-    populate_recent(file_tree);
+    // this method might be over complicated
+    // If a list if expanded, update its content after animation (done by adding an one-shot event listener), otherwise do it immediately
+    const list_filler = (id, handler) => {
+        const ul = document.getElementById(id);
+        let no_transition = true;
+        for (const li of ul.children) {
+            const btn = li.querySelector('.collapsible');
+            if (btn.innerText == '-') {
+                const after = () => {
+                    handler(file_tree);
+                    ul.removeEventListener('transitionend', after);
+                };
+                ul.addEventListener('transitionend', after);
+                btn.click();
+                no_transition = false;
+            }
+        }
+        no_transition && handler(file_tree);
+    };
+    [
+        ['recent_ul', populate_recent],
+        ['outer_ul', bind_file_tree],
+    ].forEach(args => list_filler(...args));
+
     show_banner(server_uptime, last_scan_time);
     document.querySelector('#sync_cache').sync_time = Date.now();
     toggle_server_comm_btn();
