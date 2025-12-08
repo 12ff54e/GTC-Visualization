@@ -31,19 +31,25 @@ export async function generateSummary(data, status_bar) {
     )}\\text{T}\\).`;
     addParagraph(basicInfo);
 
-    const rgDiag =
+    const rg_diag =
         lerp(...bp.radial_region, bp.diag_flux / bp.mpsi) * minorRadius;
-    const eqRadialDiagIndex = lower_bound(data.rg, rgDiag) - 1;
-    const value_diag_flux = profile_name =>
-        linearMap(
-            rgDiag,
-            data.rg[eqRadialDiagIndex],
-            data.rg[eqRadialDiagIndex + 1],
-            data[profile_name][eqRadialDiagIndex],
-            data[profile_name][eqRadialDiagIndex + 1]
+    const rg_eq = bp.eq_flux
+        ? lerp(...bp.radial_region, bp.eq_flux / bp.mpsi) * minorRadius
+        : rg_diag;
+    const value_at = (profile_name, rg) => {
+        const idx = lower_bound(data.rg, rg) - 1;
+        return linearMap(
+            rg_diag,
+            data.rg[idx],
+            data.rg[idx + 1],
+            data[profile_name][idx],
+            data[profile_name][idx + 1]
         );
+    };
+    const value_diag_flux = profile_name => value_at(profile_name, rg_diag);
+    const value_eq_flux = profile_name => value_at(profile_name, rg_eq);
     const inverse_scale_length_diag_flux = profile_name =>
-        interpolationDerivativeAt(rgDiag, data['rg'], data[profile_name]) /
+        interpolationDerivativeAt(rg_diag, data['rg'], data[profile_name]) /
         value_diag_flux(profile_name);
 
     const minorDiag = value_diag_flux('minor');
@@ -60,16 +66,16 @@ export async function generateSummary(data, status_bar) {
         { minIdx: 0, eps: Infinity }
     ).minIdx;
     const diagFluxProp = `The diagnostic flux you choose locates at \\(${(
-        rgDiag / minorRadius
+        rg_diag / minorRadius
     ).toPrecision(
         4
     )}a_0\\). Here safety factor \\(q=${safety_factor.toPrecision(
         4
     )}\\), shear \\(\\hat{s}=r\\mathrm{d\\,ln}q/\\mathrm{d}r=${(
-        inverse_scale_length_diag_flux('q') * rgDiag
+        inverse_scale_length_diag_flux('q') * rg_diag
     ).toFixed(4)}\\), \\(s_{2}=r^{2}q^{\\prime\\prime}/q^{2}=${(
-        interpolationDerivativeAt(rgDiag, data['rg'], qprime) *
-        Math.pow(rgDiag / value_diag_flux('q'), 2)
+        interpolationDerivativeAt(rg_diag, data['rg'], qprime) *
+        Math.pow(rg_diag / value_diag_flux('q'), 2)
     ).toFixed(
         4
     )}\\) (<button id="summary-safety-factor" class="summary-figure-button">show/hide figure</button>). Among 8 modes you choose, the ${
@@ -119,16 +125,16 @@ export async function generateSummary(data, status_bar) {
         ]
     );
 
-    const rho_diag_flux =
+    const rhoi_diag_flux =
         bp['rho0'] *
-        (bp['inorm'] ? 1 : Math.sqrt(value_diag_flux('Te') / data['Te'][0]));
-    const electron_beta_diag_flux =
-        bp['betae'] *
         (bp['inorm']
-            ? 1
-            : ((value_diag_flux('Te') / data['Te'][0]) *
-                  value_diag_flux('ne')) /
-              data['ne'][0]);
+            ? Math.sqrt(value_diag_flux('Ti') / value_eq_flux('Te'))
+            : Math.sqrt(value_diag_flux('Ti') / data['Te'][0]));
+    const electron_beta_diag_flux =
+        (bp['betae'] * (value_diag_flux('ne') * value_diag_flux('Te'))) /
+        (bp['inorm']
+            ? value_eq_flux('ne') * value_eq_flux('Te')
+            : data['ne'][0] * data['Te'][0]);
     const energetic_ion_beta_diag_flux =
         (electron_beta_diag_flux *
             value_diag_flux('Tf') *
@@ -161,7 +167,7 @@ export async function generateSummary(data, status_bar) {
     ).toFixed(4)},\\) \\(b_\\theta=\\)${[...new Set(bp['mmodes'])]
         .map(m => {
             const k_rho =
-                (m / minorDiag) * rho_diag_flux * Math.sqrt(bp['aion']);
+                (m / minorDiag) * rhoi_diag_flux * Math.sqrt(bp['aion']);
             return `<span title=${k_rho.toFixed(
                 4
             )} class="hover_text">\\(${Math.pow(k_rho, 2).toFixed(
@@ -182,10 +188,10 @@ export async function generateSummary(data, status_bar) {
         pload == 1
             ? 'uniform in both temperature and density'
             : pload == 2
-            ? 'of varying temperature and uniform density'
-            : pload == 3
-            ? 'follow real temperature and density profile.'
-            : `of ${varName} = ${pload} (interpretation of this parameter depends on version of GTC)`;
+              ? 'of varying temperature and uniform density'
+              : pload == 3
+                ? 'follow real temperature and density profile.'
+                : `of ${varName} = ${pload} (interpretation of this parameter depends on version of GTC)`;
     const particleProp = `The ions, when loaded into this simulation, are ${particleLoading(
         'iload',
         bp.iload
