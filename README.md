@@ -11,6 +11,7 @@ Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
    - **PORT** is the port to which this app listening. Set a larger number to avoid conflicts.
    - **HOST_DIR** is the folder where this app will search gtc output files in.
    - **LIMIT** is the maximum number of concurrent opening GTC output folders.
+   - **SHOW_PATH** is a boolean determining whether the front end can see the whole path
 3. Set NODE_ENV to production (for example, `EXPORT NODE_ENV=production` in Linux).
 4. run
     ```bash
