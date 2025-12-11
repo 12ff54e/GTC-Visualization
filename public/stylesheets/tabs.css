@@ -33,7 +33,7 @@
 #breadcrumb-container > span {
     margin-left: 0.2em;
 }
-#breadcrumb-container > span.breadcrumb-item::after {
+#breadcrumb-container > span.breadcrumb-item:not(:first-child)::after {
     /* path separator */
     content: ' \2BC8';
 }
@@ -62,14 +62,13 @@
     left: 0;
     min-width: 20em;
     max-height: 20em;
-    overflow-y: scroll;
+    overflow-y: auto;
     display: none;
     visibility: hidden;
     background-color: aliceblue;
     z-index: 35;
 }
 .breadcrumb-dropdown.active {
-    position: absolute;
     display: initial;
     visibility: initial;
 }
@@ -124,6 +123,11 @@
 }
 .copy-content:hover {
     background-color: rgba(73, 73, 228, 0.267);
+}
+#entry-path {
+    padding: 10px;
+    cursor: text;
+    white-space: nowrap;
 }
 
 p {

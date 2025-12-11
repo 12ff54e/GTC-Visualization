@@ -10,10 +10,15 @@ html(lang="en")
         script(src="libs/fftw-js/bundle.js" defer)
     body
         code#output-tag.secret-corner= output_tag
-        code#path-prefix.secret-corner= path_prefix
-        div(id='breadcrumb-container') Current GTC output folder set to
-            button#copy-path.material-symbols-outlined.copy-content content_copy
-            span= dir
+        #breadcrumb-container Current GTC output folder set to
+            span.breadcrumb-item
+                button#copy-path.material-symbols-outlined.copy-content content_copy
+                #entry-path.breadcrumb-dropdown
+                    code= path_prefix + output_tag
+            each seg in dir.split('/')
+                span.breadcrumb-item
+                    a.breadcrumb-anchor= seg
+                    .breadcrumb-dropdown
         p(id='status')
         form(id='download-output')
             div(id="download-overlay")

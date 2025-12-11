@@ -127,14 +127,21 @@ window.addEventListener('load', () => {
     addDownloadFunction();
 
     // initial breadcrumb
+    const navi_segments = [
+        ...document.querySelector('#breadcrumb-container').children,
+    ];
+    const clearDropdown = () => {
+        navi_segments.forEach(s => {
+            s.classList.remove('active');
+            for (const child of s.children) {
+                child.classList.remove('active');
+            }
+        });
+    };
     wrap(async () => {
         const res = await fetch('/fileTree');
         await propagateFetchError(res);
         const { file_tree } = await res.json();
-        const navigationBar = document.querySelector(
-            '#breadcrumb-container'
-        ).lastElementChild;
-        const [root, ...pathname] = navigationBar.innerText.split('/');
 
         const constructPath = entry => {
             return entry
@@ -142,30 +149,7 @@ window.addEventListener('load', () => {
                 : '';
         };
 
-        const pathSegments = [root, ...pathname].map(seg => {
-            const span = document.createElement('span');
-            span.classList.add('breadcrumb-item');
-            const a = document.createElement('a');
-            a.classList.add('breadcrumb-anchor');
-            a.innerText = seg;
-            span.appendChild(a);
-            return span;
-        });
-        // navigationBar.innerText = root;
-        navigationBar.after(...pathSegments);
-        navigationBar.remove();
-
         // add drop down list
-        const dropdown = document.createElement('div');
-        dropdown.classList.add('breadcrumb-dropdown');
-        const clearDropdown = () => {
-            pathSegments.forEach(s => {
-                s.classList.remove('active');
-                for (const child of s.children) {
-                    child.classList.remove('active');
-                }
-            });
-        };
         const constructFolderContentList = (parent, child) => {
             const ul = document.createElement('ul');
 
@@ -222,7 +206,11 @@ window.addEventListener('load', () => {
         };
 
         let currentEntry = undefined;
-        pathSegments.forEach(seg => {
+        navi_segments.forEach((seg, idx) => {
+            // first span is the copy button
+            if (idx == 0) {
+                return;
+            }
             const parentEntry = currentEntry;
             currentEntry = currentEntry
                 ? currentEntry.content.find(
@@ -230,14 +218,13 @@ window.addEventListener('load', () => {
                   )
                 : file_tree;
 
-            seg.appendChild(dropdown.cloneNode());
             seg.lastElementChild.append(
                 constructFolderContentList(parentEntry, currentEntry)
             );
             seg.addEventListener('click', event => {
                 clearDropdown();
                 for (const child of event.currentTarget.children) {
-                    child.classList.add('active');
+                    child.classList.toggle('active');
                 }
             });
         });
@@ -257,13 +244,21 @@ window.addEventListener('load', () => {
     document.getElementById('copy-path').addEventListener(
         'click',
         wrap(async ev => {
+            const path = document.getElementById('entry-path').innerText;
             if (!navigator.clipboard) {
+                clearDropdown();
+                const div = ev.target.nextElementSibling;
+                div.classList.toggle('active');
+                if (window.getSelection) {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(div.firstElementChild);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
                 return;
             }
-            await navigator.clipboard.writeText(
-                document.getElementById('path-prefix').innerText +
-                    document.getElementById('output-tag').innerText
-            );
+            await navigator.clipboard.writeText(path);
             const btn = ev.target;
             const icon = btn.innerText;
             btn.innerText = 'check';
