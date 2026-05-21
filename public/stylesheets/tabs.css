@@ -175,18 +175,19 @@ p {
 }
 
 #unit-chooser {
-    position: absolute;
-    top: 5.4rem;
-    left: 16%;
-    z-index: 25;
-    display: flex;
-    align-items: center;
+    width: 90%;
+    margin: 0 auto;
+    box-sizing: border-box;
+    display: grid;
     gap: 0.4rem;
-    padding: 0.35rem 0.5rem;
+    padding: 0;
     border-radius: 6px;
     background-color: rgb(227, 248, 241);
-    border: 1px solid rgb(172, 210, 197);
-    display: none;
+    border: 0 solid rgb(172, 210, 197);
+}
+
+#unit-chooser label {
+    text-align: center;
 }
 
 #unit-chooser select {
@@ -194,7 +195,9 @@ p {
 }
 
 #unit-chooser.active {
-    display: flex;
+    margin-top: 0.2rem;
+    padding: 0.5rem;
+    border-width: 1px;
 }
 
 .tab-l0-button {
