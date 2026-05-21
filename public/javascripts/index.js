@@ -71,6 +71,8 @@ function getStatusBar() {
 //      current_snapshot_figure_id;
 //  }
 window.GTCGlobal = new Object();
+window.GTCGlobal.units = { time: 'R0Cs' };
+window.GTCGlobal.timeUnitFactor = { R0Cs: 1, R0Va: 1, tstep: 1 };
 
 // use for history mode interaction
 window.GTCGlobal.hist_mode_range = {
@@ -80,6 +82,28 @@ window.GTCGlobal.hist_mode_range = {
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
+
+    const unitToggleButton = document.getElementById('units-toggle-button');
+    const unitChooser = document.getElementById('unit-chooser');
+    unitToggleButton.addEventListener('click', e => {
+        e.preventDefault();
+        unitChooser.classList.toggle('active');
+    });
+
+    const timeUnitSelect = document.getElementById('time-unit-select');
+    timeUnitSelect.addEventListener(
+        'change',
+        wrap(async e => {
+            window.GTCGlobal.units.time = e.target.value;
+            await refreshTimeUnitFactor();
+
+            if (window.GTCGlobal.current_plot_btn) {
+                await addLoadingIndicator(
+                    getDataThenPlot.bind(window.GTCGlobal.current_plot_btn)
+                )();
+            }
+        })
+    );
 
     // register plot type tabs
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
@@ -368,6 +392,119 @@ async function getBasicParameters() {
     }
 }
 
+async function getSummaryData() {
+    if (!window.GTCGlobal.summaryData) {
+        window.GTCGlobal.summaryData = await (
+            await requestPlotData('Summary')
+        ).json();
+    }
+    return window.GTCGlobal.summaryData;
+}
+
+function inferTotalBetaFromBasicParameters(bp) {
+    if (typeof bp.beta === 'number' && bp.beta > 0) {
+        return bp.beta;
+    }
+    const keys = ['betae', 'betai', 'betaf'];
+    const total = keys.reduce((sum, key) => {
+        const val = bp[key];
+        return sum + (typeof val === 'number' && val > 0 ? val : 0);
+    }, 0);
+    return total > 0 ? total : undefined;
+}
+
+function lowerBound(arr, val) {
+    let left = 0;
+    let right = arr.length;
+    while (left < right) {
+        const mid = Math.floor((left + right) / 2);
+        if (arr[mid] < val) {
+            left = mid + 1;
+        } else {
+            right = mid;
+        }
+    }
+    return left;
+}
+
+function valueAtProfileGrid(grid, values, x) {
+    const idx = Math.max(0, Math.min(lowerBound(grid, x) - 1, grid.length - 2));
+    const x0 = grid[idx];
+    const x1 = grid[idx + 1];
+    const y0 = values[idx];
+    const y1 = values[idx + 1];
+    if (x1 === x0) {
+        return y0;
+    }
+    return y0 + ((x - x0) * (y1 - y0)) / (x1 - x0);
+}
+
+async function estimateTotalBeta() {
+    await getBasicParameters();
+    const bp = window.GTCGlobal.basicParameters;
+    const fromBasic = inferTotalBetaFromBasicParameters(bp);
+    if (fromBasic) {
+        return fromBasic;
+    }
+
+    const summary = await getSummaryData();
+    const rg = summary.rg;
+    const diagFlux = bp.diag_flux ?? bp.iflux;
+    const minorRadius = summary.minor.at(-1);
+    const rgDiag =
+        (bp.radial_region[0] +
+            ((bp.radial_region[1] - bp.radial_region[0]) * diagFlux) / bp.mpsi) *
+        minorRadius;
+    const rgEq = bp.eq_flux
+        ? (bp.radial_region[0] +
+              ((bp.radial_region[1] - bp.radial_region[0]) * bp.eq_flux) /
+                  bp.mpsi) *
+          minorRadius
+        : rgDiag;
+
+    const valAtDiag = name => valueAtProfileGrid(rg, summary[name], rgDiag);
+    const valAtEq = name => valueAtProfileGrid(rg, summary[name], rgEq);
+
+    const betae = bp.betae;
+    if (!(typeof betae === 'number' && betae > 0)) {
+        return undefined;
+    }
+
+    const electronBetaDiagFlux =
+        (betae * (valAtDiag('ne') * valAtDiag('Te'))) /
+        (bp.inorm ? valAtEq('ne') * valAtEq('Te') : summary.ne[0] * summary.Te[0]);
+    const ionBetaDiagFlux =
+        (electronBetaDiagFlux * valAtDiag('ni') * valAtDiag('Ti')) /
+        (valAtDiag('ne') * valAtDiag('Te'));
+    const energeticIonBetaDiagFlux =
+        bp.fload > 0
+            ? (electronBetaDiagFlux * valAtDiag('nf') * valAtDiag('Tf')) /
+              (valAtDiag('ne') * valAtDiag('Te'))
+            : 0;
+
+    return electronBetaDiagFlux + ionBetaDiagFlux + energeticIonBetaDiagFlux;
+}
+
+async function refreshTimeUnitFactor() {
+    await getBasicParameters();
+    const bp = window.GTCGlobal.basicParameters;
+    const baseTimeStep = bp.ndiag * bp.tstep;
+
+    let vaOverCs = 1;
+    const totalBeta = await estimateTotalBeta();
+    if (typeof totalBeta === 'number' && totalBeta > 0) {
+        vaOverCs = 1 / Math.sqrt(((5 / 3) * totalBeta) / 2);
+    }
+
+    window.GTCGlobal.timeUnitFactor = {
+        R0Cs: 1,
+        R0Va: vaOverCs,
+        tstep: 1 / bp.tstep,
+    };
+    window.GTCGlobal.timeStep =
+        baseTimeStep * window.GTCGlobal.timeUnitFactor[window.GTCGlobal.units.time];
+}
+
 async function openPanel(clean_beforehand = true) {
     if (this.id == 'Summary') {
         await buildSummaryPage();
@@ -505,12 +642,6 @@ async function buildSummaryPage() {
 }
 
 function addHistoryRecal(panel) {
-    if (!window.GTCGlobal.timeStep) {
-        window.GTCGlobal.timeStep =
-            window.GTCGlobal.basicParameters.ndiag *
-            window.GTCGlobal.basicParameters.tstep;
-    }
-
     const div = document.createElement('div');
     const btn = document.createElement('button');
     btn.innerText =
@@ -626,8 +757,15 @@ async function addSnapshotPlayer(panel, create_l1_group) {
 async function requestPlotData(name, opts) {
     const optional = opts?.optional ?? false;
     const query = opts?.query ?? '';
+    const timeUnit = window.GTCGlobal.units?.time;
+    const vaOverCs = window.GTCGlobal.timeUnitFactor?.R0Va;
+    const unitQuery = timeUnit
+        ? `&timeUnit=${encodeURIComponent(timeUnit)}${
+              typeof vaOverCs === 'number' ? `&vaOverCs=${vaOverCs}` : ''
+          }`
+        : '';
     const res = await fetch(
-        `plot/${name}?dir=${document.querySelector('#output-tag').innerText}${query}`
+        `plot/${name}?dir=${document.querySelector('#output-tag').innerText}${unitQuery}${query}`
     );
     try {
         await propagateFetchError(res);
@@ -683,10 +821,13 @@ async function getDataThenPlot(clean_beforehand = true) {
         cleanPlot();
     }
 
+    await refreshTimeUnitFactor();
+
     const res = await requestPlotData(`data/${this.id}`, {
         query: window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : '',
     });
     let figures = await res.json();
+    window.GTCGlobal.current_plot_btn = this;
 
     // some figures need some local calculation
     const recalculate =

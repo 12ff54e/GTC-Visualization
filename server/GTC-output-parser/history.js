@@ -113,12 +113,24 @@ class History extends PlotType {
      * @param {String} id the figure(s) being requested
      * @param {Object} basicParams GTCOutput.parameters
      */
-    plotData(id, basicParams) {
+    plotData(id, basicParams, query = {}) {
         let [cat, type] = id.split('-');
         type = type ? type : 'point';
         let figureContainer = new Array();
-        let timeStep = basicParams.ndiag * basicParams.tstep;
-        const tu = '$R_0/c_s$';
+        const baseTimeStep = basicParams.ndiag * basicParams.tstep;
+        const timeUnit = query.timeUnit || 'R0Cs';
+        const scaleMap = {
+            R0Cs: 1,
+            R0Va: Number(query.vaOverCs) > 0 ? Number(query.vaOverCs) : 1,
+            tstep: 1 / basicParams.tstep,
+        };
+        const tuMap = {
+            R0Cs: '$R_0/c_s$',
+            R0Va: '$R_0/v_A$',
+            tstep: '$tstep$',
+        };
+        const timeStep = baseTimeStep * (scaleMap[timeUnit] || 1);
+        const tu = tuMap[timeUnit] || '$R_0/c_s$';
 
         if (PlotType.fieldID.includes(cat)) {
             // field
