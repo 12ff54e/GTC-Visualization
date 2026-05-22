@@ -397,8 +397,8 @@ async function refreshTimeUnitFactor() {
     const bp = window.GTCGlobal.basicParameters;
     const baseTimeStep = bp.ndiag * bp.tstep;
 
-    // v_A^2 / c_s^2 = B_0^2 / (mu_0 n_i T_e) = 2 Z_i beta_e
-    // => v_A / c_s = sqrt(2 * qion * betae)
+    // v_A^2 / c_s^2 = B_0^2 / (mu_0 n_i T_e) = 2 Z_i / beta_e
+    // => v_A / c_s = sqrt(2 * qion / betae)
     // so the ratio R0/v_A in units of R0/c_s is 1 / (v_A / c_s).
     // Note: `bp.inorm` may shift the reference point used for `betae`,
     // which can introduce a small discrepancy in the absolute time unit;
@@ -410,7 +410,7 @@ async function refreshTimeUnitFactor() {
         typeof bp.qion === 'number' &&
         bp.qion > 0
     ) {
-        vaOverCs = 1 / Math.sqrt(2 * bp.qion * bp.betae);
+        vaOverCs = Math.sqrt(2 * bp.qion / bp.betae);
     }
 
     window.GTCGlobal.timeUnitFactor = {
