@@ -346,6 +346,84 @@ div header {
     display: block;
 }
 
+.plot-range-controls {
+    margin: 0.5rem 0 1rem;
+    padding: 0.75rem 0.6rem;
+    border: 1px solid rgb(172, 210, 197);
+    border-radius: 10px;
+    background-color: rgba(227, 248, 241, 0.55);
+}
+
+.plot-range-toggle {
+    width: 100%;
+    margin: 0;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-weight: bold;
+    text-align: center;
+    background: transparent;
+    cursor: pointer;
+}
+
+.plot-range-toggle::after {
+    content: ' +';
+}
+
+.plot-range-controls.active .plot-range-toggle::after {
+    content: ' -';
+}
+
+.plot-range-controls-body {
+    display: none;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.plot-range-controls.active .plot-range-controls-body {
+    display: grid;
+}
+
+.plot-range-empty {
+    margin: 0;
+    text-align: center;
+}
+
+form.plot-range-form {
+    margin: 0;
+    padding: 0.6rem;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+.plot-range-title {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.plot-range-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+}
+
+.plot-range-field {
+    display: grid;
+    gap: 0.2rem;
+    text-align: left;
+}
+
+.plot-range-field > input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.plot-range-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 0.6rem;
+}
+
 .tab-l1-btn {
     margin: 2px 1px;
     border-radius: 5px;
