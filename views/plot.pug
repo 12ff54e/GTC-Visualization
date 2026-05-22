@@ -38,6 +38,15 @@ html(lang="en")
                         div(id="files" class='dropdown')
                             each file in snapFiles
                                 button(id=file)= file
+            div
+                button(id="units-toggle-button" class="tab-l0-label tab-l0-button") Units
+                div(id="unit-chooser" class="dropdown")
+                    label(for="time-unit-select") Time unit
+                    select(id="time-unit-select" name="time-unit")
+                        option(value="R0Cs" selected) R_0/Cs
+                        option(value="R0Va") R0/Va
+                        option(value="tstep") tstep
+                        option(value="microsecond") μs
 
         div(id="panel")
             each panel in types

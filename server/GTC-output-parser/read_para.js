@@ -59,6 +59,18 @@ module.exports = async function (dir) {
         }
     });
 
+    // "tstep in seconds:    1.61809623E-07" — uses ':' instead of '=', so it
+    // is not captured by the regex above. Parse it separately and store it as
+    // `tstep_seconds` (the SI duration of one simulation step).
+    {
+        const m = outputData.match(
+            /^\s*tstep\s+in\s+seconds\s*:\s*(?<value>[\d.Ee+-]+)/im
+        );
+        if (m) {
+            params['tstep_seconds'] = parseFloat(m.groups.value);
+        }
+    }
+
     // n and m modes, works for v4.3 onward
 
     const getModeNumbers = (key, from = 0) => {

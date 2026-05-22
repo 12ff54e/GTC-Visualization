@@ -71,6 +71,8 @@ function getStatusBar() {
 //      current_snapshot_figure_id;
 //  }
 window.GTCGlobal = new Object();
+window.GTCGlobal.units = { time: 'R0Cs' };
+window.GTCGlobal.timeUnitFactor = { R0Cs: 1, R0Va: 1, tstep: 1, microsecond: 1 };
 
 // use for history mode interaction
 window.GTCGlobal.hist_mode_range = {
@@ -80,6 +82,28 @@ window.GTCGlobal.hist_mode_range = {
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
+
+    const unitToggleButton = document.getElementById('units-toggle-button');
+    const unitChooser = document.getElementById('unit-chooser');
+    unitToggleButton.addEventListener('click', e => {
+        e.preventDefault();
+        unitChooser.classList.toggle('active');
+    });
+
+    const timeUnitSelect = document.getElementById('time-unit-select');
+    timeUnitSelect.addEventListener(
+        'change',
+        wrap(async e => {
+            window.GTCGlobal.units.time = e.target.value;
+            await refreshTimeUnitFactor();
+
+            if (window.GTCGlobal.current_plot_btn) {
+                await addLoadingIndicator(
+                    getDataThenPlot.bind(window.GTCGlobal.current_plot_btn)
+                )();
+            }
+        })
+    );
 
     // register plot type tabs
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
@@ -368,6 +392,113 @@ async function getBasicParameters() {
     }
 }
 
+async function refreshTimeUnitFactor() {
+    await getBasicParameters();
+    const bp = window.GTCGlobal.basicParameters;
+    const baseTimeStep = bp.ndiag * bp.tstep;
+
+    // v_A^2 / c_s^2 = B_0^2 / (mu_0 n_i T_e) = 2 Z_i / beta_e
+    // => v_A / c_s = sqrt(2 * qion / betae)
+    // so the ratio R0/v_A in units of R0/c_s is 1 / (v_A / c_s).
+    // Note: `bp.inorm` may shift the reference point used for `betae`,
+    // which can introduce a small discrepancy in the absolute time unit;
+    // this is a known limitation that we may revisit later.
+    let vaOverCs = 1;
+    if (
+        typeof bp.betae === 'number' &&
+        bp.betae > 0 &&
+        typeof bp.qion === 'number' &&
+        bp.qion > 0
+    ) {
+        vaOverCs = Math.sqrt(2 * bp.qion / bp.betae);
+    }
+
+    window.GTCGlobal.timeUnitFactor = {
+        R0Cs: 1,
+        R0Va: vaOverCs,
+        tstep: 1 / bp.tstep,
+        // `bp.tstep_seconds` is the SI duration (seconds) of ONE simulation
+        // step, parsed from the line "tstep in seconds: ..." in gtc.out.
+        // The base time axis unit (when `R0Cs` is selected) advances by
+        // `bp.ndiag * bp.tstep` per data point, so to convert from base
+        // unit -> microseconds we multiply by
+        //     (bp.tstep_seconds / bp.tstep) * 1e6
+        // Fall back to 0 if `tstep_seconds` is unavailable.
+        microsecond:
+            typeof bp.tstep_seconds === 'number' && bp.tstep_seconds > 0
+                ? (bp.tstep_seconds / bp.tstep) * 1e6
+                : 0,
+    };
+    window.GTCGlobal.timeStep =
+        baseTimeStep * window.GTCGlobal.timeUnitFactor[window.GTCGlobal.units.time];
+}
+
+const TIME_UNIT_LABEL = {
+    R0Cs: '$R_0/c_s$',
+    R0Va: '$R_0/v_A$',
+    tstep: '$tstep$',
+    microsecond: '$\\mu s$',
+};
+
+/**
+ * Apply the currently selected time unit to figures returned by the
+ * backend. The server always returns time-axis data in the base unit
+ * `R_0/c_s` (with axis label `$R_0/c_s$` for History and
+ * `$\\text{time step}$` for RadialTime). This function rescales the
+ * x-axis values and updates the x-axis labels accordingly.
+ *
+ * @param {string} plotId
+ * @param {Array<Object>} figures
+ */
+function applyTimeUnitToFigures(plotId, figures) {
+    const unit = window.GTCGlobal.units?.time || 'R0Cs';
+    const factor = window.GTCGlobal.timeUnitFactor?.[unit] ?? 1;
+    const label = TIME_UNIT_LABEL[unit] || TIME_UNIT_LABEL.R0Cs;
+
+    if (plotId.startsWith('History')) {
+        for (const fig of figures) {
+            if (!fig?.data) continue;
+            for (const trace of fig.data) {
+                if (Array.isArray(trace.x)) {
+                    trace.x = trace.x.map(v => v * factor);
+                }
+            }
+            // last figure of mode plot uses 'mode number' as x-axis
+            if (
+                plotId.includes('-mode') &&
+                fig.layout?.xaxis?.title?.text === '$\\text{mode number}$'
+            ) {
+                continue;
+            }
+            if (fig.layout?.xaxis?.title) {
+                fig.layout.xaxis.title.text = label;
+            }
+        }
+    } else if (plotId.startsWith('RadialTime')) {
+        const baseTimeStep =
+            window.GTCGlobal.basicParameters.ndiag *
+            window.GTCGlobal.basicParameters.tstep;
+        const dt = baseTimeStep * factor;
+        for (const fig of figures) {
+            if (!fig?.data) continue;
+            for (const trace of fig.data) {
+                // RadialTime is a transposed heatmap: x corresponds to the
+                // outer (time) dimension of z.
+                const stepCount = Array.isArray(trace.z) ? trace.z.length : 0;
+                if (stepCount > 0) {
+                    trace.x = Array.from(
+                        { length: stepCount },
+                        (_, i) => (i + 1) * dt
+                    );
+                }
+            }
+            if (fig.layout?.xaxis?.title) {
+                fig.layout.xaxis.title.text = label;
+            }
+        }
+    }
+}
+
 async function openPanel(clean_beforehand = true) {
     if (this.id == 'Summary') {
         await buildSummaryPage();
@@ -505,12 +636,6 @@ async function buildSummaryPage() {
 }
 
 function addHistoryRecal(panel) {
-    if (!window.GTCGlobal.timeStep) {
-        window.GTCGlobal.timeStep =
-            window.GTCGlobal.basicParameters.ndiag *
-            window.GTCGlobal.basicParameters.tstep;
-    }
-
     const div = document.createElement('div');
     const btn = document.createElement('button');
     btn.innerText =
@@ -683,10 +808,16 @@ async function getDataThenPlot(clean_beforehand = true) {
         cleanPlot();
     }
 
+    await refreshTimeUnitFactor();
+
     const res = await requestPlotData(`data/${this.id}`, {
         query: window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : '',
     });
     let figures = await res.json();
+    window.GTCGlobal.current_plot_btn = this;
+
+    // apply currently selected time unit to figures before plotting / postprocessing
+    applyTimeUnitToFigures(this.id, figures);
 
     // some figures need some local calculation
     const recalculate =
