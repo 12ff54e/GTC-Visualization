@@ -72,7 +72,7 @@ function getStatusBar() {
 //  }
 window.GTCGlobal = new Object();
 window.GTCGlobal.units = { time: 'R0Cs' };
-window.GTCGlobal.timeUnitFactor = { R0Cs: 1, R0Va: 1, tstep: 1 };
+window.GTCGlobal.timeUnitFactor = { R0Cs: 1, R0Va: 1, tstep: 1, microsecond: 1 };
 
 // use for history mode interaction
 window.GTCGlobal.hist_mode_range = {
@@ -392,114 +392,42 @@ async function getBasicParameters() {
     }
 }
 
-async function getSummaryData() {
-    if (!window.GTCGlobal.summaryData) {
-        window.GTCGlobal.summaryData = await (
-            await requestPlotData('Summary')
-        ).json();
-    }
-    return window.GTCGlobal.summaryData;
-}
-
-function inferTotalBetaFromBasicParameters(bp) {
-    if (typeof bp.beta === 'number' && bp.beta > 0) {
-        return bp.beta;
-    }
-    const keys = ['betae', 'betai', 'betaf'];
-    const total = keys.reduce((sum, key) => {
-        const val = bp[key];
-        return sum + (typeof val === 'number' && val > 0 ? val : 0);
-    }, 0);
-    return total > 0 ? total : undefined;
-}
-
-function lowerBound(arr, val) {
-    let left = 0;
-    let right = arr.length;
-    while (left < right) {
-        const mid = Math.floor((left + right) / 2);
-        if (arr[mid] < val) {
-            left = mid + 1;
-        } else {
-            right = mid;
-        }
-    }
-    return left;
-}
-
-function valueAtProfileGrid(grid, values, x) {
-    const idx = Math.max(0, Math.min(lowerBound(grid, x) - 1, grid.length - 2));
-    const x0 = grid[idx];
-    const x1 = grid[idx + 1];
-    const y0 = values[idx];
-    const y1 = values[idx + 1];
-    if (x1 === x0) {
-        return y0;
-    }
-    return y0 + ((x - x0) * (y1 - y0)) / (x1 - x0);
-}
-
-async function estimateTotalBeta() {
-    await getBasicParameters();
-    const bp = window.GTCGlobal.basicParameters;
-    const fromBasic = inferTotalBetaFromBasicParameters(bp);
-    if (fromBasic) {
-        return fromBasic;
-    }
-
-    const summary = await getSummaryData();
-    const rg = summary.rg;
-    const diagFlux = bp.diag_flux ?? bp.iflux;
-    const minorRadius = summary.minor.at(-1);
-    const rgDiag =
-        (bp.radial_region[0] +
-            ((bp.radial_region[1] - bp.radial_region[0]) * diagFlux) / bp.mpsi) *
-        minorRadius;
-    const rgEq = bp.eq_flux
-        ? (bp.radial_region[0] +
-              ((bp.radial_region[1] - bp.radial_region[0]) * bp.eq_flux) /
-                  bp.mpsi) *
-          minorRadius
-        : rgDiag;
-
-    const valAtDiag = name => valueAtProfileGrid(rg, summary[name], rgDiag);
-    const valAtEq = name => valueAtProfileGrid(rg, summary[name], rgEq);
-
-    const betae = bp.betae;
-    if (!(typeof betae === 'number' && betae > 0)) {
-        return undefined;
-    }
-
-    const electronBetaDiagFlux =
-        (betae * (valAtDiag('ne') * valAtDiag('Te'))) /
-        (bp.inorm ? valAtEq('ne') * valAtEq('Te') : summary.ne[0] * summary.Te[0]);
-    const ionBetaDiagFlux =
-        (electronBetaDiagFlux * valAtDiag('ni') * valAtDiag('Ti')) /
-        (valAtDiag('ne') * valAtDiag('Te'));
-    const energeticIonBetaDiagFlux =
-        bp.fload > 0
-            ? (electronBetaDiagFlux * valAtDiag('nf') * valAtDiag('Tf')) /
-              (valAtDiag('ne') * valAtDiag('Te'))
-            : 0;
-
-    return electronBetaDiagFlux + ionBetaDiagFlux + energeticIonBetaDiagFlux;
-}
-
 async function refreshTimeUnitFactor() {
     await getBasicParameters();
     const bp = window.GTCGlobal.basicParameters;
     const baseTimeStep = bp.ndiag * bp.tstep;
 
+    // v_A^2 / c_s^2 = B_0^2 / (mu_0 n_i T_e) = 2 Z_i beta_e
+    // => v_A / c_s = sqrt(2 * qion * betae)
+    // so the ratio R0/v_A in units of R0/c_s is 1 / (v_A / c_s).
+    // Note: `bp.inorm` may shift the reference point used for `betae`,
+    // which can introduce a small discrepancy in the absolute time unit;
+    // this is a known limitation that we may revisit later.
     let vaOverCs = 1;
-    const totalBeta = await estimateTotalBeta();
-    if (typeof totalBeta === 'number' && totalBeta > 0) {
-        vaOverCs = 1 / Math.sqrt(((5 / 3) * totalBeta) / 2);
+    if (
+        typeof bp.betae === 'number' &&
+        bp.betae > 0 &&
+        typeof bp.qion === 'number' &&
+        bp.qion > 0
+    ) {
+        vaOverCs = 1 / Math.sqrt(2 * bp.qion * bp.betae);
     }
 
     window.GTCGlobal.timeUnitFactor = {
         R0Cs: 1,
         R0Va: vaOverCs,
         tstep: 1 / bp.tstep,
+        // `bp.tstep_seconds` is the SI duration (seconds) of ONE simulation
+        // step, parsed from the line "tstep in seconds: ..." in gtc.out.
+        // The base time axis unit (when `R0Cs` is selected) advances by
+        // `bp.ndiag * bp.tstep` per data point, so to convert from base
+        // unit -> microseconds we multiply by
+        //     (bp.tstep_seconds / bp.tstep) * 1e6
+        // Fall back to 0 if `tstep_seconds` is unavailable.
+        microsecond:
+            typeof bp.tstep_seconds === 'number' && bp.tstep_seconds > 0
+                ? (bp.tstep_seconds / bp.tstep) * 1e6
+                : 0,
     };
     window.GTCGlobal.timeStep =
         baseTimeStep * window.GTCGlobal.timeUnitFactor[window.GTCGlobal.units.time];
@@ -509,6 +437,7 @@ const TIME_UNIT_LABEL = {
     R0Cs: '$R_0/c_s$',
     R0Va: '$R_0/v_A$',
     tstep: '$tstep$',
+    microsecond: '$\\mu s$',
 };
 
 /**
