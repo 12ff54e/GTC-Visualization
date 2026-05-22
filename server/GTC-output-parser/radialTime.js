@@ -86,28 +86,12 @@ class RadialTime extends PlotType {
      * 
      * @param {string} id 
      */
-    plotData(id, basicParams, query = {}) {
+    plotData(id) {
         let [cat, type] = id.split('-');
 
         let figure = new PlotlyData();
 
-        const baseTimeStep = basicParams.ndiag * basicParams.tstep;
-        const timeUnit = query.timeUnit || 'R0Cs';
-        const scaleMap = {
-            R0Cs: 1,
-            R0Va: Number(query.vaOverCs) > 0 ? Number(query.vaOverCs) : 1,
-            tstep: 1 / basicParams.tstep,
-        };
-        const unitLabel = {
-            R0Cs: '$R_0/c_s$',
-            R0Va: '$R_0/v_A$',
-            tstep: '$tstep$',
-        };
-        const timeStep = baseTimeStep * (scaleMap[timeUnit] || 1);
-        const stepCount = this.data[cat][type].length;
-
         figure.data.push({
-            x: Array.from({ length: stepCount }, (_, i) => (i + 1) * timeStep),
             z: this.data[cat][type],
             type: 'heatmap',
             colorbar: {
@@ -117,7 +101,7 @@ class RadialTime extends PlotType {
             zhoverformat: '.4g'
         })
 
-        figure.axesLabel = { x: unitLabel[timeUnit] || '$R_0/c_s$', y: '$\\text{mpsi}$' };
+        figure.axesLabel = { x: '$\\text{time step}$', y: '$\\text{mpsi}$' };
         figure.plotLabel = `$${PlotType.fieldID.includes(cat) ? PlotType.fieldDisplayName[cat] : `\\mathrm{${cat}}`}\\;`
             + `\\text{${type.replace('_',' ')}}$`;
 
