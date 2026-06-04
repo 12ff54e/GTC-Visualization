@@ -583,44 +583,18 @@ function updateHistoryModeRangeFromRelayout(figure, eventData) {
         return;
     }
 
-    // figure-2 (growth rate) and figure-3 (frequency) share a rangeslider
-    // range: dragging one should mirror to the other. We use a global flag
-    // to break the relayout->relayout echo loop.
-    const partnerId =
+    const targetField =
         figure.id === 'figure-2'
-            ? 'figure-3'
+            ? 'growthRate'
             : figure.id === 'figure-3'
-              ? 'figure-2'
+              ? 'frequency'
               : undefined;
-    if (!partnerId) {
+    if (!targetField) {
         return;
     }
 
-    const range =
+    window.GTCGlobal.hist_mode_range[targetField] =
         extractRelayoutRange(eventData, 'x') ?? getFigureAxisRange(figure, 'x');
-    if (!range) {
-        return;
-    }
-
-    window.GTCGlobal.hist_mode_range.growthRate = range;
-    window.GTCGlobal.hist_mode_range.frequency = range;
-
-    if (window.GTCGlobal.hist_mode_range.syncing) {
-        return;
-    }
-    const partner = document.getElementById(partnerId);
-    const partnerRange = getFigureAxisRange(partner, 'x');
-    if (
-        partnerRange &&
-        partnerRange[0] === range[0] &&
-        partnerRange[1] === range[1]
-    ) {
-        return;
-    }
-    window.GTCGlobal.hist_mode_range.syncing = true;
-    Plotly.relayout(partner, { 'xaxis.range': range.slice() }).finally(() => {
-        window.GTCGlobal.hist_mode_range.syncing = false;
-    });
 }
 
 function bindFigureRangeSync(figure) {
