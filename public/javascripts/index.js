@@ -95,6 +95,26 @@ window.addEventListener('load', () => {
     timeUnitSelect.addEventListener(
         'change',
         wrap(async e => {
+            // Capture the current time-axis range on each visible figure so
+            // we can restore the user's chosen window after the figures are
+            // replotted in the new unit. We identify time-axis figures by
+            // their x-axis title text matching a known time-unit label.
+            const oldUnit = window.GTCGlobal.units.time;
+            const oldFactor =
+                window.GTCGlobal.timeUnitFactor?.[oldUnit] ?? 1;
+            const timeUnitLabels = new Set(Object.values(TIME_UNIT_LABEL));
+            const previousRanges = getVisibleFigureDivs()
+                .filter(fig => {
+                    const titleText =
+                        getFigureAxisLayout(fig, 'x')?.title?.text;
+                    return timeUnitLabels.has(titleText);
+                })
+                .map(fig => ({
+                    id: fig.id,
+                    range: getFigureAxisRange(fig, 'x'),
+                }))
+                .filter(entry => entry.range);
+
             window.GTCGlobal.units.time = e.target.value;
             await refreshTimeUnitFactor();
 
@@ -102,6 +122,30 @@ window.addEventListener('load', () => {
                 await addLoadingIndicator(
                     getDataThenPlot.bind(window.GTCGlobal.current_plot_btn)
                 )();
+
+                const newFactor =
+                    window.GTCGlobal.timeUnitFactor?.[e.target.value] ?? 1;
+                const ratio = newFactor / oldFactor;
+                if (
+                    Number.isFinite(ratio) &&
+                    ratio !== 0 &&
+                    ratio !== 1
+                ) {
+                    await Promise.all(
+                        previousRanges.map(({ id, range }) => {
+                            const fig = document.getElementById(id);
+                            if (!fig) return Promise.resolve();
+                            return Plotly.relayout(fig, {
+                                'xaxis.range': [
+                                    range[0] * ratio,
+                                    range[1] * ratio,
+                                ],
+                                'xaxis.autorange': false,
+                            });
+                        })
+                    );
+                    refreshPlotRangeControls();
+                }
             }
         })
     );
