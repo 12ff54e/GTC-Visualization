@@ -41,10 +41,14 @@ export async function historyMode(
             ? [interval1[0] * len, interval1[1] * len]
             : [xs[0], len];
         growthFig.layout.xaxis.autorange = false;
+        // Also pin the rangeslider's own extent: otherwise its handles can
+        // be dragged past the data and the resulting interval lands outside
+        // the y-array, producing NaN gamma.
+        growthFig.layout.xaxis.rangeslider = {
+            bgcolor: 'rgb(200,200,210)',
+            range: [xs[0], len],
+        };
     }
-    growthFig.layout.xaxis.rangeslider = {
-        bgcolor: 'rgb(200,200,210)',
-    };
 
     // frequency figure
     let y0 = componentsFig.data[0].y[0];
@@ -95,10 +99,11 @@ export async function historyMode(
             ? [interval2[0] * len, interval2[1] * len]
             : [xs[0], len];
         freqFig.layout.xaxis.autorange = false;
+        freqFig.layout.xaxis.rangeslider = {
+            bgcolor: 'rgb(200,200,210)',
+            range: [xs[0], len],
+        };
     }
-    freqFig.layout.xaxis.rangeslider = {
-        bgcolor: 'rgb(200,200,210)',
-    };
 
     // spectral figure
     let powerSpectrum = cal_spectrum(
@@ -921,8 +926,13 @@ export function addSimulationRegion(fig) {
 export function cal_gamma(ys, dt, interval) {
     let [tIni, tEnd] = interval;
 
-    let tIniIndex = Math.floor(tIni * ys.length);
-    let tEndIndex = Math.floor(tEnd * ys.length);
+    // Clamp indices to valid array positions. The right rangeslider handle
+    // can land exactly on the end of the data (tEnd = 1.0), in which case
+    // Math.floor(1.0 * ys.length) is ys.length and ys[ys.length] is
+    // undefined, producing NaN gamma.
+    const lastIndex = ys.length - 1;
+    let tIniIndex = Math.min(Math.max(Math.floor(tIni * ys.length), 0), lastIndex);
+    let tEndIndex = Math.min(Math.max(Math.floor(tEnd * ys.length), 0), lastIndex);
 
     let gamma =
         (Math.log(ys[tEndIndex]) - Math.log(ys[tIniIndex])) /
