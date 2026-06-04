@@ -2,9 +2,16 @@
 
 export async function historyMode(
     figures,
-    interval1 = [0.43, 0.98],
-    interval2 = [0.43, 0.98]
+    interval1 = null,
+    interval2 = null
 ) {
+    // `interval1`/`interval2` are user-selected zoom ranges (as fractions of
+    // the total data length) coming from the rangesliders. When they are
+    // null (i.e. the initial call) we fall back to the conventional
+    // measurement window [0.43, 0.98] and show the full data extent.
+    const measure1 = interval1 ?? [0.43, 0.98];
+    const measure2 = interval2 ?? [0.43, 0.98];
+
     // deconstructing figures
     let [componentsFig, growthFig, freqFig, spectralFig] = figures;
 
@@ -12,7 +19,7 @@ export async function historyMode(
     let { gamma, measurePts } = cal_gamma(
         growthFig.data[0].y,
         window.GTCGlobal.timeStep,
-        interval1
+        measure1
     );
     growthFig.data[1] = {
         x: [measurePts[0].x, measurePts[1].x],
@@ -22,6 +29,19 @@ export async function historyMode(
         markers: { color: 'rgb(255, 0, 0)', size: 8 },
     };
     growthFig.layout.title.text = `$\\gamma=${gamma.toPrecision(5)}$`;
+    {
+        // Pin the default x range to the data extent (or to the user-selected
+        // zoom when recalculating). Without this Plotly's autorange together
+        // with the rangeslider pads the visible range beyond the last data
+        // point. The interval->absolute conversion mirrors the absolute->
+        // interval conversion done in addHistoryRecal (divide by `len`).
+        const xs = growthFig.data[0].x;
+        const len = xs[xs.length - 1];
+        growthFig.layout.xaxis.range = interval1
+            ? [interval1[0] * len, interval1[1] * len]
+            : [xs[0], len];
+        growthFig.layout.xaxis.autorange = false;
+    }
     growthFig.layout.xaxis.rangeslider = {
         bgcolor: 'rgb(200,200,210)',
     };
@@ -42,7 +62,7 @@ export async function historyMode(
         yReals,
         yImages,
         window.GTCGlobal.timeStep,
-        interval2
+        measure2
     ));
     freqFig.data[0] = {
         x: [...Array(yReals.length).keys()].map(
@@ -68,6 +88,14 @@ export async function historyMode(
         markers: { color: 'rgb(255, 0, 0)', size: 8 },
     };
     freqFig.layout.title.text = `$\\omega=${omega.toPrecision(5)}$`;
+    {
+        const xs = freqFig.data[0].x;
+        const len = xs[xs.length - 1];
+        freqFig.layout.xaxis.range = interval2
+            ? [interval2[0] * len, interval2[1] * len]
+            : [xs[0], len];
+        freqFig.layout.xaxis.autorange = false;
+    }
     freqFig.layout.xaxis.rangeslider = {
         bgcolor: 'rgb(200,200,210)',
     };
@@ -77,7 +105,7 @@ export async function historyMode(
         yReals,
         yImages,
         window.GTCGlobal.timeStep,
-        interval2
+        measure2
     );
     spectralFig.data[0] = Object.assign(powerSpectrum, {
         type: 'scatter',
