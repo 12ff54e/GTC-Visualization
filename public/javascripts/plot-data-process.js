@@ -33,13 +33,23 @@ export async function historyMode(
         // Pin the default x range to the data extent (or to the user-selected
         // zoom when recalculating). Without this Plotly's autorange together
         // with the rangeslider pads the visible range beyond the last data
-        // point. The interval->absolute conversion mirrors the absolute->
-        // interval conversion done in addHistoryRecal (divide by `len`).
+        // point. When an interval is supplied, map it back to concrete x
+        // values through the actual plotted sample indices.
         const xs = growthFig.data[0].x;
         const len = xs[xs.length - 1];
-        growthFig.layout.xaxis.range = interval1
-            ? [interval1[0] * len, interval1[1] * len]
-            : [xs[0], len];
+        if (interval1) {
+            const startIndex = Math.min(
+                Math.max(Math.floor(interval1[0] * xs.length), 0),
+                xs.length - 1
+            );
+            const endIndex = Math.min(
+                Math.max(Math.ceil(interval1[1] * xs.length) - 1, startIndex),
+                xs.length - 1
+            );
+            growthFig.layout.xaxis.range = [xs[startIndex], xs[endIndex]];
+        } else {
+            growthFig.layout.xaxis.range = [xs[0], len];
+        }
         growthFig.layout.xaxis.autorange = false;
         // Also pin the rangeslider's own extent: otherwise its handles can
         // be dragged past the data and the resulting interval lands outside
@@ -95,9 +105,19 @@ export async function historyMode(
     {
         const xs = freqFig.data[0].x;
         const len = xs[xs.length - 1];
-        freqFig.layout.xaxis.range = interval2
-            ? [interval2[0] * len, interval2[1] * len]
-            : [xs[0], len];
+        if (interval2) {
+            const startIndex = Math.min(
+                Math.max(Math.floor(interval2[0] * xs.length), 0),
+                xs.length - 1
+            );
+            const endIndex = Math.min(
+                Math.max(Math.ceil(interval2[1] * xs.length) - 1, startIndex),
+                xs.length - 1
+            );
+            freqFig.layout.xaxis.range = [xs[startIndex], xs[endIndex]];
+        } else {
+            freqFig.layout.xaxis.range = [xs[0], len];
+        }
         freqFig.layout.xaxis.autorange = false;
         freqFig.layout.xaxis.rangeslider = {
             bgcolor: 'rgb(200,200,210)',

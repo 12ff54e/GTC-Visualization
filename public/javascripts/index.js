@@ -80,6 +80,7 @@ window.GTCGlobal.hist_mode_range = {
     growthRate: undefined,
     frequency: undefined,
 };
+window.GTCGlobal.pendingHistoryModeIntervals = undefined;
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
@@ -114,6 +115,12 @@ window.addEventListener('load', () => {
                     range: getFigureAxisRange(fig, 'x'),
                 }))
                 .filter(entry => entry.range);
+            const currentPlotId = window.GTCGlobal.current_plot_btn?.id;
+            window.GTCGlobal.pendingHistoryModeIntervals =
+                currentPlotId?.startsWith('History') &&
+                currentPlotId.includes('-mode')
+                    ? getDisplayedHistoryModeIntervals()
+                    : undefined;
 
             window.GTCGlobal.units.time = e.target.value;
             await refreshTimeUnitFactor();
@@ -568,6 +575,47 @@ function getFigureAxisRange(figure, axisName) {
     }
 }
 
+function normalizeRangeToUnitInterval(range, xs) {
+    if (
+        !Array.isArray(range) ||
+        range.length !== 2 ||
+        !Array.isArray(xs) ||
+        !xs.length
+    ) {
+        return;
+    }
+
+    let startIndex = 0;
+    while (startIndex < xs.length - 1 && xs[startIndex] < range[0]) {
+        startIndex++;
+    }
+
+    let endIndex = xs.length - 1;
+    while (endIndex > 0 && xs[endIndex] > range[1]) {
+        endIndex--;
+    }
+
+    if (startIndex > endIndex) {
+        return;
+    }
+
+    return [startIndex / xs.length, (endIndex + 1) / xs.length];
+}
+
+function getDisplayedHistoryModeIntervals() {
+    const getFigureInterval = figureId => {
+        const figure = document.getElementById(figureId);
+        const range = getFigureAxisRange(figure, 'x');
+        const xs = figure?.data?.[0]?.x;
+        return normalizeRangeToUnitInterval(range, xs);
+    };
+
+    return {
+        growthRate: getFigureInterval('figure-2'),
+        frequency: getFigureInterval('figure-3'),
+    };
+}
+
 function formatRangeValue(value) {
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) {
@@ -981,15 +1029,11 @@ function addHistoryRecal(panel) {
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
-            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
+            const displayedIntervals = getDisplayedHistoryModeIntervals();
             await historyMode(
                 figures,
-                window.GTCGlobal.hist_mode_range.growthRate &&
-                    window.GTCGlobal.hist_mode_range.growthRate.map(
-                        i => i / len
-                    ),
-                window.GTCGlobal.hist_mode_range.frequency &&
-                    window.GTCGlobal.hist_mode_range.frequency.map(i => i / len)
+                displayedIntervals.growthRate,
+                displayedIntervals.frequency
             );
 
             figures.forEach(figure => {
@@ -1162,9 +1206,12 @@ async function getDataThenPlot(clean_beforehand = true) {
         recalculate.classList.remove('active');
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        await historyMode(figures);
-        window.GTCGlobal.hist_mode_range.frequency = undefined;
-        window.GTCGlobal.hist_mode_range.growthRate = undefined;
+        const pendingIntervals = window.GTCGlobal.pendingHistoryModeIntervals;
+        await historyMode(
+            figures,
+            pendingIntervals?.growthRate,
+            pendingIntervals?.frequency
+        );
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);
@@ -1201,6 +1248,18 @@ async function getDataThenPlot(clean_beforehand = true) {
                 : Promise.resolve();
         })
     );
+
+    if (this.id.startsWith('History') && this.id.includes('-mode')) {
+        window.GTCGlobal.hist_mode_range.growthRate = getFigureAxisRange(
+            document.getElementById('figure-2'),
+            'x'
+        );
+        window.GTCGlobal.hist_mode_range.frequency = getFigureAxisRange(
+            document.getElementById('figure-3'),
+            'x'
+        );
+        window.GTCGlobal.pendingHistoryModeIntervals = undefined;
+    }
 
     refreshPlotRangeControls();
 }
