@@ -23,18 +23,18 @@ const state = {
 
     /**
      * Currently selected time unit.
-     * One of: 'R0Cs' | 'R0Va' | 'tstep' | 'microsecond'.
+     * One of: 'soundSpeed' | 'alfvenSpeed' | 'tstep' | 'microsecond'.
      * @type {{time: string}}
      */
-    units: { time: 'R0Cs' },
+    units: { time: 'soundSpeed' },
 
     /**
-     * Conversion factors FROM the base unit (R0Cs) TO each supported unit.
-     * Recomputed by refreshTimeUnitFactor() whenever the user changes the
-     * unit selector or before plotting new data.
-     * @type {{R0Cs: number, R0Va: number, tstep: number, microsecond: number}}
+     * Conversion factors FROM the base unit (sound speed: R₀/c_s) TO each
+     * supported unit.  Recomputed by refreshTimeUnitFactor() whenever the
+     * user changes the unit selector or before plotting new data.
+     * @type {{soundSpeed: number, alfvenSpeed: number, tstep: number, microsecond: number}}
      */
-    timeUnitFactor: { R0Cs: 1, R0Va: 1, tstep: 1, microsecond: 1 },
+    timeUnitFactor: { soundSpeed: 1, alfvenSpeed: 1, tstep: 1, microsecond: 1 },
 
     /**
      * Time step between consecutive data points expressed in the currently

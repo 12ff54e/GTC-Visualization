@@ -15,6 +15,13 @@ import {
     nodeIs,
     postForm,
 } from './util.js';
+import { requestPlotData, downloadOutputFiles } from './api.js';
+import {
+    getBasicParameters,
+    refreshTimeUnitFactor,
+    applyTimeUnitToFigures,
+    TIME_UNIT_LABEL,
+} from './units.js';
 
 // status bar on top
 class StatusBar {
@@ -320,42 +327,20 @@ function addDownloadFunction() {
                 e.preventDefault();
                 const loading = downloadForm.querySelector('#download-overlay');
                 loading.style.visibility = 'initial';
-                const url = `/plot/data/download?dir=${
-                    document.querySelector('#output-tag').innerText
-                }${e.target.id.endsWith('all') ? '&all' : ''}`;
 
-                const data = new URLSearchParams();
-                for (const [key, val] of new FormData(downloadForm).entries()) {
-                    data.append(key, val);
-                }
-
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'content-type': 'application/x-www-form-urlencoded',
-                    },
-                    body: data,
-                });
-                if (!res.ok) {
-                    console.error('File download failed');
-                    throw `Server return ${res.status}:${res.statusText} upon requesting GTC output files`;
-                }
-                const blob = await res.blob();
+                const { blob, filename } = await downloadOutputFiles(
+                    document.querySelector('#output-tag').innerText,
+                    e.target.id.endsWith('all'),
+                    new FormData(downloadForm)
+                );
 
                 // create link for downloading file
                 const a = document.body.appendChild(
                     document.createElement('a')
                 );
                 a.href = window.URL.createObjectURL(blob);
-
-                // forward filename, if exist
-                let match;
-                if (
-                    (match = res.headers
-                        .get('Content-Disposition')
-                        .match(/filename="(.*)"/))
-                ) {
-                    a.download = match[1];
+                if (filename) {
+                    a.download = filename;
                 }
                 a.click();
                 a.remove();
@@ -374,119 +359,8 @@ function registerButtons(buttons, cb = getDataThenPlot) {
     });
 }
 
-async function getBasicParameters() {
-    if (!window.GTCGlobal.basicParameters) {
-        const res = await requestPlotData('data/basicParameters');
-        window.GTCGlobal.basicParameters = await res.json();
-    }
-}
-
-async function refreshTimeUnitFactor() {
-    await getBasicParameters();
-    const bp = window.GTCGlobal.basicParameters;
-    const baseTimeStep = bp.ndiag * bp.tstep;
-
-    // v_A^2 / c_s^2 = B_0^2 / (mu_0 n_i T_e) = 2 Z_i / beta_e
-    // => v_A / c_s = sqrt(2 * qion / betae)
-    // so the ratio R0/v_A in units of R0/c_s is 1 / (v_A / c_s).
-    // Note: `bp.inorm` may shift the reference point used for `betae`,
-    // which can introduce a small discrepancy in the absolute time unit;
-    // this is a known limitation that we may revisit later.
-    let vaOverCs = 1;
-    if (
-        typeof bp.betae === 'number' &&
-        bp.betae > 0 &&
-        typeof bp.qion === 'number' &&
-        bp.qion > 0
-    ) {
-        vaOverCs = Math.sqrt(2 * bp.qion / bp.betae);
-    }
-
-    window.GTCGlobal.timeUnitFactor = {
-        R0Cs: 1,
-        R0Va: vaOverCs,
-        tstep: 1 / bp.tstep,
-        // `bp.tstep_seconds` is the SI duration (seconds) of ONE simulation
-        // step, parsed from the line "tstep in seconds: ..." in gtc.out.
-        // The base time axis unit (when `R0Cs` is selected) advances by
-        // `bp.ndiag * bp.tstep` per data point, so to convert from base
-        // unit -> microseconds we multiply by
-        //     (bp.tstep_seconds / bp.tstep) * 1e6
-        // Fall back to 0 if `tstep_seconds` is unavailable.
-        microsecond:
-            typeof bp.tstep_seconds === 'number' && bp.tstep_seconds > 0
-                ? (bp.tstep_seconds / bp.tstep) * 1e6
-                : 0,
-    };
-    window.GTCGlobal.timeStep =
-        baseTimeStep * window.GTCGlobal.timeUnitFactor[window.GTCGlobal.units.time];
-}
-
-const TIME_UNIT_LABEL = {
-    R0Cs: '$R_0/c_s$',
-    R0Va: '$R_0/v_A$',
-    tstep: '$tstep$',
-    microsecond: '$\\mu s$',
-};
-
-/**
- * Apply the currently selected time unit to figures returned by the
- * backend. The server always returns time-axis data in the base unit
- * `R_0/c_s` (with axis label `$R_0/c_s$` for History and
- * `$\\text{time step}$` for RadialTime). This function rescales the
- * x-axis values and updates the x-axis labels accordingly.
- *
- * @param {string} plotId
- * @param {Array<Object>} figures
- */
-function applyTimeUnitToFigures(plotId, figures) {
-    const unit = window.GTCGlobal.units?.time || 'R0Cs';
-    const factor = window.GTCGlobal.timeUnitFactor?.[unit] ?? 1;
-    const label = TIME_UNIT_LABEL[unit] || TIME_UNIT_LABEL.R0Cs;
-
-    if (plotId.startsWith('History')) {
-        for (const fig of figures) {
-            if (!fig?.data) continue;
-            for (const trace of fig.data) {
-                if (Array.isArray(trace.x)) {
-                    trace.x = trace.x.map(v => v * factor);
-                }
-            }
-            // last figure of mode plot uses 'mode number' as x-axis
-            if (
-                plotId.includes('-mode') &&
-                fig.layout?.xaxis?.title?.text === '$\\text{mode number}$'
-            ) {
-                continue;
-            }
-            if (fig.layout?.xaxis?.title) {
-                fig.layout.xaxis.title.text = label;
-            }
-        }
-    } else if (plotId.startsWith('RadialTime')) {
-        const baseTimeStep =
-            window.GTCGlobal.basicParameters.ndiag *
-            window.GTCGlobal.basicParameters.tstep;
-        const dt = baseTimeStep * factor;
-        for (const fig of figures) {
-            if (!fig?.data) continue;
-            for (const trace of fig.data) {
-                // RadialTime is a transposed heatmap: x corresponds to the
-                // outer (time) dimension of z.
-                const stepCount = Array.isArray(trace.z) ? trace.z.length : 0;
-                if (stepCount > 0) {
-                    trace.x = Array.from(
-                        { length: stepCount },
-                        (_, i) => (i + 1) * dt
-                    );
-                }
-            }
-            if (fig.layout?.xaxis?.title) {
-                fig.layout.xaxis.title.text = label;
-            }
-        }
-    }
-}
+// refreshTimeUnitFactor, TIME_UNIT_LABEL, and applyTimeUnitToFigures
+// are now imported from units.js
 
 function getVisibleFigureDivs() {
     return [...document.getElementById('figure-wrapper').children].filter(
@@ -1025,22 +899,6 @@ async function addSnapshotPlayer(panel, create_l1_group) {
             }
         )
     );
-}
-
-async function requestPlotData(name, opts) {
-    const optional = opts?.optional ?? false;
-    const query = opts?.query ?? '';
-    const res = await fetch(
-        `plot/${name}?dir=${document.querySelector('#output-tag').innerText}${query}`
-    );
-    try {
-        await propagateFetchError(res);
-    } catch (e) {
-        if (!optional) {
-            throw e;
-        }
-    }
-    return res;
 }
 
 function cleanPlot() {
