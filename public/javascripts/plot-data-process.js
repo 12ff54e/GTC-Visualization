@@ -1,5 +1,7 @@
 'use strict';
 
+import { interleave, unInterleave, min_max } from './util.js';
+
 export async function historyMode(
     figures,
     interval1 = null,
@@ -1035,27 +1037,9 @@ export function cal_spectrum(reals, images, timeStep, interval) {
     };
 }
 
-function interleave(as, bs) {
-    return as.flatMap((val, idx) => [val, bs[idx]]);
-}
+// interleave and unInterleave are now imported from util.js
 
-function unInterleave(cs) {
-    return cs.reduce((arr, val, idx) => {
-        if (idx % 2 == 0) {
-            arr.push([val]);
-        } else {
-            arr.at(-1).push(val);
-        }
-        return arr;
-    }, []);
-}
-
-function min_max(arr) {
-    return arr.reduce(
-        ([min, max], curr) => [Math.min(min, curr), Math.max(max, curr)],
-        [Infinity, -Infinity]
-    );
-}
+// min_max is now imported from util.js
 
 /**
  * @param {WebGL2RenderingContext} gl

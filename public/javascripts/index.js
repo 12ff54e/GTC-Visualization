@@ -8,6 +8,13 @@ import {
     addSimulationRegion,
 } from './plot-data-process.js';
 import { generateSummary } from './summary-generate.js';
+import './state.js';
+import {
+    callEventTarget,
+    propagateFetchError,
+    nodeIs,
+    postForm,
+} from './util.js';
 
 // status bar on top
 class StatusBar {
@@ -62,24 +69,9 @@ function getStatusBar() {
     return document.querySelector('#status').status;
 }
 
-// global vars
-//  {
-//      hist_mode_range;
-//      basicParameters;
-//      timeStep;
-//      current_snapshot_id;
-//      current_snapshot_figure_id;
-//  }
-window.GTCGlobal = new Object();
-window.GTCGlobal.units = { time: 'R0Cs' };
-window.GTCGlobal.timeUnitFactor = { R0Cs: 1, R0Va: 1, tstep: 1, microsecond: 1 };
-window.GTCGlobal.activePanel = undefined;
-
-// use for history mode interaction
-window.GTCGlobal.hist_mode_range = {
-    growthRate: undefined,
-    frequency: undefined,
-};
+// Global application state is now managed by state.js (imported above).
+// It is still accessible as `window.GTCGlobal` for backward compatibility
+// with modules that have not yet been migrated to direct ES imports.
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
@@ -310,10 +302,6 @@ function wrap(func) {
             console.log(err);
             getStatusBar().err = StatusBar.DEFAULT_ERROR;
         });
-}
-
-function callEventTarget(func, transform = e => e.target) {
-    return e => func.call(transform(e));
 }
 
 function addDownloadFunction() {
@@ -1282,34 +1270,4 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     );
 }
 
-async function propagateFetchError(res) {
-    if (!res.ok) {
-        throw await res.text();
-    }
-}
-
-function nodeIs(node, predict) {
-    if (node) {
-        return predict(node) || nodeIs(node.parentElement, predict);
-    }
-}
-
-function postForm(url, content) {
-    const form = document.createElement('form');
-    form.method = 'post';
-    form.action = url;
-
-    for (const key in content) {
-        if (content.hasOwnProperty(key)) {
-            const hiddenField = document.createElement('input');
-            hiddenField.type = 'hidden';
-            hiddenField.name = key;
-            hiddenField.value = content[key];
-
-            form.appendChild(hiddenField);
-        }
-    }
-
-    document.body.appendChild(form);
-    form.submit();
-}
+// propagateFetchError, nodeIs, and postForm are now imported from util.js
