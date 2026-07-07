@@ -54,11 +54,12 @@ This is an Express.js app that visualizes GTC (Gyrokinetic Toroidal Code) simula
 
 ### Client-side (`public/`)
 
-- **`javascripts/index.js`** — Main module: `StatusBar` class, figure management, tab switching, routing to plot-specific handlers. Imports `state.js`, `util.js`, `api.js`, and `units.js`.
+- **`javascripts/index.js`** — Main module: `StatusBar` class, figure management, tab switching, routing to plot-specific handlers. Imports `state.js`, `util.js`, `api.js`, `units.js`, and `figure-range-controls.js`.
 - **`javascripts/state.js`** — Centralized application state object (replaces ad-hoc `window.GTCGlobal` properties). Documented with owning concern per property block (units, figure lifecycle, history mode, parameters, FFT). Also exposed as `window.GTCGlobal` for backward compatibility with modules not yet migrated to ES imports.
 - **`javascripts/util.js`** — Shared pure-utility functions with no app-state or DOM dependencies: `callEventTarget`, `propagateFetchError`, `nodeIs`, `postForm`, `min_max`, `interleave`, `unInterleave`.
 - **`javascripts/api.js`** — Server communication layer: `requestPlotData()` fetches plot data/metadata from the Express backend; `downloadOutputFiles()` POSTs a download request and returns the blob + filename. All fetch URL construction and error propagation lives here.
 - **`javascripts/units.js`** — Time-unit conversion: `getBasicParameters()` fetches/caches simulation params; `refreshTimeUnitFactor()` recomputes conversion factors from base unit R₀/c_s to R₀/v_A, tstep, and μs; `applyTimeUnitToFigures()` rescales History/RadialTime x-axis values. Exports `TIME_UNIT_LABEL` for Plotly axis titles.
+- **`javascripts/figure-range-controls.js`** — Per-panel collapsible "Figure Range" controls: `ensurePlotRangeControls()` creates the container, `renderPlotRangeControls()` builds per-figure X/Y min/max input forms, `refreshPlotRangeControls()` syncs inputs from live Plotly axis ranges. Two-way sync via `plotly_relayout` events; also feeds history-mode zoom ranges into `state.hist_mode_range`.
 - **`javascripts/plot-data-process.js`** — Client-side computation: growth rate fitting for history mode data, FFT-based spectrum analysis for snapshots, poloidal plane preview rendering. Imports array utilities from `util.js`.
 - **`javascripts/summary-generate.js`** — Renders the summary page from equilibrium data
 - **`javascripts/drop-down.js`** — Folder browser dropdown interaction (loaded by `index.pug`, separate from the plot page)
