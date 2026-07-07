@@ -1,9 +1,6 @@
 'use strict';
 import {
     historyMode,
-    snapshotPoloidal,
-    snapshotPoloidalPreview,
-    snapshotSpectrum,
     trackingPlot,
     addSimulationRegion,
 } from './plot-data-process.js';
@@ -31,6 +28,11 @@ import {
 import { setupBreadcrumbs } from './navigation.js';
 import { setupDownloadForm } from './download.js';
 import { addHistoryRecal } from './history-recal.js';
+import {
+    snapshotPreprocess,
+    addSnapshotPlayer,
+    snapshotPoloidalPreview,
+} from './snapshot.js';
 
 // StatusBar, getStatusBar, wrap, and addLoadingIndicator are now
 // imported from status-bar.js
@@ -211,7 +213,7 @@ async function openPanel(clean_beforehand = true) {
     }
 
     if (this.id.startsWith('snap')) {
-        addSnapshotPlayer(panel, create_l1_group);
+        addSnapshotPlayer(panel, create_l1_group, openPanel, getDataThenPlot);
 
         panel.querySelectorAll('button').forEach(btn => {
             if (btn.id.endsWith('-poloidal')) {
@@ -261,84 +263,6 @@ async function buildSummaryPage() {
             })
         );
     });
-}
-
-async function addSnapshotPlayer(panel, create_l1_group) {
-    panel.appendChild(
-        create_l1_group(
-            [
-                'previous snapshot',
-                'next snapshot',
-                'previous (continuously)',
-                'next (continuously)',
-            ],
-            async function () {
-                let cont = this.innerText.endsWith('(continuously)');
-                const prev = this.innerText.startsWith('prev');
-                const stopper = ev => {
-                    if (ev.key === 's') {
-                        cont = false;
-                    }
-                };
-                window.GTCGlobal.snapshot_playing = true;
-                window.addEventListener('keypress', stopper);
-
-                const delay = 300; // shortest possible frame inteval
-                // real frame interval might be larger due to network and/or render
-                let last_time = document.timeline.currentTime - delay;
-
-                const animate = async timestamp => {
-                    if (timestamp - last_time < delay) {
-                        requestAnimationFrame(animate);
-                        return;
-                    }
-                    const current_snapshot = GTCGlobal.current_snapshot;
-                    if (prev) {
-                        if (current_snapshot.previousElementSibling) {
-                            GTCGlobal.current_snapshot =
-                                current_snapshot.previousElementSibling;
-                        } else {
-                            if (!cont) {
-                                alert('No previous snapshot');
-                            }
-                            cont = false;
-                        }
-                    } else {
-                        if (current_snapshot.nextElementSibling) {
-                            GTCGlobal.current_snapshot =
-                                current_snapshot.nextElementSibling;
-                        } else {
-                            if (!cont) {
-                                alert('No next snapshot');
-                            }
-                            cont = false;
-                        }
-                    }
-                    await openPanel.call(GTCGlobal.current_snapshot, false);
-                    if (GTCGlobal.current_snapshot_figure) {
-                        await getDataThenPlot.call(
-                            GTCGlobal.current_snapshot_figure,
-                            false
-                        );
-                    }
-                    current_snapshot.classList.remove('snapshot-selected');
-                    GTCGlobal.current_snapshot.classList.add(
-                        'snapshot-selected'
-                    );
-
-                    last_time = timestamp;
-                    if (cont) {
-                        requestAnimationFrame(animate);
-                    } else {
-                        // cleanup
-                        window.removeEventListener('keypress', stopper);
-                        window.GTCGlobal.snapshot_playing = false;
-                    }
-                };
-                requestAnimationFrame(animate);
-            }
-        )
-    );
 }
 
 function cleanPlot() {
@@ -434,52 +358,6 @@ async function getDataThenPlot(clean_beforehand = true) {
     );
 
     refreshPlotRangeControls();
-}
-
-async function snapshotPreprocess(btn, figures) {
-    if (btn.id.endsWith('spectrum')) {
-        await snapshotSpectrum(figures);
-    } else if (btn.id.endsWith('poloidal')) {
-        const quick = btn.id.endsWith('quick_poloidal');
-        const playing = window.GTCGlobal.snapshot_playing;
-        // quick: do not fft; playing: data scheme is different
-        let safety_factor = null;
-        if (playing) {
-            const fig_1 = document.getElementById('figure-1');
-            const fig_2 = document.getElementById('figure-2');
-            const [z] = figures.splice(
-                0,
-                1,
-                {
-                    data: fig_1.data,
-                    layout: fig_1.layout,
-                },
-                {
-                    data: fig_2.data,
-                    layout: fig_2.layout,
-                }
-            );
-            figures[0].data[1].z = z;
-        } else {
-            const res = await requestPlotData('plotType/Equilibrium', {
-                optional: true,
-            });
-            safety_factor = res.ok
-                ? (
-                      await (
-                          await requestPlotData('data/Equilibrium-1D-rg_n-q', {
-                              optional: true,
-                          })
-                      )?.json()
-                  )
-
-                      ?.at(0)
-                      ?.data?.at(0)
-                : null;
-        }
-        await snapshotPoloidal(figures, safety_factor, quick, playing);
-    }
-    GTCGlobal.current_snapshot_figure = btn;
 }
 
 function createEqPanel1D(xDataTypes, yDataTypes) {
