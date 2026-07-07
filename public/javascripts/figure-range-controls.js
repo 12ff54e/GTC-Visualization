@@ -40,8 +40,9 @@ function getVisibleFigureDivs() {
 // ------------------------------------------------------------------
 
 /**
- * Return the resolved axis layout object for a figure, preferring the
- * live `_fullLayout` (maintained by Plotly) over the static `layout`.
+ * Return the axis layout object for a figure.  Plotly mutates
+ * `figure.layout` on zoom/pan, so the live range is always available
+ * without reaching for internal properties like `_fullLayout`.
  *
  * @param {HTMLElement} figure - A Plotly figure container div.
  * @param {'x'|'y'} axisName
