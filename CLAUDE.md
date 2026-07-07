@@ -54,7 +54,8 @@ This is an Express.js app that visualizes GTC (Gyrokinetic Toroidal Code) simula
 
 ### Client-side (`public/`)
 
-- **`javascripts/index.js`** — Main module: figure lifecycle (openPanel, getDataThenPlot, cleanPlot, cleanPanel), bootstrap wiring, tab switching. Imports `state.js`, `util.js`, `api.js`, `units.js`, `figure-range-controls.js`, `status-bar.js`, `navigation.js`, `download.js`, `history-recal.js`, and `snapshot.js`.
+- **`javascripts/index.js`** — Bootstrap entry point (~115 lines): imports all modules and wires the `load` event handler (tab switches, snapshot buttons, unit chooser, download form, breadcrumbs). All logic is delegated to imported modules.
+- **`javascripts/figure-manager.js`** — Figure lifecycle core: `openPanel()` opens a tab panel and creates sub-plot buttons; `getDataThenPlot()` fetches data, pre-processes it, renders Plotly figures; `cleanPlot()` / `cleanPanel()` reset the figure wrapper and panel visibility. Orchestrates all plot-type-specific behaviour.
 - **`javascripts/status-bar.js`** — Application shell: `StatusBar` class (info/warn/err display), `getStatusBar()`, `wrap()` (async error handling), and `addLoadingIndicator()` (loading spinner wrapper). Used by virtually every other module; depends only on well-known DOM elements.
 - **`javascripts/navigation.js`** — Breadcrumb bar and copy-path button setup: fetches the server-side file tree on load, constructs dropdown folder lists for each breadcrumb segment, manages expand/collapse and click-outside-to-close behaviour. Called once from the `load` handler.
 - **`javascripts/download.js`** — GTC output file download form: `setupDownloadForm()` wires the expand/collapse file-list button and the "Download all/selected" submit buttons. Delegates the POST request to `api.downloadOutputFiles`.
@@ -66,7 +67,7 @@ This is an Express.js app that visualizes GTC (Gyrokinetic Toroidal Code) simula
 - **`javascripts/units.js`** — Time-unit conversion: `getBasicParameters()` fetches/caches simulation params; `refreshTimeUnitFactor()` recomputes conversion factors from base unit R₀/c_s to R₀/v_A, tstep, and μs; `applyTimeUnitToFigures()` rescales History/RadialTime x-axis values. Exports `TIME_UNIT_LABEL` for Plotly axis titles.
 - **`javascripts/figure-range-controls.js`** — Per-panel collapsible "Figure Range" controls: `ensurePlotRangeControls()` creates the container, `renderPlotRangeControls()` builds per-figure X/Y min/max input forms, `refreshPlotRangeControls()` syncs inputs from live Plotly axis ranges. Two-way sync via `plotly_relayout` events; also feeds history-mode zoom ranges into `state.hist_mode_range`.
 - **`javascripts/plot-data-process.js`** — Client-side computation: growth rate fitting for history mode data (`historyMode`, `cal_gamma`, `cal_omega_r`, `cal_spectrum`), particle tracking (`trackingPlot`), equilibrium simulation region overlay (`addSimulationRegion`). Imports array utilities from `util.js`.
-- **`javascripts/summary-generate.js`** — Renders the summary page from equilibrium data
+- **`javascripts/summary-generate.js`** — Summary page: `generateSummary(data)` renders the equilibrium summary; `buildSummaryPage(openPanel)` orchestrates data fetching + rendering and registers jump-to-plot buttons.
 - **`javascripts/drop-down.js`** — Folder browser dropdown interaction (loaded by `index.pug`, separate from the plot page)
 - **`javascripts/plotly-custom.min.js`** — Custom Plotly.js bundle (built from `custom-plotly/`)
 - **`javascripts/input-generate.js`** — GTC input file generator form
