@@ -10,7 +10,7 @@ import {
 import { generateSummary } from './summary-generate.js';
 import './state.js';
 import { callEventTarget } from './util.js';
-import { requestPlotData, downloadOutputFiles } from './api.js';
+import { requestPlotData } from './api.js';
 import {
     getBasicParameters,
     refreshTimeUnitFactor,
@@ -29,6 +29,8 @@ import {
     addLoadingIndicator,
 } from './status-bar.js';
 import { setupBreadcrumbs } from './navigation.js';
+import { setupDownloadForm } from './download.js';
+import { addHistoryRecal } from './history-recal.js';
 
 // StatusBar, getStatusBar, wrap, and addLoadingIndicator are now
 // imported from status-bar.js
@@ -105,7 +107,7 @@ window.addEventListener('load', () => {
         );
     }
 
-    addDownloadFunction();
+    setupDownloadForm();
 
     setupBreadcrumbs();
 });
@@ -113,45 +115,6 @@ window.addEventListener('load', () => {
 window.addEventListener('error', () => {
     getStatusBar().err = StatusBar.DEFAULT_ERROR;
 });
-
-function addDownloadFunction() {
-    // add GTC output file download cb
-    const downloadForm = document.querySelector('#download-output');
-    // button for expand/collapse file list
-    downloadForm.querySelector('button').addEventListener('click', e => {
-        e.preventDefault();
-        e.target.nextSibling.classList.toggle('select-show');
-    });
-    // submit file list for download
-    downloadForm.querySelectorAll('input').forEach(btn =>
-        btn.addEventListener(
-            'click',
-            wrap(async e => {
-                e.preventDefault();
-                const loading = downloadForm.querySelector('#download-overlay');
-                loading.style.visibility = 'initial';
-
-                const { blob, filename } = await downloadOutputFiles(
-                    document.querySelector('#output-tag').innerText,
-                    e.target.id.endsWith('all'),
-                    new FormData(downloadForm)
-                );
-
-                // create link for downloading file
-                const a = document.body.appendChild(
-                    document.createElement('a')
-                );
-                a.href = window.URL.createObjectURL(blob);
-                if (filename) {
-                    a.download = filename;
-                }
-                a.click();
-                a.remove();
-                loading.style.visibility = 'hidden';
-            })
-        )
-    );
-}
 
 function registerButtons(buttons, cb = getDataThenPlot) {
     buttons.forEach(btn => {
@@ -298,42 +261,6 @@ async function buildSummaryPage() {
             })
         );
     });
-}
-
-function addHistoryRecal(panel) {
-    const div = document.createElement('div');
-    const btn = document.createElement('button');
-    btn.innerText =
-        'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
-    btn.classList.add('tab-l1-btn');
-    btn.addEventListener(
-        'click',
-        wrap(async function () {
-            const figures = [1, 2, 3, 4].map(i =>
-                document.getElementById(`figure-${i}`)
-            );
-            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
-            await historyMode(
-                figures,
-                window.GTCGlobal.hist_mode_range.growthRate &&
-                    window.GTCGlobal.hist_mode_range.growthRate.map(
-                        i => i / len
-                    ),
-                window.GTCGlobal.hist_mode_range.frequency &&
-                    window.GTCGlobal.hist_mode_range.frequency.map(i => i / len)
-            );
-
-            figures.forEach(figure => {
-                Plotly.react(figure, figure.data, figure.layout);
-            });
-            refreshPlotRangeControls();
-        })
-    );
-
-    div.classList.add('dropdown');
-    div.style['overflow'] = 'hidden';
-    div.append(btn);
-    panel.prepend(div);
 }
 
 async function addSnapshotPlayer(panel, create_l1_group) {

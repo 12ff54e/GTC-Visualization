@@ -54,9 +54,11 @@ This is an Express.js app that visualizes GTC (Gyrokinetic Toroidal Code) simula
 
 ### Client-side (`public/`)
 
-- **`javascripts/index.js`** — Main module: figure lifecycle (openPanel, getDataThenPlot), bootstrap wiring, tab switching, download form. Imports `state.js`, `util.js`, `api.js`, `units.js`, `figure-range-controls.js`, `status-bar.js`, and `navigation.js`.
+- **`javascripts/index.js`** — Main module: figure lifecycle (openPanel, getDataThenPlot), bootstrap wiring, tab switching. Imports `state.js`, `util.js`, `api.js`, `units.js`, `figure-range-controls.js`, `status-bar.js`, and `navigation.js`.
 - **`javascripts/status-bar.js`** — Application shell: `StatusBar` class (info/warn/err display), `getStatusBar()`, `wrap()` (async error handling), and `addLoadingIndicator()` (loading spinner wrapper). Used by virtually every other module; depends only on well-known DOM elements.
 - **`javascripts/navigation.js`** — Breadcrumb bar and copy-path button setup: fetches the server-side file tree on load, constructs dropdown folder lists for each breadcrumb segment, manages expand/collapse and click-outside-to-close behaviour. Called once from the `load` handler.
+- **`javascripts/download.js`** — GTC output file download form: `setupDownloadForm()` wires the expand/collapse file-list button and the "Download all/selected" submit buttons. Delegates the POST request to `api.downloadOutputFiles`.
+- **`javascripts/history-recal.js`** — History-mode recalculate button: `addHistoryRecal(panel)` appends a "Recalculate growth rate and frequency" button that re-fits using the user's zoom range and re-renders the affected figures.
 - **`javascripts/state.js`** — Centralized application state object (replaces ad-hoc `window.GTCGlobal` properties). Documented with owning concern per property block (units, figure lifecycle, history mode, parameters, FFT). Also exposed as `window.GTCGlobal` for backward compatibility with modules not yet migrated to ES imports.
 - **`javascripts/util.js`** — Shared pure-utility functions with no app-state or DOM dependencies: `callEventTarget`, `propagateFetchError`, `nodeIs`, `postForm`, `min_max`, `interleave`, `unInterleave`.
 - **`javascripts/api.js`** — Server communication layer: `requestPlotData()` fetches plot data/metadata from the Express backend; `downloadOutputFiles()` POSTs a download request and returns the blob + filename. All fetch URL construction and error propagation lives here.
