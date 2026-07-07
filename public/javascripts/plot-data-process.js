@@ -1,6 +1,7 @@
 'use strict';
 
 import { interleave, unInterleave, min_max } from './util.js';
+import { getStatusBar } from './status-bar.js';
 
 export async function historyMode(
     figures,
@@ -186,13 +187,7 @@ export async function snapshotPoloidalPreview(figures) {
     });
 }
 
-export async function snapshotPoloidal(
-    figures,
-    statusBar,
-    safetyFactor,
-    quick,
-    playing
-) {
+export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
     const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
 
@@ -222,7 +217,7 @@ export async function snapshotPoloidal(
     ];
     const modeNum = selectedPoloidalModeNum.length;
     if (Math.floor(polNum / MIN_PTS) < Math.max(...selectedPoloidalModeNum)) {
-        statusBar.warn = 'm modes in gtc.in is too high!';
+        getStatusBar().warn = 'm modes in gtc.in is too high!';
     }
 
     const spectrumFigureData = [];

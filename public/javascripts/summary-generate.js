@@ -1,4 +1,6 @@
-export async function generateSummary(data, status_bar) {
+import { getStatusBar } from './status-bar.js';
+
+export async function generateSummary(data) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -181,7 +183,7 @@ export async function generateSummary(data, status_bar) {
 
     // check rg monotonicity
     if (data.rg.every((v, i, a) => !i || a[i - 1] <= v)) {
-        status_bar.warn = 'rg is not monotonic';
+        getStatusBar().warn = 'rg is not monotonic';
     }
 
     const particleLoading = (varName, pload) =>

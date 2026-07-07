@@ -27,59 +27,15 @@ import {
     renderPlotRangeControls,
     refreshPlotRangeControls,
 } from './figure-range-controls.js';
+import {
+    StatusBar,
+    getStatusBar,
+    wrap,
+    addLoadingIndicator,
+} from './status-bar.js';
 
-// status bar on top
-class StatusBar {
-    constructor(root) {
-        this.parent = root;
-        root.status = this;
-    }
-    toString() {
-        return (
-            (this.information
-                ? `<font color="green">${this.information}</font><br>`
-                : '') +
-            (this.warning
-                ? `<font color="darkYellow">${this.warning}</font><br>`
-                : '') +
-            (this.error ? `<font color="red">${this.error}</font><br>` : '')
-        );
-    }
-    show() {
-        this.parent.innerHTML = this;
-    }
-    /**
-     * @param {string} i
-     */
-    set info(i) {
-        this.information = i;
-        this.show();
-    }
-    /**
-     * @param {string} w
-     */
-    set warn(w) {
-        this.warning = w;
-        this.show();
-    }
-    /**
-     * @param {string} e
-     */
-    set err(e) {
-        this.error = e;
-        this.show();
-    }
-}
-Object.defineProperty(StatusBar, 'DEFAULT_ERROR', {
-    value: 'Oops, something wrong happened. Please check javascript console for more info.',
-    writable: false,
-    enumerable: true,
-    configurable: false,
-});
-
-function getStatusBar() {
-    return document.querySelector('#status').status;
-}
+// StatusBar, getStatusBar, wrap, and addLoadingIndicator are now
+// imported from status-bar.js
 
 // Global application state is now managed by state.js (imported above).
 // It is still accessible as `window.GTCGlobal` for backward compatibility
@@ -307,15 +263,6 @@ window.addEventListener('error', () => {
     getStatusBar().err = StatusBar.DEFAULT_ERROR;
 });
 
-// wrap async function for error handling
-function wrap(func) {
-    return (...args) =>
-        func(...args).catch(err => {
-            console.log(err);
-            getStatusBar().err = StatusBar.DEFAULT_ERROR;
-        });
-}
-
 function addDownloadFunction() {
     // add GTC output file download cb
     const downloadForm = document.querySelector('#download-output');
@@ -378,7 +325,7 @@ async function openPanel(clean_beforehand = true) {
     let panelName = `${majorType}-panel`;
 
     // modifies status bar
-    const statusBar = document.getElementById('status').status;
+    const statusBar = getStatusBar();
 
     cleanPanel();
     if (clean_beforehand) {
@@ -477,10 +424,7 @@ async function openPanel(clean_beforehand = true) {
 async function buildSummaryPage() {
     await getBasicParameters();
     const summary_data = await (await requestPlotData('Summary')).json();
-    const summaryContainer = await generateSummary(
-        summary_data,
-        getStatusBar()
-    );
+    const summaryContainer = await generateSummary(summary_data);
 
     if (summaryContainer === undefined) {
         // summary page is already generated
@@ -648,17 +592,6 @@ function cleanPanel() {
     summary.style.display = 'none';
 }
 
-function addLoadingIndicator(func) {
-    return async (...args) => {
-        const loading = document.querySelector('#loading');
-        loading.style.visibility = 'visible';
-
-        await func(...args);
-
-        loading.style.visibility = 'hidden';
-    };
-}
-
 async function getDataThenPlot(clean_beforehand = true) {
     if (clean_beforehand) {
         cleanPlot();
@@ -766,13 +699,7 @@ async function snapshotPreprocess(btn, figures) {
                       ?.data?.at(0)
                 : null;
         }
-        await snapshotPoloidal(
-            figures,
-            getStatusBar(),
-            safety_factor,
-            quick,
-            playing
-        );
+        await snapshotPoloidal(figures, safety_factor, quick, playing);
     }
     GTCGlobal.current_snapshot_figure = btn;
 }
