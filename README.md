@@ -30,4 +30,4 @@ Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
 You can also, and I suggest to, use process manager or init system to keep app ALWAYS running.
 
 ## What's behind the scene
-This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from [Huasheng Xie](http://hsxie.me/)'s Matlab program.
+This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from [Huasheng Xie](http://hsxie.github.io/)'s Matlab program.
