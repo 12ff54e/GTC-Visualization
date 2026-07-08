@@ -5,6 +5,7 @@
 // buildShaderProgram, createColorMap, packTextureArgs, getTicks,
 // getRationalSurface) have moved to snapshot.js
 
+import state from './state.js';
 import { interleave, unInterleave } from './util.js';
 export async function historyMode(
     figures,
@@ -24,7 +25,7 @@ export async function historyMode(
     // growth rate figure
     let { gamma, measurePts } = cal_gamma(
         growthFig.data[0].y,
-        window.GTCGlobal.timeStep,
+        state.timeStep,
         measure1
     );
     growthFig.data[1] = {
@@ -57,22 +58,22 @@ export async function historyMode(
     y0 = y0 == 0 ? 1 : y0;
     let yReals = componentsFig.data[0].y.map(
         (y, i) =>
-            y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0)
+            y / (Math.exp(gamma * (i + 1) * state.timeStep) * y0)
     );
     let yImages = componentsFig.data[1].y.map(
         (y, i) =>
-            y / (Math.exp(gamma * (i + 1) * window.GTCGlobal.timeStep) * y0)
+            y / (Math.exp(gamma * (i + 1) * state.timeStep) * y0)
     );
     let omega;
     ({ omega, measurePts } = cal_omega_r(
         yReals,
         yImages,
-        window.GTCGlobal.timeStep,
+        state.timeStep,
         measure2
     ));
     freqFig.data[0] = {
         x: [...Array(yReals.length).keys()].map(
-            i => (i + 1) * window.GTCGlobal.timeStep
+            i => (i + 1) * state.timeStep
         ),
         y: yReals,
         type: 'scatter',
@@ -80,7 +81,7 @@ export async function historyMode(
     };
     freqFig.data[1] = {
         x: [...Array(yReals.length).keys()].map(
-            i => (i + 1) * window.GTCGlobal.timeStep
+            i => (i + 1) * state.timeStep
         ),
         y: yImages,
         type: 'scatter',
@@ -110,7 +111,7 @@ export async function historyMode(
     let powerSpectrum = cal_spectrum(
         yReals,
         yImages,
-        window.GTCGlobal.timeStep,
+        state.timeStep,
         measure2
     );
     spectralFig.data[0] = Object.assign(powerSpectrum, {
@@ -143,10 +144,10 @@ export async function trackingPlot(figures) {
 }
 
 export function addSimulationRegion(fig) {
-    const [rg0, rg1] = GTCGlobal.basicParameters.radial_region;
+    const [rg0, rg1] = state.basicParameters.radial_region;
     const rgd =
         rg0 +
-        (GTCGlobal.basicParameters.diag_flux / GTCGlobal.basicParameters.mpsi) *
+        (state.basicParameters.diag_flux / state.basicParameters.mpsi) *
             (rg1 - rg0);
     const data = fig.data[0].y;
 

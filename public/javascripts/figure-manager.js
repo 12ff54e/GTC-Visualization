@@ -20,7 +20,7 @@
  * @module figure-manager
  */
 
-import './state.js';
+import state from './state.js';
 import { callEventTarget } from './util.js';
 import { requestPlotData } from './api.js';
 import {
@@ -76,7 +76,7 @@ export function cleanPlot() {
         }
     }
 
-    GTCGlobal.current_snapshot_figure = undefined;
+    state.current_snapshot_figure = undefined;
     renderPlotRangeControls();
 }
 
@@ -132,7 +132,7 @@ export async function openPanel(clean_beforehand = true) {
     let panel = document.getElementById(panelName);
     panel.style.opacity = 1;
     panel.style.zIndex = 2;
-    window.GTCGlobal.activePanel = panel;
+    state.activePanel = panel;
     ensurePlotRangeControls(panel);
 
     // inform the server about which .out file should be parsed
@@ -240,10 +240,10 @@ export async function getDataThenPlot(clean_beforehand = true) {
     await refreshTimeUnitFactor();
 
     const res = await requestPlotData(`data/${this.id}`, {
-        query: window.GTCGlobal.snapshot_playing ? '&snapshot_playing' : '',
+        query: state.snapshot_playing ? '&snapshot_playing' : '',
     });
     let figures = await res.json();
-    window.GTCGlobal.current_plot_btn = this;
+    state.current_plot_btn = this;
 
     // apply currently selected time unit to figures before plotting / postprocessing
     applyTimeUnitToFigures(this.id, figures);
@@ -256,8 +256,8 @@ export async function getDataThenPlot(clean_beforehand = true) {
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
-        window.GTCGlobal.hist_mode_range.frequency = undefined;
-        window.GTCGlobal.hist_mode_range.growthRate = undefined;
+        state.hist_mode_range.frequency = undefined;
+        state.hist_mode_range.growthRate = undefined;
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);

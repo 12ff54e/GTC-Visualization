@@ -11,7 +11,7 @@
  * @module index
  */
 
-import './state.js';
+import state from './state.js';
 import { callEventTarget } from './util.js';
 import { refreshTimeUnitFactor, TIME_UNIT_LABEL } from './units.js';
 import {
@@ -48,12 +48,12 @@ window.addEventListener('load', () => {
     timeUnitSelect.addEventListener(
         'change',
         wrap(async e => {
-            window.GTCGlobal.units.time = e.target.value;
+            state.units.time = e.target.value;
             await refreshTimeUnitFactor();
 
-            if (window.GTCGlobal.current_plot_btn) {
+            if (state.current_plot_btn) {
                 await addLoadingIndicator(
-                    getDataThenPlot.bind(window.GTCGlobal.current_plot_btn)
+                    getDataThenPlot.bind(state.current_plot_btn)
                 )();
             }
         })
@@ -93,7 +93,7 @@ window.addEventListener('load', () => {
                     b.classList.remove('snapshot-selected');
                 }
                 e.target.classList.add('snapshot-selected');
-                window.GTCGlobal.current_snapshot = e.target;
+                state.current_snapshot = e.target;
                 await addLoadingIndicator(callEventTarget(openPanel))(e);
             })
         );

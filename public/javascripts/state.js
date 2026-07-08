@@ -3,15 +3,13 @@
 /**
  * Centralized application state for the GTC Visualization plot page.
  *
- * Each property block is annotated with its owning concern.  Modules that
- * have not yet been migrated to ES module imports can continue to access
- * this object through the backward-compatible `window.GTCGlobal` alias.
+ * Each property block is annotated with its owning concern.  All modules
+ * import `state` directly via ES modules.  The object is also exposed as
+ * `window.GTCGlobal` for interactive inspection in the browser console.
  *
  * To add a new piece of state:
  *   1. Add the property below in the appropriate section.
  *   2. Document its type, default value, and owning module.
- *   3. Prefer importing `state` directly in new code rather than reaching
- *      for `window.GTCGlobal`.
  *
  * @module state
  */
@@ -119,9 +117,8 @@ const state = {
     rational_surface_count: 0,
 };
 
-// Backward-compatible global alias — allows non-module code and code in
-// plot-data-process.js / summary-generate.js to continue referencing
-// `window.GTCGlobal` / `GTCGlobal` without changes.
+// Exposed for interactive inspection in the browser console.
+// All production code imports `state` directly via ES modules.
 window.GTCGlobal = state;
 
 export default state;

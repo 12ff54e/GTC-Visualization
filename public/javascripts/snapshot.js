@@ -83,7 +83,7 @@ function getRationalSurface(safetyFactor, n_modes, m_modes) {
         y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
 
     const result = [];
-    const [r0, r1] = window.GTCGlobal.basicParameters.radial_region;
+    const [r0, r1] = state.basicParameters.radial_region;
     for (let i = 0; i < safetyFactor.x.length - 1; ++i) {
         if (safetyFactor.x[i + 1] < r0 || safetyFactor.x[i] > r1) {
             continue;
@@ -523,8 +523,8 @@ export async function snapshotPoloidal(
     const flattenedField = figures[0].data[1].z;
     const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
     const diagFlux =
-        GTCGlobal.basicParameters.diag_flux ??
-        GTCGlobal.basicParameters.iflux;
+        state.basicParameters.diag_flux ??
+        state.basicParameters.iflux;
 
     if (!playing) {
         drawPoloidalDataPlotly(
@@ -542,7 +542,7 @@ export async function snapshotPoloidal(
 
     // calculate spectrum profile on radial grids
     const selectedPoloidalModeNum = [
-        ...new Set(window.GTCGlobal.basicParameters.mmodes),
+        ...new Set(state.basicParameters.mmodes),
     ];
     const modeNum = selectedPoloidalModeNum.length;
     if (
@@ -566,11 +566,11 @@ export async function snapshotPoloidal(
         });
     }
 
-    if (!window.GTCGlobal.fftPlan) {
+    if (!state.fftPlan) {
         const planConstructor = fftw['r2c']['fft1d'];
-        window.GTCGlobal.fftPlan = new planConstructor(polNum);
+        state.fftPlan = new planConstructor(polNum);
     }
-    const plan = window.GTCGlobal.fftPlan;
+    const plan = state.fftPlan;
 
     const extra_spectrum_data = Array.from(
         { length: polNum / MIN_PTS },
@@ -667,7 +667,7 @@ export async function snapshotPoloidal(
 
     const RS_POINT_NUM = 20;
     if (playing) {
-        for (let i = 0; i < GTCGlobal.rational_surface_count + 1; i++) {
+        for (let i = 0; i < state.rational_surface_count + 1; i++) {
             const vl = figures[1].data[i];
             if (i == 0) {
                 vl.y = limits;
@@ -683,14 +683,14 @@ export async function snapshotPoloidal(
         const rational_surface = safetyFactor
             ? getRationalSurface(
                   safetyFactor,
-                  window.GTCGlobal.basicParameters.nmodes,
-                  window.GTCGlobal.basicParameters.mmodes
+                  state.basicParameters.nmodes,
+                  state.basicParameters.mmodes
               )
             : [];
-        GTCGlobal.rational_surface_count = rational_surface.length;
+        state.rational_surface_count = rational_surface.length;
         spectrumFigureData.unshift(
             ...rational_surface.map(({ n, m, r }) => {
-                const pos = window.GTCGlobal.basicParameters.mpsi * r;
+                const pos = state.basicParameters.mpsi * r;
                 return {
                     name: `${n},${m} surface`,
                     x: Array(RS_POINT_NUM).fill(pos),
@@ -715,8 +715,8 @@ export async function snapshotPoloidal(
         spectrumFigureData.unshift({
             name: 'Diagnostic Flux',
             x: [
-                GTCGlobal.basicParameters.diag_flux,
-                GTCGlobal.basicParameters.diag_flux,
+                state.basicParameters.diag_flux,
+                state.basicParameters.diag_flux,
             ],
             y: limits,
             mode: 'lines',
@@ -730,7 +730,7 @@ export async function snapshotPoloidal(
     }
     // add control buttons
     // traces: diag flux | rational surfaces | selected m modes (real, imag, modulus) | some largest m modes
-    const pre_len = 1 + GTCGlobal.rational_surface_count;
+    const pre_len = 1 + state.rational_surface_count;
     const step3_pick = i =>
         Array.from(
             spectrumFigureData,
@@ -741,7 +741,7 @@ export async function snapshotPoloidal(
         );
     if (playing) {
         figures[1].data.splice(
-            1 + GTCGlobal.rational_surface_count,
+            1 + state.rational_surface_count,
             Infinity,
             ...spectrumFigureData
         );
@@ -763,7 +763,7 @@ export async function snapshotPoloidal(
                             {
                                 'xaxis.range': [
                                     0,
-                                    window.GTCGlobal.basicParameters.mpsi,
+                                    state.basicParameters.mpsi,
                                 ],
                                 'yaxis.range': extend_range(
                                     min_values[i],
@@ -788,10 +788,10 @@ export async function snapshotPoloidal(
                                 (_, ind) =>
                                     ind <
                                         1 +
-                                            GTCGlobal.rational_surface_count ||
+                                            state.rational_surface_count ||
                                     ind >=
                                         1 +
-                                            GTCGlobal.rational_surface_count +
+                                            state.rational_surface_count +
                                             3 *
                                                 selectedPoloidalModeNum.length
                             ),
@@ -799,7 +799,7 @@ export async function snapshotPoloidal(
                         {
                             'xaxis.range': [
                                 0,
-                                window.GTCGlobal.basicParameters.mpsi,
+                                state.basicParameters.mpsi,
                             ],
                             'yaxis.range': extend_range(
                                 0,

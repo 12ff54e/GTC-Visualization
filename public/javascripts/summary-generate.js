@@ -1,3 +1,4 @@
+import state from './state.js';
 import { getStatusBar, wrap, addLoadingIndicator } from './status-bar.js';
 import { getBasicParameters } from './units.js';
 import { requestPlotData } from './api.js';
@@ -18,7 +19,7 @@ export async function generateSummary(data) {
         return p;
     };
 
-    const bp = GTCGlobal.basicParameters;
+    const bp = state.basicParameters;
     const basicInfo = `This is a ${bp.nonlinear ? 'non' : ''}linear electro${
         bp.magnetic ? 'magnetic' : 'static'
     } run. The equilibrium is ${
