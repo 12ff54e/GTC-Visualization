@@ -38,8 +38,8 @@
     content: ' \2BC8';
 }
 #breadcrumb-container > span.breadcrumb-item:last-child::after {
-    /* No path separator after last segment */
-    content: '';
+    /* Not showing path separator after last segment, but keep it due to align issue */
+    color: transparent;
 }
 .breadcrumb-item {
     cursor: pointer;
