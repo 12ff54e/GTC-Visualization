@@ -689,6 +689,152 @@ function updateHistoryModeRangeFromRelayout(figure, eventData) {
         extractRelayoutRange(eventData, 'x') ?? getFigureAxisRange(figure, 'x');
 }
 
+function shouldAdjustColorRange() {
+    const currentPlotId = window.GTCGlobal.current_plot_btn?.id;
+    return (
+        currentPlotId?.startsWith('Snapshot') ||
+        currentPlotId?.startsWith('RadialTime')
+    );
+}
+
+function numericRange(range) {
+    if (!range) {
+        return;
+    }
+    return [Math.min(range[0], range[1]), Math.max(range[0], range[1])];
+}
+
+function defaultAxisValues(length) {
+    return Array.from({ length }, (_, i) => i);
+}
+
+function getTraceAxisValues(trace, axisName, length) {
+    const values = trace?.[axisName];
+    return Array.isArray(values) && values.length === length
+        ? values.map(Number)
+        : defaultAxisValues(length);
+}
+
+function getVisibleHeatmapZValues(trace, xRange, yRange) {
+    const z = trace?.z;
+    if (!Array.isArray(z) || !z.length) {
+        return [];
+    }
+
+    const rowCount = z.length;
+    const columnCount = Math.max(...z.map(row => row?.length ?? 0));
+    const xLength = trace.transpose ? rowCount : columnCount;
+    const yLength = trace.transpose ? columnCount : rowCount;
+    const xValues = getTraceAxisValues(trace, 'x', xLength);
+    const yValues = getTraceAxisValues(trace, 'y', yLength);
+    const values = [];
+
+    z.forEach((row, rowIndex) => {
+        if (!Array.isArray(row)) {
+            return;
+        }
+        row.forEach((value, columnIndex) => {
+            const xValue = trace.transpose
+                ? xValues[rowIndex]
+                : xValues[columnIndex];
+            const yValue = trace.transpose
+                ? yValues[columnIndex]
+                : yValues[rowIndex];
+            if (
+                xValue >= xRange[0] &&
+                xValue <= xRange[1] &&
+                yValue >= yRange[0] &&
+                yValue <= yRange[1] &&
+                Number.isFinite(Number(value))
+            ) {
+                values.push(Number(value));
+            }
+        });
+    });
+
+    return values;
+}
+
+function getVisibleContourCarpetZValues(figure, trace, xRange, yRange) {
+    const z = trace?.z;
+    const carpet = figure.data?.find(
+        candidate =>
+            candidate.type === 'carpet' && candidate.carpet === trace.carpet
+    );
+    const xs = carpet?.x;
+    const ys = carpet?.y;
+    if (!Array.isArray(z) || !Array.isArray(xs) || !Array.isArray(ys)) {
+        return [];
+    }
+
+    const values = [];
+    z.forEach((row, rowIndex) => {
+        if (!Array.isArray(row)) {
+            return;
+        }
+        row.forEach((value, columnIndex) => {
+            const xValue = Number(xs[rowIndex]?.[columnIndex]);
+            const yValue = Number(ys[rowIndex]?.[columnIndex]);
+            if (
+                xValue >= xRange[0] &&
+                xValue <= xRange[1] &&
+                yValue >= yRange[0] &&
+                yValue <= yRange[1] &&
+                Number.isFinite(Number(value))
+            ) {
+                values.push(Number(value));
+            }
+        });
+    });
+
+    return values;
+}
+
+function getVisibleTraceZValues(figure, trace, xRange, yRange) {
+    if (trace.type === 'heatmap' || trace.type === 'contour') {
+        return getVisibleHeatmapZValues(trace, xRange, yRange);
+    }
+    if (trace.type === 'contourcarpet') {
+        return getVisibleContourCarpetZValues(figure, trace, xRange, yRange);
+    }
+    return [];
+}
+
+function adjustFigureColorRange(figure) {
+    if (!shouldAdjustColorRange()) {
+        return;
+    }
+
+    const xRange = numericRange(getFigureAxisRange(figure, 'x'));
+    const yRange = numericRange(getFigureAxisRange(figure, 'y'));
+    if (!xRange || !yRange) {
+        return;
+    }
+
+    figure.data?.forEach((trace, traceIndex) => {
+        if (!trace.colorbar || !trace.z) {
+            return;
+        }
+
+        const values = getVisibleTraceZValues(figure, trace, xRange, yRange);
+        if (!values.length) {
+            return;
+        }
+
+        const zMin = Math.min(...values);
+        const zMax = Math.max(...values);
+        if (!Number.isFinite(zMin) || !Number.isFinite(zMax) || zMin === zMax) {
+            return;
+        }
+
+        Plotly.restyle(
+            figure,
+            { zmin: [zMin], zmax: [zMax], zauto: [false] },
+            [traceIndex]
+        );
+    });
+}
+
 function bindFigureRangeSync(figure) {
     if (figure.dataset.rangeSyncBound === 'true') {
         return;
@@ -698,6 +844,7 @@ function bindFigureRangeSync(figure) {
     figure.on('plotly_relayout', eventData => {
         syncFigureRangeControlInputs(figure);
         updateHistoryModeRangeFromRelayout(figure, eventData);
+        adjustFigureColorRange(figure);
     });
 }
 
