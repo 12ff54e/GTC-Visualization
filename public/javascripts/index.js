@@ -80,6 +80,7 @@ window.GTCGlobal.hist_mode_range = {
     growthRate: undefined,
     frequency: undefined,
 };
+window.GTCGlobal.pendingHistoryModeIntervals = undefined;
 
 window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
@@ -95,6 +96,32 @@ window.addEventListener('load', () => {
     timeUnitSelect.addEventListener(
         'change',
         wrap(async e => {
+            // Capture the current time-axis range on each visible figure so
+            // we can restore the user's chosen window after the figures are
+            // replotted in the new unit. We identify time-axis figures by
+            // their x-axis title text matching a known time-unit label.
+            const oldUnit = window.GTCGlobal.units.time;
+            const oldFactor =
+                window.GTCGlobal.timeUnitFactor?.[oldUnit] ?? 1;
+            const timeUnitLabels = new Set(Object.values(TIME_UNIT_LABEL));
+            const previousRanges = getVisibleFigureDivs()
+                .filter(fig => {
+                    const titleText =
+                        getFigureAxisLayout(fig, 'x')?.title?.text;
+                    return timeUnitLabels.has(titleText);
+                })
+                .map(fig => ({
+                    id: fig.id,
+                    range: getFigureAxisRange(fig, 'x'),
+                }))
+                .filter(entry => entry.range);
+            const currentPlotId = window.GTCGlobal.current_plot_btn?.id;
+            window.GTCGlobal.pendingHistoryModeIntervals =
+                currentPlotId?.startsWith('History') &&
+                currentPlotId.includes('-mode')
+                    ? getDisplayedHistoryModeIntervals()
+                    : undefined;
+
             window.GTCGlobal.units.time = e.target.value;
             await refreshTimeUnitFactor();
 
@@ -102,6 +129,30 @@ window.addEventListener('load', () => {
                 await addLoadingIndicator(
                     getDataThenPlot.bind(window.GTCGlobal.current_plot_btn)
                 )();
+
+                const newFactor =
+                    window.GTCGlobal.timeUnitFactor?.[e.target.value] ?? 1;
+                const ratio = newFactor / oldFactor;
+                if (
+                    Number.isFinite(ratio) &&
+                    ratio !== 0 &&
+                    ratio !== 1
+                ) {
+                    await Promise.all(
+                        previousRanges.map(({ id, range }) => {
+                            const fig = document.getElementById(id);
+                            if (!fig) return Promise.resolve();
+                            return Plotly.relayout(fig, {
+                                'xaxis.range': [
+                                    range[0] * ratio,
+                                    range[1] * ratio,
+                                ],
+                                'xaxis.autorange': false,
+                            });
+                        })
+                    );
+                    refreshPlotRangeControls();
+                }
             }
         })
     );
@@ -524,6 +575,47 @@ function getFigureAxisRange(figure, axisName) {
     }
 }
 
+function normalizeRangeToUnitInterval(range, xs) {
+    if (
+        !Array.isArray(range) ||
+        range.length !== 2 ||
+        !Array.isArray(xs) ||
+        !xs.length
+    ) {
+        return;
+    }
+
+    let startIndex = 0;
+    while (startIndex < xs.length - 1 && xs[startIndex] < range[0]) {
+        startIndex++;
+    }
+
+    let endIndex = xs.length - 1;
+    while (endIndex > 0 && xs[endIndex] > range[1]) {
+        endIndex--;
+    }
+
+    if (startIndex > endIndex) {
+        return;
+    }
+
+    return [startIndex / xs.length, (endIndex + 1) / xs.length];
+}
+
+function getDisplayedHistoryModeIntervals() {
+    const getFigureInterval = figureId => {
+        const figure = document.getElementById(figureId);
+        const range = getFigureAxisRange(figure, 'x');
+        const xs = figure?.data?.[0]?.x;
+        return normalizeRangeToUnitInterval(range, xs);
+    };
+
+    return {
+        growthRate: getFigureInterval('figure-2'),
+        frequency: getFigureInterval('figure-3'),
+    };
+}
+
 function formatRangeValue(value) {
     const numericValue = Number(value);
     if (!Number.isFinite(numericValue)) {
@@ -597,6 +689,152 @@ function updateHistoryModeRangeFromRelayout(figure, eventData) {
         extractRelayoutRange(eventData, 'x') ?? getFigureAxisRange(figure, 'x');
 }
 
+function shouldAdjustColorRange() {
+    const currentPlotId = window.GTCGlobal.current_plot_btn?.id;
+    return (
+        currentPlotId?.startsWith('Snapshot') ||
+        currentPlotId?.startsWith('RadialTime')
+    );
+}
+
+function numericRange(range) {
+    if (!range) {
+        return;
+    }
+    return [Math.min(range[0], range[1]), Math.max(range[0], range[1])];
+}
+
+function defaultAxisValues(length) {
+    return Array.from({ length }, (_, i) => i);
+}
+
+function getTraceAxisValues(trace, axisName, length) {
+    const values = trace?.[axisName];
+    return Array.isArray(values) && values.length === length
+        ? values.map(Number)
+        : defaultAxisValues(length);
+}
+
+function getVisibleHeatmapZValues(trace, xRange, yRange) {
+    const z = trace?.z;
+    if (!Array.isArray(z) || !z.length) {
+        return [];
+    }
+
+    const rowCount = z.length;
+    const columnCount = Math.max(...z.map(row => row?.length ?? 0));
+    const xLength = trace.transpose ? rowCount : columnCount;
+    const yLength = trace.transpose ? columnCount : rowCount;
+    const xValues = getTraceAxisValues(trace, 'x', xLength);
+    const yValues = getTraceAxisValues(trace, 'y', yLength);
+    const values = [];
+
+    z.forEach((row, rowIndex) => {
+        if (!Array.isArray(row)) {
+            return;
+        }
+        row.forEach((value, columnIndex) => {
+            const xValue = trace.transpose
+                ? xValues[rowIndex]
+                : xValues[columnIndex];
+            const yValue = trace.transpose
+                ? yValues[columnIndex]
+                : yValues[rowIndex];
+            if (
+                xValue >= xRange[0] &&
+                xValue <= xRange[1] &&
+                yValue >= yRange[0] &&
+                yValue <= yRange[1] &&
+                Number.isFinite(Number(value))
+            ) {
+                values.push(Number(value));
+            }
+        });
+    });
+
+    return values;
+}
+
+function getVisibleContourCarpetZValues(figure, trace, xRange, yRange) {
+    const z = trace?.z;
+    const carpet = figure.data?.find(
+        candidate =>
+            candidate.type === 'carpet' && candidate.carpet === trace.carpet
+    );
+    const xs = carpet?.x;
+    const ys = carpet?.y;
+    if (!Array.isArray(z) || !Array.isArray(xs) || !Array.isArray(ys)) {
+        return [];
+    }
+
+    const values = [];
+    z.forEach((row, rowIndex) => {
+        if (!Array.isArray(row)) {
+            return;
+        }
+        row.forEach((value, columnIndex) => {
+            const xValue = Number(xs[rowIndex]?.[columnIndex]);
+            const yValue = Number(ys[rowIndex]?.[columnIndex]);
+            if (
+                xValue >= xRange[0] &&
+                xValue <= xRange[1] &&
+                yValue >= yRange[0] &&
+                yValue <= yRange[1] &&
+                Number.isFinite(Number(value))
+            ) {
+                values.push(Number(value));
+            }
+        });
+    });
+
+    return values;
+}
+
+function getVisibleTraceZValues(figure, trace, xRange, yRange) {
+    if (trace.type === 'heatmap' || trace.type === 'contour') {
+        return getVisibleHeatmapZValues(trace, xRange, yRange);
+    }
+    if (trace.type === 'contourcarpet') {
+        return getVisibleContourCarpetZValues(figure, trace, xRange, yRange);
+    }
+    return [];
+}
+
+function adjustFigureColorRange(figure) {
+    if (!shouldAdjustColorRange()) {
+        return;
+    }
+
+    const xRange = numericRange(getFigureAxisRange(figure, 'x'));
+    const yRange = numericRange(getFigureAxisRange(figure, 'y'));
+    if (!xRange || !yRange) {
+        return;
+    }
+
+    figure.data?.forEach((trace, traceIndex) => {
+        if (!trace.colorbar || !trace.z) {
+            return;
+        }
+
+        const values = getVisibleTraceZValues(figure, trace, xRange, yRange);
+        if (!values.length) {
+            return;
+        }
+
+        const zMin = Math.min(...values);
+        const zMax = Math.max(...values);
+        if (!Number.isFinite(zMin) || !Number.isFinite(zMax) || zMin === zMax) {
+            return;
+        }
+
+        Plotly.restyle(
+            figure,
+            { zmin: [zMin], zmax: [zMax], zauto: [false] },
+            [traceIndex]
+        );
+    });
+}
+
 function bindFigureRangeSync(figure) {
     if (figure.dataset.rangeSyncBound === 'true') {
         return;
@@ -606,6 +844,7 @@ function bindFigureRangeSync(figure) {
     figure.on('plotly_relayout', eventData => {
         syncFigureRangeControlInputs(figure);
         updateHistoryModeRangeFromRelayout(figure, eventData);
+        adjustFigureColorRange(figure);
     });
 }
 
@@ -937,15 +1176,11 @@ function addHistoryRecal(panel) {
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
-            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
+            const displayedIntervals = getDisplayedHistoryModeIntervals();
             await historyMode(
                 figures,
-                window.GTCGlobal.hist_mode_range.growthRate &&
-                    window.GTCGlobal.hist_mode_range.growthRate.map(
-                        i => i / len
-                    ),
-                window.GTCGlobal.hist_mode_range.frequency &&
-                    window.GTCGlobal.hist_mode_range.frequency.map(i => i / len)
+                displayedIntervals.growthRate,
+                displayedIntervals.frequency
             );
 
             figures.forEach(figure => {
@@ -1118,9 +1353,12 @@ async function getDataThenPlot(clean_beforehand = true) {
         recalculate.classList.remove('active');
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        await historyMode(figures);
-        window.GTCGlobal.hist_mode_range.frequency = undefined;
-        window.GTCGlobal.hist_mode_range.growthRate = undefined;
+        const pendingIntervals = window.GTCGlobal.pendingHistoryModeIntervals;
+        await historyMode(
+            figures,
+            pendingIntervals?.growthRate,
+            pendingIntervals?.frequency
+        );
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);
@@ -1157,6 +1395,18 @@ async function getDataThenPlot(clean_beforehand = true) {
                 : Promise.resolve();
         })
     );
+
+    if (this.id.startsWith('History') && this.id.includes('-mode')) {
+        window.GTCGlobal.hist_mode_range.growthRate = getFigureAxisRange(
+            document.getElementById('figure-2'),
+            'x'
+        );
+        window.GTCGlobal.hist_mode_range.frequency = getFigureAxisRange(
+            document.getElementById('figure-3'),
+            'x'
+        );
+        window.GTCGlobal.pendingHistoryModeIntervals = undefined;
+    }
 
     refreshPlotRangeControls();
 }
