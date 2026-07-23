@@ -6,8 +6,9 @@ const packName = 'GTC-Visualization.tar.gz';
 const fileList = [
     'public/fonts',
     'public/input',
-    'public/javascripts/bundle.js',
     'public/javascripts/components/gtc-output-picker.js',
+    'public/javascripts/gtc-input',
+    'public/javascripts/bundle.js',
     'public/libs',
     'public/shader',
     'public/stylesheets',
