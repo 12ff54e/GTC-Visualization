@@ -11,7 +11,7 @@ window.addEventListener('load', ev => {
     const input_area = form.firstElementChild;
     form.parentElement.style.display = 'block';
 
-    fetch(`/javascripts/input-parameters-v${ver}.json`)
+    fetch(`/javascripts/gtc-input/input-parameters-v${ver}.json`)
         .then(res => {
             if (res.ok) {
                 return res.json();

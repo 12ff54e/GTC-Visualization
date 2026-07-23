@@ -11,7 +11,7 @@
  */
 
 import { wrap } from './status-bar.js';
-import { downloadOutputFiles } from './api.js';
+import { downloadOutputFiles } from '../shared/api.js';
 
 /**
  * Attach event listeners to the download form (`#download-output`).
@@ -32,9 +32,7 @@ export function setupDownloadForm() {
             'click',
             wrap(async e => {
                 e.preventDefault();
-                const loading = downloadForm.querySelector(
-                    '#download-overlay'
-                );
+                const loading = downloadForm.querySelector('#download-overlay');
                 loading.style.visibility = 'initial';
 
                 const { blob, filename } = await downloadOutputFiles(

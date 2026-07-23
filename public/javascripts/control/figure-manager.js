@@ -21,31 +21,35 @@
  */
 
 import state from './state.js';
-import { callEventTarget } from './util.js';
-import { requestPlotData } from './api.js';
+import { callEventTarget } from '../shared/util.js';
+import { requestPlotData } from '../shared/api.js';
 import {
     getBasicParameters,
     refreshTimeUnitFactor,
     applyTimeUnitToFigures,
-} from './units.js';
+} from '../components/units.js';
 import {
     ensurePlotRangeControls,
     renderPlotRangeControls,
     refreshPlotRangeControls,
-} from './figure-range-controls.js';
-import { getStatusBar, wrap, addLoadingIndicator } from './status-bar.js';
-import { addHistoryRecal } from './history-recal.js';
+} from '../components/figure-range-controls.js';
+import {
+    getStatusBar,
+    wrap,
+    addLoadingIndicator,
+} from '../components/status-bar.js';
+import { addHistoryRecal } from '../plotting/history-recal.js';
 import {
     snapshotPreprocess,
     addSnapshotPlayer,
     snapshotPoloidalPreview,
-} from './snapshot.js';
+} from '../plotting/snapshot.js';
 import {
     historyMode,
     trackingPlot,
     addSimulationRegion,
-} from './plot-data-process.js';
-import { buildSummaryPage } from './summary-generate.js';
+} from '../plotting/plot-data-process.js';
+import { buildSummaryPage } from '../plotting/summary-generate.js';
 
 // ------------------------------------------------------------------
 //  Helpers
@@ -211,9 +215,8 @@ export async function openPanel(clean_beforehand = true) {
                     })
                 );
                 btn.addEventListener('mouseleave', ev => {
-                    document.querySelector(
-                        '#poloidal-preview'
-                    ).style.display = 'none';
+                    document.querySelector('#poloidal-preview').style.display =
+                        'none';
                 });
             }
         });
@@ -345,8 +348,7 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
     });
 
     // register form submit behaviour
-    const form =
-        document.getElementById('Equilibrium-panel').firstElementChild;
+    const form = document.getElementById('Equilibrium-panel').firstElementChild;
     form.addEventListener(
         'submit',
         wrap(async e => {

@@ -18,10 +18,10 @@
  * @module snapshot
  */
 
-import state from './state.js';
-import { requestPlotData } from './api.js';
-import { getStatusBar } from './status-bar.js';
-import { interleave, unInterleave, min_max } from './util.js';
+import state from '../control/state.js';
+import { requestPlotData } from '../shared/api.js';
+import { getStatusBar } from '../components/status-bar.js';
+import { interleave, unInterleave, min_max } from '../shared/util.js';
 
 // ==================================================================
 //  Internal helpers
@@ -189,10 +189,8 @@ function createColorMap(gl, ctx, data, corner, dim, bounding_box, z_range) {
         vertex_data[3 * (2 * i) + 2] = z0 + (Math.floor(i / 2) + 0.5) * dz;
 
         vertex_data[3 * (2 * i + 1)] = x1;
-        vertex_data[3 * (2 * i + 1) + 1] =
-            y0 + Math.floor((i + 1) / 2) * dy;
-        vertex_data[3 * (2 * i + 1) + 2] =
-            z0 + (Math.floor(i / 2) + 0.5) * dz;
+        vertex_data[3 * (2 * i + 1) + 1] = y0 + Math.floor((i + 1) / 2) * dy;
+        vertex_data[3 * (2 * i + 1) + 2] = z0 + (Math.floor(i / 2) + 0.5) * dz;
 
         const idx = Math.floor((4 * Math.floor((i * 3) / 2)) / 3);
         element_data[3 * i] = idx;
@@ -312,9 +310,7 @@ async function drawPoloidalDataWebGL(container, data) {
     const figure_canvas = (id =>
         document.getElementById(id) ?? create_canvas(id))('pol-canvas');
     const overlay_canvas = (id =>
-        document.getElementById(id) ?? create_canvas(id))(
-        'pol-canvas-overlay'
-    );
+        document.getElementById(id) ?? create_canvas(id))('pol-canvas-overlay');
     if (container.childElementCount == 0) {
         container.append(figure_canvas, overlay_canvas);
     }
@@ -333,8 +329,8 @@ async function drawPoloidalDataWebGL(container, data) {
     const z_range = min_max(z);
 
     const color_map_data = new Uint8Array([
-        45, 77, 238, 97, 122, 242, 150, 166, 246, 202, 210, 250, 255, 255,
-        255, 243, 199, 201, 231, 144, 148, 220, 89, 95, 208, 34, 41,
+        45, 77, 238, 97, 122, 242, 150, 166, 246, 202, 210, 250, 255, 255, 255,
+        243, 199, 201, 231, 144, 148, 220, 89, 95, 208, 34, 41,
     ]);
     const legend_width = 0.1 * (x_max - x_min);
     const legend_left_padding = 0.1 * (x_max - x_min);
@@ -373,26 +369,18 @@ async function drawPoloidalDataWebGL(container, data) {
 
     gl.useProgram(shader_program);
     for (const [key, val] of Object.entries(bounding_box)) {
-        gl.uniform2f(
-            gl.getUniformLocation(shader_program, key),
-            ...val
-        );
+        gl.uniform2f(gl.getUniformLocation(shader_program, key), ...val);
     }
     gl.uniform2f(
         gl.getUniformLocation(shader_program, 'resolution'),
         figure_canvas.width,
         figure_canvas.height
     );
-    gl.uniform1i(
-        gl.getUniformLocation(shader_program, 'color_map'),
-        0
-    );
+    gl.uniform1i(gl.getUniformLocation(shader_program, 'color_map'), 0);
 
     const grid_num = radNum * (polNum + 1);
     const color_map_vertex_num = 2 * (color_map_data.length / 3 - 1);
-    const grid_coords = new Float32Array(
-        (grid_num + color_map_vertex_num) * 3
-    );
+    const grid_coords = new Float32Array((grid_num + color_map_vertex_num) * 3);
     for (let i = 0; i < grid_num; ++i) {
         grid_coords[i * 3] = x[i];
         grid_coords[i * 3 + 1] = y[i];
@@ -404,8 +392,7 @@ async function drawPoloidalDataWebGL(container, data) {
         for (let p = 0; p <= polNum; ++p) {
             const idx = r * (polNum + 1) + p;
             triangle_stride_vertex_indices[2 * idx] = idx;
-            triangle_stride_vertex_indices[2 * idx + 1] =
-                idx + (polNum + 1);
+            triangle_stride_vertex_indices[2 * idx + 1] = idx + (polNum + 1);
         }
     }
 
@@ -433,12 +420,7 @@ async function drawPoloidalDataWebGL(container, data) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.bindVertexArray(VAO);
-    gl.drawElements(
-        gl.TRIANGLE_STRIP,
-        element_num,
-        gl.UNSIGNED_INT,
-        0
-    );
+    gl.drawElements(gl.TRIANGLE_STRIP, element_num, gl.UNSIGNED_INT, 0);
     color_map.draw();
 }
 
@@ -511,20 +493,14 @@ export async function snapshotPoloidalPreview(figures) {
     });
 }
 
-export async function snapshotPoloidal(
-    figures,
-    safetyFactor,
-    quick,
-    playing
-) {
+export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
     const MIN_PTS = 10;
     const { polNum, radNum } = figures.pop();
 
     const flattenedField = figures[0].data[1].z;
     const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
     const diagFlux =
-        state.basicParameters.diag_flux ??
-        state.basicParameters.iflux;
+        state.basicParameters.diag_flux ?? state.basicParameters.iflux;
 
     if (!playing) {
         drawPoloidalDataPlotly(
@@ -541,13 +517,9 @@ export async function snapshotPoloidal(
     }
 
     // calculate spectrum profile on radial grids
-    const selectedPoloidalModeNum = [
-        ...new Set(state.basicParameters.mmodes),
-    ];
+    const selectedPoloidalModeNum = [...new Set(state.basicParameters.mmodes)];
     const modeNum = selectedPoloidalModeNum.length;
-    if (
-        Math.floor(polNum / MIN_PTS) < Math.max(...selectedPoloidalModeNum)
-    ) {
+    if (Math.floor(polNum / MIN_PTS) < Math.max(...selectedPoloidalModeNum)) {
         getStatusBar().warn = 'm modes in gtc.in is too high!';
     }
 
@@ -616,10 +588,8 @@ export async function snapshotPoloidal(
             }
             if (i % 2 == 1) {
                 const modulus = Math.sqrt(
-                    Math.pow(
-                        spectrumFigureData[trace_index - 1].y.at(-1),
-                        2
-                    ) + Math.pow(trace.y.at(-1), 2)
+                    Math.pow(spectrumFigureData[trace_index - 1].y.at(-1), 2) +
+                        Math.pow(trace.y.at(-1), 2)
                 );
                 const modulus_trace = spectrumFigureData[trace_index + 1];
                 modulus_trace.y.push(modulus);
@@ -645,21 +615,14 @@ export async function snapshotPoloidal(
     let max_values = [-Infinity, -Infinity, -Infinity];
     spectrumFigureData.forEach((trace, ind) => {
         max_values[ind % 3] =
-            trace.max_ > max_values[ind % 3]
-                ? trace.max_
-                : max_values[ind % 3];
+            trace.max_ > max_values[ind % 3] ? trace.max_ : max_values[ind % 3];
         min_values[ind % 3] =
-            trace.min_ < min_values[ind % 3]
-                ? trace.min_
-                : min_values[ind % 3];
+            trace.min_ < min_values[ind % 3] ? trace.min_ : min_values[ind % 3];
     });
 
     spectrumFigureData.push(...extra_spectrum_data);
 
-    const extend_range = (a, b) => [
-        1.1 * a - 0.1 * b,
-        -0.1 * a + 1.1 * b,
-    ];
+    const extend_range = (a, b) => [1.1 * a - 0.1 * b, -0.1 * a + 1.1 * b];
     const limits = extend_range(
         Math.max(...max_values),
         Math.min(...min_values)
@@ -697,8 +660,7 @@ export async function snapshotPoloidal(
                     y: Array.from({ length: RS_POINT_NUM }).map(
                         (_, i) =>
                             limits[0] +
-                            ((limits[1] - limits[0]) * i) /
-                                (RS_POINT_NUM - 1)
+                            ((limits[1] - limits[0]) * i) / (RS_POINT_NUM - 1)
                     ),
                     mode: 'lines',
                     showlegend: false,
@@ -761,21 +723,14 @@ export async function snapshotPoloidal(
                         args: [
                             { visible: step3_pick(i) },
                             {
-                                'xaxis.range': [
-                                    0,
-                                    state.basicParameters.mpsi,
-                                ],
+                                'xaxis.range': [0, state.basicParameters.mpsi],
                                 'yaxis.range': extend_range(
                                     min_values[i],
                                     max_values[i]
                                 ),
                             },
                         ],
-                        label: [
-                            'Even Parity',
-                            'Odd Parity',
-                            'Modulus',
-                        ][i],
+                        label: ['Even Parity', 'Odd Parity', 'Modulus'][i],
                     };
                 }),
                 ,
@@ -786,21 +741,15 @@ export async function snapshotPoloidal(
                             visible: Array.from(
                                 spectrumFigureData,
                                 (_, ind) =>
-                                    ind <
-                                        1 +
-                                            state.rational_surface_count ||
+                                    ind < 1 + state.rational_surface_count ||
                                     ind >=
                                         1 +
                                             state.rational_surface_count +
-                                            3 *
-                                                selectedPoloidalModeNum.length
+                                            3 * selectedPoloidalModeNum.length
                             ),
                         },
                         {
-                            'xaxis.range': [
-                                0,
-                                state.basicParameters.mpsi,
-                            ],
+                            'xaxis.range': [0, state.basicParameters.mpsi],
                             'yaxis.range': extend_range(
                                 0,
                                 extra_spectrum_data[0].max_
@@ -812,10 +761,7 @@ export async function snapshotPoloidal(
             ],
         },
     ];
-    figures[1].layout.yaxis.range = extend_range(
-        min_values[2],
-        max_values[2]
-    );
+    figures[1].layout.yaxis.range = extend_range(min_values[2], max_values[2]);
 }
 
 // ==================================================================
@@ -859,10 +805,9 @@ export async function snapshotPreprocess(btn, figures) {
             safety_factor = res.ok
                 ? (
                       await (
-                          await requestPlotData(
-                              'data/Equilibrium-1D-rg_n-q',
-                              { optional: true }
-                          )
+                          await requestPlotData('data/Equilibrium-1D-rg_n-q', {
+                              optional: true,
+                          })
                       )?.json()
                   )
 
@@ -940,10 +885,7 @@ export function addSnapshotPlayer(panel, createGroup, openPanel, getData) {
                             cont = false;
                         }
                     }
-                    await openPanel.call(
-                        state.current_snapshot,
-                        false
-                    );
+                    await openPanel.call(state.current_snapshot, false);
                     if (state.current_snapshot_figure) {
                         await getData.call(
                             state.current_snapshot_figure,
@@ -951,9 +893,7 @@ export function addSnapshotPlayer(panel, createGroup, openPanel, getData) {
                         );
                     }
                     current_snapshot.classList.remove('snapshot-selected');
-                    state.current_snapshot.classList.add(
-                        'snapshot-selected'
-                    );
+                    state.current_snapshot.classList.add('snapshot-selected');
 
                     last_time = timestamp;
                     if (cont) {

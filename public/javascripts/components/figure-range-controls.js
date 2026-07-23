@@ -22,7 +22,7 @@
  * @module figure-range-controls
  */
 
-import state from './state.js';
+import state from '../control/state.js';
 
 // ------------------------------------------------------------------
 //  DOM helpers

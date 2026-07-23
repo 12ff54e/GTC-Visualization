@@ -13,7 +13,7 @@
  */
 
 import { wrap } from './status-bar.js';
-import { propagateFetchError, nodeIs, postForm } from './util.js';
+import { propagateFetchError, nodeIs, postForm } from '../shared/util.js';
 
 /**
  * Initialise the breadcrumb bar and copy-path button.
@@ -95,9 +95,7 @@ export function setupBreadcrumbs() {
                     li.appendChild(constructFolderContentList(entry));
                     li.addEventListener('click', event => {
                         event.stopPropagation();
-                        event.currentTarget.classList.toggle(
-                            'folder-expand'
-                        );
+                        event.currentTarget.classList.toggle('folder-expand');
                     });
                 }
                 ul.appendChild(li);

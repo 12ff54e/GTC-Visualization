@@ -20,8 +20,8 @@
  * @module units
  */
 
-import state from './state.js';
-import { requestPlotData } from './api.js';
+import state from '../control/state.js';
+import { requestPlotData } from '../shared/api.js';
 
 // ------------------------------------------------------------------
 //  Unit labels (LaTeX for Plotly axis titles)
@@ -84,7 +84,7 @@ export async function refreshTimeUnitFactor() {
         typeof bp.qion === 'number' &&
         bp.qion > 0
     ) {
-        vaOverCs = Math.sqrt(2 * bp.qion / bp.betae);
+        vaOverCs = Math.sqrt((2 * bp.qion) / bp.betae);
     }
 
     state.timeUnitFactor = {
@@ -103,8 +103,7 @@ export async function refreshTimeUnitFactor() {
                 ? (bp.tstep_seconds / bp.tstep) * 1e6
                 : 0,
     };
-    state.timeStep =
-        baseTimeStep * state.timeUnitFactor[state.units.time];
+    state.timeStep = baseTimeStep * state.timeUnitFactor[state.units.time];
 }
 
 // ------------------------------------------------------------------

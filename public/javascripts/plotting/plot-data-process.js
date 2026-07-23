@@ -5,13 +5,9 @@
 // buildShaderProgram, createColorMap, packTextureArgs, getTicks,
 // getRationalSurface) have moved to snapshot.js
 
-import state from './state.js';
-import { interleave, unInterleave } from './util.js';
-export async function historyMode(
-    figures,
-    interval1 = null,
-    interval2 = null
-) {
+import state from '../control/state.js';
+import { interleave, unInterleave } from '../shared/util.js';
+export async function historyMode(figures, interval1 = null, interval2 = null) {
     // `interval1`/`interval2` are user-selected zoom ranges (as fractions of
     // the total data length) coming from the rangesliders. When they are
     // null (i.e. the initial call) we fall back to the conventional
@@ -57,12 +53,10 @@ export async function historyMode(
     let y0 = componentsFig.data[0].y[0];
     y0 = y0 == 0 ? 1 : y0;
     let yReals = componentsFig.data[0].y.map(
-        (y, i) =>
-            y / (Math.exp(gamma * (i + 1) * state.timeStep) * y0)
+        (y, i) => y / (Math.exp(gamma * (i + 1) * state.timeStep) * y0)
     );
     let yImages = componentsFig.data[1].y.map(
-        (y, i) =>
-            y / (Math.exp(gamma * (i + 1) * state.timeStep) * y0)
+        (y, i) => y / (Math.exp(gamma * (i + 1) * state.timeStep) * y0)
     );
     let omega;
     ({ omega, measurePts } = cal_omega_r(
@@ -72,17 +66,13 @@ export async function historyMode(
         measure2
     ));
     freqFig.data[0] = {
-        x: [...Array(yReals.length).keys()].map(
-            i => (i + 1) * state.timeStep
-        ),
+        x: [...Array(yReals.length).keys()].map(i => (i + 1) * state.timeStep),
         y: yReals,
         type: 'scatter',
         mode: 'lines',
     };
     freqFig.data[1] = {
-        x: [...Array(yReals.length).keys()].map(
-            i => (i + 1) * state.timeStep
-        ),
+        x: [...Array(yReals.length).keys()].map(i => (i + 1) * state.timeStep),
         y: yImages,
         type: 'scatter',
         mode: 'lines',
@@ -108,12 +98,7 @@ export async function historyMode(
     };
 
     // spectral figure
-    let powerSpectrum = cal_spectrum(
-        yReals,
-        yImages,
-        state.timeStep,
-        measure2
-    );
+    let powerSpectrum = cal_spectrum(yReals, yImages, state.timeStep, measure2);
     spectralFig.data[0] = Object.assign(powerSpectrum, {
         type: 'scatter',
         mode: 'lines',
@@ -336,4 +321,3 @@ export function cal_spectrum(reals, images, timeStep, interval) {
 // interleave and unInterleave are now imported from util.js
 
 // min_max is now imported from util.js
-

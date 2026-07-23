@@ -1,7 +1,11 @@
-import state from './state.js';
-import { getStatusBar, wrap, addLoadingIndicator } from './status-bar.js';
-import { getBasicParameters } from './units.js';
-import { requestPlotData } from './api.js';
+import state from '../control/state.js';
+import {
+    getStatusBar,
+    wrap,
+    addLoadingIndicator,
+} from '../components/status-bar.js';
+import { getBasicParameters } from '../components/units.js';
+import { requestPlotData } from '../shared/api.js';
 
 export async function generateSummary(data) {
     const container = document.querySelector('#container');

@@ -11,23 +11,23 @@
  * @module index
  */
 
-import state from './state.js';
-import { callEventTarget } from './util.js';
-import { refreshTimeUnitFactor, TIME_UNIT_LABEL } from './units.js';
+import state from './control/state.js';
+import { callEventTarget } from './shared/util.js';
+import { refreshTimeUnitFactor, TIME_UNIT_LABEL } from './components/units.js';
 import {
     openPanel,
     getDataThenPlot,
     cleanPlot,
     cleanPanel,
-} from './figure-manager.js';
+} from './control/figure-manager.js';
 import {
     StatusBar,
     getStatusBar,
     wrap,
     addLoadingIndicator,
-} from './status-bar.js';
-import { setupBreadcrumbs } from './navigation.js';
-import { setupDownloadForm } from './download.js';
+} from './components/status-bar.js';
+import { setupBreadcrumbs } from './components/navigation.js';
+import { setupDownloadForm } from './components/download.js';
 
 // ------------------------------------------------------------------
 //  Bootstrap

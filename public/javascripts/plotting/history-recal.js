@@ -10,10 +10,10 @@
  * @module history-recal
  */
 
-import state from './state.js';
-import { wrap } from './status-bar.js';
+import state from '../control/state.js';
+import { wrap } from '../components/status-bar.js';
 import { historyMode } from './plot-data-process.js';
-import { refreshPlotRangeControls } from './figure-range-controls.js';
+import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
 
 /**
  * Append the "Recalculate growth rate and frequency" button to `panel`.
@@ -32,8 +32,7 @@ export function addHistoryRecal(panel) {
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
-            const len =
-                figures[0].data[0].x[figures[0].data[0].x.length - 1];
+            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
             await historyMode(
                 figures,
                 state.hist_mode_range.growthRate &&
