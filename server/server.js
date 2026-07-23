@@ -377,12 +377,12 @@ async function validateInputSchema() {
     const ajv = new Ajv();
 
     const input_specs = await Promise.all(
-        (await fs.readdir('./public/javascripts/'))
+        (await fs.readdir('./public/javascripts/gtc-input'))
             .filter(filename => filename.endsWith('.json'))
             .map(filename =>
                 fs
                     .readFile(
-                        path.join('./public/javascripts/', filename),
+                        path.join('./public/javascripts/gtc-input/', filename),
                         'utf-8'
                     )
                     .then(str => JSON.parse(str))

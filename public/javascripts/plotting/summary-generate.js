@@ -1,4 +1,13 @@
-export async function generateSummary(data, status_bar) {
+import state from '../control/state.js';
+import {
+    getStatusBar,
+    wrap,
+    addLoadingIndicator,
+} from '../components/status-bar.js';
+import { getBasicParameters } from '../components/units.js';
+import { requestPlotData } from '../shared/api.js';
+
+export async function generateSummary(data) {
     const container = document.querySelector('#container');
     container.style.display = 'initial';
     const summary = container.firstElementChild;
@@ -14,7 +23,7 @@ export async function generateSummary(data, status_bar) {
         return p;
     };
 
-    const bp = GTCGlobal.basicParameters;
+    const bp = state.basicParameters;
     const basicInfo = `This is a ${bp.nonlinear ? 'non' : ''}linear electro${
         bp.magnetic ? 'magnetic' : 'static'
     } run. The equilibrium is ${
@@ -181,7 +190,7 @@ export async function generateSummary(data, status_bar) {
 
     // check rg monotonicity
     if (data.rg.every((v, i, a) => !i || a[i - 1] <= v)) {
-        status_bar.warn = 'rg is not monotonic';
+        getStatusBar().warn = 'rg is not monotonic';
     }
 
     const particleLoading = (varName, pload) =>
@@ -517,4 +526,42 @@ function minmax(as, padding = 0) {
         max = Math.max(max, v);
     });
     return [min - (max - min) * padding, max + (max - min) * padding];
+}
+
+// ------------------------------------------------------------------
+//  Page building (imported by figure-manager)
+// ------------------------------------------------------------------
+
+/**
+ * Build the summary page from equilibrium data and register jump
+ * buttons that switch to the corresponding plot panels.
+ *
+ * @param {Function} openPanel — The tab-panel opener (bound to a button).
+ */
+export async function buildSummaryPage(openPanel) {
+    await getBasicParameters();
+    const summary_data = await (await requestPlotData('Summary')).json();
+    const summaryContainer = await generateSummary(summary_data);
+
+    if (summaryContainer === undefined) {
+        // summary page is already generated
+        return;
+    }
+
+    // register jump button on summary page
+    summaryContainer.querySelectorAll('.summary-jump-button').forEach(btn => {
+        btn.addEventListener(
+            'click',
+            wrap(async e => {
+                e.preventDefault();
+                const panelSwitch = document.querySelector(
+                    `#${btn.id.split('-')[1]}`
+                );
+                await addLoadingIndicator(openPanel.bind(panelSwitch))();
+
+                panelSwitch.checked = true;
+                document.querySelector(`#${btn.id.slice(8)}`).click();
+            })
+        );
+    });
 }
