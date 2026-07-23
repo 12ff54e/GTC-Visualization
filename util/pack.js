@@ -4,7 +4,15 @@ const path = require('path');
 
 const packName = 'GTC-Visualization.tar.gz';
 const fileList = [
-    'public',
+    'public/fonts',
+    'public/input',
+    'public/javascripts/bundle.js',
+    'public/javascripts/components/gtc-output-picker.js',
+    'public/libs',
+    'public/shader',
+    'public/stylesheets',
+    'public/favicon.ico',
+    'public/loading.gif',
     'views',
     '.env_example',
     'LICENSE',

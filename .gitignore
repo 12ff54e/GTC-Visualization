@@ -4,8 +4,7 @@ node_modules
 server-prod.js
 server-prod.js.LICENSE.txt
 
-public/javascripts/plotly-custom.min.js
-public/javascripts/plotly-custom.min.js.LICENSE.txt
+public/libs/plotly
 
 *.tar.gz
 
