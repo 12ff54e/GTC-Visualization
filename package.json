@@ -7,9 +7,10 @@
         "test": "nodemon ./server/server.js",
         "start": "node ./server-prod.js",
         "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
-        "pack-client": "webpack --config webpack.client.js",
-        "pack-server": "webpack --config webpack.config.js",
-        "pack": "npm install && npm run pack-custom-plotly && npm run pack-server && node ./util/pack.js"
+        "pack-client": "webpack --config webpack.config.js --config-name client",
+        "pack-server": "webpack --config webpack.config.js --config-name server",
+        "pack-all": "webpack --config webpack.config.js",
+        "pack": "npm install && npm run pack-custom-plotly && npm run pack-all && node ./util/pack.js"
     },
     "keywords": [
         "Visualization"
