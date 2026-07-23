@@ -12,11 +12,11 @@ Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
    - **HOST_DIR** is the folder where this app will search gtc output files in.
    - **LIMIT** is the maximum number of concurrent opening GTC output folders.
    - **SHOW_PATH** is a boolean determining whether the front end can see the whole path
-3. Set NODE_ENV to production (for example, `EXPORT NODE_ENV=production` in Linux).
-4. run
+3. run
     ```bash
     npm install
     npm run pack-custom-plotly
+    npm run pack-client
     npm test
     ```
 **Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run `npm pack` and all necessary files are packed into a compressed file, which you can upload to your server. Or download the latest version from [here](https://github.com/12ff54e/GTC-Visualization/releases/download/latest/GTC-Visualization.tar.gz). Then you can unpack files and start the server by
