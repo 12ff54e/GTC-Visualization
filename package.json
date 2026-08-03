@@ -5,6 +5,8 @@
     "main": "server.js",
     "scripts": {
         "test": "nodemon ./server/server.js",
+        "test:batch": "node --test test/batch-api.test.js test/batch-api-client.test.js test/batch-api-http.test.js test/batch-api-real-data.test.js",
+        "test:batch:real": "node --test test/batch-api-real-data.test.js",
         "start": "node ./server-prod.js",
         "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
         "pack-client": "webpack --config webpack.config.js --config-name client",

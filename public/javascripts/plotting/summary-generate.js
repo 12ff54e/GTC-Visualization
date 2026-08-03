@@ -5,7 +5,7 @@ import {
     addLoadingIndicator,
 } from '../components/status-bar.js';
 import { getBasicParameters } from '../components/units.js';
-import { requestPlotData } from '../shared/api.js';
+import { requestBatchPlotData } from '../shared/api.js';
 
 export async function generateSummary(data) {
     const container = document.querySelector('#container');
@@ -540,7 +540,16 @@ function minmax(as, padding = 0) {
  */
 export async function buildSummaryPage(openPanel) {
     await getBasicParameters();
-    const summary_data = await (await requestPlotData('Summary')).json();
+    const { results } = await (
+        await requestBatchPlotData([{ type: 'Summary', id: 'all' }])
+    ).json();
+    const summaryResult = results?.[0];
+    if (!summaryResult || summaryResult.error) {
+        throw new Error(
+            summaryResult?.error ?? 'Summary batch response contained no result'
+        );
+    }
+    const summary_data = summaryResult.figures;
     const summaryContainer = await generateSummary(summary_data);
 
     if (summaryContainer === undefined) {
