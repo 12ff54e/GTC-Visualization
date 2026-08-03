@@ -42,6 +42,42 @@ export async function requestPlotData(name, opts) {
 }
 
 /**
+ * Fetch data for multiple plots in a single HTTP round-trip.
+ *
+ * @param {Array<{type: string, id: string}>} requests - Each element
+ *   specifies a plot: `type` is the plot category ("History", "Snapshot",
+ *   "Equilibrium", "RadialTime", "Tracking", or "Summary") and `id` is
+ *   the sub-plot identifier (e.g. "phi-point", "1D-psi-Te").
+ * @param {Object} [opts]
+ * @param {boolean} [opts.optional=false] - If true, HTTP transport
+ *   errors are swallowed; the caller must check `res.ok`.
+ * @param {string} [opts.query=''] - Extra query string appended to the
+ *   URL (e.g. "&snapshot_playing").
+ * @returns {Promise<Response>} A fetch Response. Call `.json()` to get
+ *   `{ results: Array<{type: string, id: string, figures?: Array, error?: string}> }`.
+ */
+export async function requestBatchPlotData(requests, opts) {
+    const optional = opts?.optional ?? false;
+    const query = opts?.query ?? '';
+    const res = await fetch(
+        `/plot/data/batch?dir=${document.querySelector('#output-tag').innerText}${query}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requests }),
+        }
+    );
+    try {
+        await propagateFetchError(res);
+    } catch (e) {
+        if (!optional) {
+            throw e;
+        }
+    }
+    return res;
+}
+
+/**
  * POST a download request for GTC output files and return the resulting
  * blob together with the server-suggested filename.
  *
