@@ -70,11 +70,11 @@ function teardownDOMAndFetch() {
 describe('requestBatchPlotData (client)', () => {
     let requestBatchPlotData;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         setupDOMAndFetch();
         // This will throw if the module doesn't export the function yet (red phase of TDD).
         requestBatchPlotData =
-            require('../public/javascripts/shared/api.js').requestBatchPlotData;
+            (await import('../client/shared/api.js')).requestBatchPlotData;
     });
 
     afterEach(() => {

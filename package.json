@@ -4,21 +4,32 @@
     "description": "Online plotting tools for GTC.",
     "main": "server.js",
     "scripts": {
+        "pretest": "npm run pack-custom-plotly && npm run pack-client:dev",
         "test": "nodemon ./server/server.js",
         "test:batch": "node --test test/batch-api.test.js test/batch-api-client.test.js test/batch-api-http.test.js test/batch-api-real-data.test.js",
         "test:batch:real": "node --test test/batch-api-real-data.test.js",
         "start": "node ./server-prod.js",
+        "validate-input-parameters": "node ./util/validate-input-parameters.js",
         "pack-custom-plotly": "webpack --config custom-plotly/webpack.config.js",
+        "prepack-client": "npm run validate-input-parameters",
         "pack-client": "webpack --config webpack.config.js --config-name client",
+        "prepack-client:dev": "npm run validate-input-parameters",
+        "pack-client:dev": "webpack --config webpack.config.js --config-name client --mode development",
+        "prepack-server": "npm run validate-input-parameters",
         "pack-server": "webpack --config webpack.config.js --config-name server",
+        "prepack-all": "npm run validate-input-parameters",
         "pack-all": "webpack --config webpack.config.js",
-        "pack": "npm install && npm run pack-custom-plotly && npm run pack-all && node ./util/pack.js"
+        "prepack": "npm install && npm run pack-custom-plotly && npm run pack-all",
+        "pack": "node ./util/pack.js"
     },
     "keywords": [
         "Visualization"
     ],
     "author": "Q. Zhong",
     "license": "MIT",
+    "engines": {
+        "node": ">=22"
+    },
     "devDependencies": {
         "css-loader": "^7.1.2",
         "ify-loader": "^1.1.0",

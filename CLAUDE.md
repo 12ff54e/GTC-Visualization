@@ -5,7 +5,8 @@ This file provides repository guidance for any AI coding agent working with this
 ## Commands
 
 ```bash
-# Development (with auto-restart via nodemon; ignores changes in public/ and custom-plotly/)
+# Development (builds Plotly and a source-mapped client first, then
+# auto-restarts via nodemon; ignores changes in public/ and custom-plotly/)
 npm test
 
 # Production start (runs the webpack-bundled server)
@@ -14,13 +15,19 @@ npm start
 # Build custom Plotly.js bundle (only needed trace types: contour, heatmap, scatter3d, carpet, contourcarpet, scattercarpet)
 npm run pack-custom-plotly
 
-# Bundle client JS into public/javascripts/bundle.js (webpack, target: web, entry: index.js)
+# Validate all client/gtc-input/input-parameters-v*.json files against the server schema
+npm run validate-input-parameters
+
+# Bundle all client entry points from client/ into public/javascripts/ (webpack, target: web)
 npm run pack-client
+
+# Development client bundles with external source maps
+npm run pack-client:dev
 
 # Bundle server into server-prod.js (webpack, target: node)
 npm run pack-server
 
-# Full distributable tarball (npm install + all webpack builds + tar)
+# Full distributable tarball (prepack installs/builds, then pack creates the tar)
 npm run pack
 ```
 
@@ -55,9 +62,13 @@ This is an Express.js app that visualizes GTC (Gyrokinetic Toroidal Code) simula
 
 **Parser pattern**: All plot type subclasses implement `*parseLine()` as a generator. `PlotType.readDataFile()` creates a readline interface, instantiates the subclass, gets the generator, then feeds each line to `parser.next(line)`. The generator yields to receive the header lines, then loops `while (true)` yielding for each data line. This avoids loading entire files into memory.
 
-### Client-side (`public/javascripts/`)
+### Client-side source (`client/`)
 
-The plot-page JS is bundled by webpack (`npm run pack-client`) from `index.js` → `bundle.js`.  `Plotly` and `fftw` are loaded as separate `<script>` tags and declared as webpack externals.
+Editable browser code lives under `client/`, outside the static `public/` tree. `npm run pack-client` builds the plot page, folder picker, and input generator into `public/javascripts/`. That output directory is generated and ignored by Git. `Plotly` and `fftw` are loaded as separate `<script>` tags.
+
+`npm test` uses `pack-client:dev`, which emits readable development bundles and external `.map` files. Production commands use `pack-client`/`pack-all`, which disable source maps.
+
+The input parameter descriptors are imported into the input-generator bundle. The `pack-client`, `pack-server`, and `pack-all` npm commands automatically run `validate-input-parameters` first, so invalid descriptors fail before webpack packages them.
 
 #### `index.js` — Entry point
 
@@ -107,7 +118,10 @@ Bootstrap (~115 lines): imports all modules and wires the `load` event handler. 
 #### Other
 
 - **`plotly-custom.min.js`** — Custom Plotly.js bundle (built from `custom-plotly/`)
-- **`bundle.js`** — Webpack output (built by `npm run pack-client`)
+
+### Generated client assets (`public/javascripts/`)
+
+Webpack emits `plot-page.js`, `folder-picker.js`, and `input-generator.js` here. Do not edit these files directly; rebuild them with `npm run pack-client`.
 - **`../libs/fftw-js/`** — FFTW compiled to WASM for client-side FFT
 
 ### Views (`views/`)
@@ -116,7 +130,7 @@ Pug templates: `index.pug` (folder browser with file tree and scan controls) and
 
 ### Custom Plotly build (`custom-plotly/`)
 
-Bundles a minimal Plotly.js with only the trace types used: contour, heatmap, scatter3d, carpet, contourcarpet, scattercarpet. Output goes to `public/javascripts/plotly-custom.min.js`.
+Bundles a minimal Plotly.js with only the trace types used: contour, heatmap, scatter3d, carpet, contourcarpet, scattercarpet. Output goes to `public/libs/plotly/plotly-custom.min.js`.
 
 ## Environment
 
