@@ -1,3 +1,11 @@
+import inputParametersV11 from './input-parameters-v11.json';
+import inputParametersV16 from './input-parameters-v16.json';
+
+const inputParametersByVersion = {
+    11: inputParametersV11,
+    16: inputParametersV16,
+};
+
 window.addEventListener('load', ev => {
     // read query string
     const ver = new URLSearchParams(window.location.search).get('v');
@@ -11,15 +19,11 @@ window.addEventListener('load', ev => {
     const input_area = form.firstElementChild;
     form.parentElement.style.display = 'block';
 
-    fetch(`/javascripts/gtc-input/input-parameters-v${ver}.json`)
-        .then(res => {
-            if (res.ok) {
-                return res.json();
-            } else {
-                throw new Error('No input parameters descriptor file found.');
-            }
-        })
+    Promise.resolve(inputParametersByVersion[ver])
         .then(input_parameters => {
+            if (!input_parameters) {
+                throw new Error('No input parameters descriptor found.');
+            }
             const cat = new Map();
             for (const parameter_spec of input_parameters) {
                 let cat_div = cat.get(parameter_spec.group);

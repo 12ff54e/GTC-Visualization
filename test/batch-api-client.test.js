@@ -74,7 +74,7 @@ describe('requestBatchPlotData (client)', () => {
         setupDOMAndFetch();
         // This will throw if the module doesn't export the function yet (red phase of TDD).
         requestBatchPlotData =
-            require('../public/javascripts/shared/api.js').requestBatchPlotData;
+            require('../client/shared/api.js').requestBatchPlotData;
     });
 
     afterEach(() => {

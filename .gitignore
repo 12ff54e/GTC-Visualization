@@ -5,6 +5,7 @@ server-prod.js
 server-prod.js.LICENSE.txt
 
 public/libs/plotly
+public/javascripts/
 
 *.tar.gz
 
