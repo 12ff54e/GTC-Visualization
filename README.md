@@ -3,7 +3,7 @@
 This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) output data. Once deployed on the server, you can examine various plot generated from raw output data, without downloading any files.
 
 ## Requirement
-Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
+Node.js 22 or newer.
 
 ## Quick start
 1. `git clone https://github.com/12ff54e/GTC-Visualization`

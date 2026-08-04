@@ -27,6 +27,9 @@
     ],
     "author": "Q. Zhong",
     "license": "MIT",
+    "engines": {
+        "node": ">=22"
+    },
     "devDependencies": {
         "css-loader": "^7.1.2",
         "ify-loader": "^1.1.0",
