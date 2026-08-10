@@ -95,7 +95,7 @@ export function cleanPanel() {
         p.style.zIndex = 1;
     }
 
-    const recalculate = panel.querySelector('#History-panel').firstElementChild;
+    const recalculate = panel.querySelector('#history-recalculate');
     if (recalculate) {
         recalculate.classList.remove('active');
     }
@@ -253,8 +253,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
     applyTimeUnitToFigures(this.id, figures);
 
     // some figures need some local calculation
-    const recalculate =
-        document.getElementById('History-panel').firstElementChild;
+    const recalculate = document.getElementById('history-recalculate');
     if (this.id.startsWith('History')) {
         recalculate.classList.remove('active');
     }

@@ -357,6 +357,32 @@ div header {
     display: block;
 }
 
+.tabs-l1 > .history-recalculate-anchor {
+    display: block;
+    height: 0;
+    margin: 0;
+}
+
+#history-recalculate {
+    margin-bottom: 0;
+    padding: 0.4rem 0;
+}
+
+#history-recalculate.history-recalculate-pinned {
+    position: fixed;
+    top: 20px;
+    left: 16.45%;
+    width: 17.1%;
+    z-index: 3;
+    box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+#history-recalculate > .tab-l1-btn {
+    width: 60%;
+}
+
 .plot-range-controls {
     margin: 0.5rem 0 1rem;
     padding: 0.75rem 0.6rem;
