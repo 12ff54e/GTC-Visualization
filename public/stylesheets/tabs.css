@@ -18,6 +18,17 @@
     direction: ltr;
 }
 
+.js-plotly-plot .modebar-btn .modebar-material-symbol {
+    position: relative;
+    top: 1px;
+    color: rgba(68, 68, 68, 0.3);
+    font-size: 18px;
+}
+
+.js-plotly-plot .modebar-btn:hover .modebar-material-symbol {
+    color: rgba(68, 68, 68, 0.7);
+}
+
 :root {
     --preview-bg: azure;
 }

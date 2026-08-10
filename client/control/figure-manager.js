@@ -50,6 +50,7 @@ import {
     addSimulationRegion,
 } from '../plotting/plot-data-process.js';
 import { buildSummaryPage } from '../plotting/summary-generate.js';
+import { createPlotConfig } from '../components/figure-data-download.js';
 
 // ------------------------------------------------------------------
 //  Helpers
@@ -290,9 +291,9 @@ export async function getDataThenPlot(clean_beforehand = true) {
                       fig_div,
                       data,
                       layout,
-                      {
+                      createPlotConfig({
                           editable: true,
-                      }
+                      })
                   )
                 : Promise.resolve();
         })
