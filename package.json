@@ -4,8 +4,8 @@
     "description": "Online plotting tools for GTC.",
     "main": "server.js",
     "scripts": {
-        "pretest": "npm run pack-custom-plotly && npm run pack-client:dev",
-        "test": "nodemon ./server/server.js",
+        "pretest": "npm run pack-custom-plotly",
+        "test": "nodemon",
         "test:batch": "node --test test/batch-api.test.js test/batch-api-client.test.js test/batch-api-http.test.js test/batch-api-real-data.test.js test/figure-data-download.test.js test/history-recal.test.js test/rational-surfaces.test.js",
         "test:batch:real": "node --test test/batch-api-real-data.test.js",
         "start": "node ./server-prod.js",
