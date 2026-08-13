@@ -472,6 +472,29 @@ form {
     margin: 0.5rem 0 2rem;
 }
 
+.rational-surface-controls {
+    display: grid;
+    gap: 0.35rem;
+    margin: 1rem 0.2rem 0;
+    padding: 0.6rem;
+    border: 1px solid rgb(172, 210, 197);
+    border-radius: 8px;
+    background-color: rgba(227, 248, 241, 0.55);
+}
+
+.rational-surface-controls[hidden] {
+    display: none;
+}
+
+.rational-surface-controls > input[type='range'] {
+    width: 100%;
+    margin: 0;
+}
+
+.rational-surface-controls output {
+    font-weight: bold;
+}
+
 #eq-x,
 #eq-y {
     display: grid;
