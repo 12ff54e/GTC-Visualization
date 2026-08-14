@@ -9,6 +9,7 @@ describe('equilibrium rational surfaces', () => {
     let rationalSurfaceNRange;
     let rationalSurfaceTraces;
     let applyRationalSurfaceTraces;
+    let findRationalSurfaceCrossings;
     let originalWindow;
 
     before(async () => {
@@ -19,6 +20,9 @@ describe('equilibrium rational surfaces', () => {
             rationalSurfaceTraces,
             applyRationalSurfaceTraces,
         } = await import('../client/components/rational-surfaces.js'));
+        ({ findRationalSurfaceCrossings } = await import(
+            '../client/shared/rational-surfaces.js'
+        ));
     });
 
     after(() => {
@@ -63,7 +67,11 @@ describe('equilibrium rational surfaces', () => {
         assert.deepEqual(traces[0].y, [1.1, 2.6]);
         assert.ok(Math.abs(traces[1].x[0] - 8 / 7) < 1e-12);
         assert.ok(Math.abs(traces[2].x[0] - 13 / 7) < 1e-12);
-        assert.equal(traces[0].line.dash, 'dot');
+        assert.deepEqual(traces[0].line, {
+            color: 'rgba(142.846, 176.35, 49.6957, 0.9)',
+            dash: 'dash',
+            width: 1,
+        });
         assert.equal(traces[0].hovertemplate, 'm=3<extra></extra>');
     });
 
@@ -83,6 +91,26 @@ describe('equilibrium rational surfaces', () => {
             [
                 [0.5, 0.5],
                 [1.5, 1.5],
+            ]
+        );
+    });
+
+    it('shares crossing interpolation across plotting contexts', () => {
+        assert.deepEqual(
+            findRationalSurfaceCrossings(
+                {
+                    x: [0, 1, 2],
+                    y: [1, 2, 1],
+                },
+                [
+                    { m: 3, n: 2 },
+                    { m: 2, n: 1 },
+                ]
+            ),
+            [
+                { m: 3, n: 2, radialPosition: 0.5 },
+                { m: 3, n: 2, radialPosition: 1.5 },
+                { m: 2, n: 1, radialPosition: 1 },
             ]
         );
     });

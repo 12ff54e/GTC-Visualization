@@ -4,12 +4,16 @@
  * Rational-surface controls and overlays for equilibrium q profiles.
  *
  * For a selected toroidal mode number n, the radial position of every
- * q = m/n crossing is drawn as a vertical dotted line.
+ * q = m/n crossing is drawn as a vertical dashed line.
  *
  * @module rational-surfaces
  */
 
 import state from '../control/state.js';
+import {
+    findRationalSurfaceCrossings,
+    RATIONAL_SURFACE_LINE_STYLE,
+} from '../shared/rational-surfaces.js';
 import { refreshPlotRangeControls } from './figure-range-controls.js';
 
 const CONTROL_ID = 'rational-surface-controls';
@@ -61,36 +65,14 @@ export function rationalSurfaceTraces(qTrace, n) {
     const qMax = Math.max(...qs);
     const mMin = Math.ceil(qMin * n);
     const mMax = Math.floor(qMax * n);
-    const traces = [];
+    const modes = Array.from(
+        { length: mMax - mMin + 1 },
+        (_, index) => ({ m: mMin + index, n })
+    );
 
-    for (let m = mMin; m <= mMax; m += 1) {
-        const targetQ = m / n;
-        const radialPositions = [];
-
-        for (let index = 0; index < points.length - 1; index += 1) {
-            const first = points[index];
-            const second = points[index + 1];
-
-            if (first.q === targetQ) {
-                radialPositions.push(first.x);
-            }
-            if (
-                first.q !== second.q &&
-                (targetQ - first.q) * (targetQ - second.q) < 0
-            ) {
-                radialPositions.push(
-                    first.x +
-                        ((targetQ - first.q) / (second.q - first.q)) *
-                            (second.x - first.x)
-                );
-            }
-        }
-        if (points.at(-1).q === targetQ) {
-            radialPositions.push(points.at(-1).x);
-        }
-
-        [...new Set(radialPositions)].forEach(radialPosition => {
-            traces.push({
+    return findRationalSurfaceCrossings(qTrace, modes).map(
+        ({ m, n, radialPosition }) => {
+            return {
                 x: [radialPosition, radialPosition],
                 y: [qMin, qMax],
                 type: 'scatter',
@@ -98,18 +80,12 @@ export function rationalSurfaceTraces(qTrace, n) {
                 name: `m/n = ${m}/${n}`,
                 legendgroup: 'rational-surfaces',
                 showlegend: false,
-                line: {
-                    color: 'rgba(190, 45, 45, 0.65)',
-                    dash: 'dot',
-                    width: 1.5,
-                },
+                line: { ...RATIONAL_SURFACE_LINE_STYLE },
                 hovertemplate: `m=${m}<extra></extra>`,
                 meta: { gtcRationalSurface: true, m, n },
-            });
-        });
-    }
-
-    return traces;
+            };
+        }
+    );
 }
 
 /** Replace any previous rational-surface overlays on a Plotly figure. */

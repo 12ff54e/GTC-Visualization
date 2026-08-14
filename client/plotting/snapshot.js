@@ -22,6 +22,10 @@ import state from '../control/state.js';
 import { requestPlotData } from '../shared/api.js';
 import { getStatusBar } from '../components/status-bar.js';
 import { interleave, unInterleave, min_max } from '../shared/util.js';
+import {
+    findRationalSurfaceCrossings,
+    RATIONAL_SURFACE_LINE_STYLE,
+} from '../shared/rational-surfaces.js';
 
 // ==================================================================
 //  Internal helpers
@@ -70,7 +74,7 @@ function getTicks([min, max], num) {
 }
 
 function getRationalSurface(safetyFactor, n_modes, m_modes) {
-    const mode_num = n_modes
+    const modes = n_modes
         .map((n, i) => {
             return { n: n, m: m_modes[i] };
         })
@@ -79,29 +83,19 @@ function getRationalSurface(safetyFactor, n_modes, m_modes) {
             const last_item = ary[!pos ? 0 : pos - 1];
             return !pos || item.m * last_item.n != item.n * last_item.m;
         });
-    const linear_map = (t, x0, x1, y0, y1) =>
-        y0 + ((y1 - y0) * (t - x0)) / (x1 - x0);
-
-    const result = [];
     const [r0, r1] = state.basicParameters.radial_region;
-    for (let i = 0; i < safetyFactor.x.length - 1; ++i) {
-        if (safetyFactor.x[i + 1] < r0 || safetyFactor.x[i] > r1) {
-            continue;
-        }
-        mode_num.forEach(mode => {
-            const pos = linear_map(
-                mode.m / mode.n,
-                safetyFactor.y[i],
-                safetyFactor.y[i + 1],
-                safetyFactor.x[i],
-                safetyFactor.x[i + 1]
-            );
-            if (pos >= safetyFactor.x[i] && pos < safetyFactor.x[i + 1]) {
-                result.push({ r: (pos - r0) / (r1 - r0), ...mode });
-            }
-        });
-    }
-    return result;
+    const radialMin = Math.min(r0, r1);
+    const radialMax = Math.max(r0, r1);
+
+    return findRationalSurfaceCrossings(safetyFactor, modes)
+        .filter(
+            ({ radialPosition }) =>
+                radialPosition >= radialMin && radialPosition <= radialMax
+        )
+        .map(({ radialPosition, ...mode }) => ({
+            r: (radialPosition - r0) / (r1 - r0),
+            ...mode,
+        }));
 }
 
 // ==================================================================
@@ -498,7 +492,7 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
     const { polNum, radNum } = figures.pop();
 
     const flattenedField = figures[0].data[1].z;
-    const diagFluxLineColor = 'rgba(142.846, 176.35, 49.6957, 0.9)';
+    const diagFluxLineColor = RATIONAL_SURFACE_LINE_STYLE.color;
     const diagFlux =
         state.basicParameters.diag_flux ?? state.basicParameters.iflux;
 
@@ -665,11 +659,7 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
                     mode: 'lines',
                     showlegend: false,
                     hoverinfo: 'name',
-                    line: {
-                        color: diagFluxLineColor,
-                        dash: 'dash',
-                        width: 1,
-                    },
+                    line: { ...RATIONAL_SURFACE_LINE_STYLE },
                 };
             })
         );
