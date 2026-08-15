@@ -98,17 +98,6 @@ const state = {
      */
     basicParameters: undefined,
 
-    // ------------------------------------------------------------------
-    //  Snapshot FFT (used by snapshotPoloidal in plot-data-process.js)
-    // ------------------------------------------------------------------
-
-    /**
-     * Cached FFTW 1D real-to-complex plan, reused across poloidal spectrum
-     * calculations for the same snapshot panel.
-     * @type {Object|undefined}
-     */
-    fftPlan: undefined,
-
     /**
      * Number of rational surfaces detected in the current simulation.
      * Cached so the snapshot spectrum plot can size trace arrays correctly.

@@ -6,7 +6,8 @@
 // getRationalSurface) have moved to snapshot.js
 
 import state from '../control/state.js';
-import { interleave, unInterleave } from '../shared/util.js';
+import { getFFT } from '../shared/fft.js';
+import { interleave } from '../shared/util.js';
 export async function historyMode(figures, interval1 = null, interval2 = null) {
     // `interval1`/`interval2` are user-selected zoom ranges (as fractions of
     // the total data length) coming from the rangesliders. When they are
@@ -98,7 +99,12 @@ export async function historyMode(figures, interval1 = null, interval2 = null) {
     };
 
     // spectral figure
-    let powerSpectrum = cal_spectrum(yReals, yImages, state.timeStep, measure2);
+    let powerSpectrum = await cal_spectrum(
+        yReals,
+        yImages,
+        state.timeStep,
+        measure2
+    );
     spectralFig.data[0] = Object.assign(powerSpectrum, {
         type: 'scatter',
         mode: 'lines',
@@ -293,20 +299,23 @@ export function cal_omega_r(yReals, yImages, dt, interval) {
  *
  * @returns {{x: Array<Number>, y: Array<Number>}} power spectrum
  */
-export function cal_spectrum(reals, images, timeStep, interval) {
+export async function cal_spectrum(reals, images, timeStep, interval) {
     const [t_ini, t_end] = interval.map(t => Math.floor(t * reals.length));
     const len = t_end - t_ini;
     const halfLen = Math.floor(len / 2);
 
-    const plan = new fftw['c2c']['fft1d'](len);
-
-    const spectrum = unInterleave(
-        plan.forward(
-            interleave(reals.slice(t_ini, t_end), images.slice(t_ini, t_end))
+    const fft = await getFFT();
+    const transformed = fft.c2c1d(
+        interleave(
+            reals.slice(t_ini, t_end),
+            images.slice(t_ini, t_end)
         )
-    ).map(([re, im]) => Math.sqrt(re * re + im * im));
-
-    plan.dispose();
+    );
+    const spectrum = Array.from({ length: len }, (_, index) => {
+        const real = transformed[index * 2];
+        const imaginary = transformed[index * 2 + 1];
+        return Math.sqrt(real * real + imaginary * imaginary);
+    });
 
     return {
         x: [...Array(len).keys()].map(
@@ -317,7 +326,3 @@ export function cal_spectrum(reals, images, timeStep, interval) {
         ),
     };
 }
-
-// interleave and unInterleave are now imported from util.js
-
-// min_max is now imported from util.js

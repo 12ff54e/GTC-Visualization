@@ -21,7 +21,8 @@
 import state from '../control/state.js';
 import { requestPlotData } from '../shared/api.js';
 import { getStatusBar } from '../components/status-bar.js';
-import { interleave, unInterleave, min_max } from '../shared/util.js';
+import { getFFT } from '../shared/fft.js';
+import { min_max } from '../shared/util.js';
 
 // ==================================================================
 //  Internal helpers
@@ -437,18 +438,17 @@ export async function snapshotSpectrum(figures) {
     const nmodes = Math.floor(torNum / 5);
 
     const modulo = (re, im) => Math.sqrt(re * re + im * im);
+    const fft = await getFFT();
 
     const poloidalSpectrum = Array(mmodes).fill(0);
-    const planPol = new fftw['r2c']['fft1d'](polNum);
     for (let section of field) {
-        const powerSpectrum = planPol.forward(section);
+        const powerSpectrum = fft.r2c1d(section);
         poloidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < mmodes; i++) {
             poloidalSpectrum[i] +=
                 2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
         }
     }
-    planPol.dispose();
 
     function transpose(matrix) {
         let result = new Array(matrix[0].length);
@@ -459,16 +459,14 @@ export async function snapshotSpectrum(figures) {
     }
 
     const toroidalSpectrum = Array(nmodes).fill(0);
-    const planTor = new fftw['r2c']['fft1d'](torNum);
     for (let section of transpose(field)) {
-        const powerSpectrum = planTor.forward(section);
+        const powerSpectrum = fft.r2c1d(section);
         toroidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < nmodes; i++) {
             toroidalSpectrum[i] +=
                 2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
         }
     }
-    planTor.dispose();
 
     figures[0].data[0].x = [...Array(mmodes).keys()];
     figures[0].data[0].y = poloidalSpectrum.map(
@@ -538,11 +536,7 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
         });
     }
 
-    if (!state.fftPlan) {
-        const planConstructor = fftw['r2c']['fft1d'];
-        state.fftPlan = new planConstructor(polNum);
-    }
-    const plan = state.fftPlan;
+    const fft = await getFFT();
 
     const extra_spectrum_data = Array.from(
         { length: polNum / MIN_PTS },
@@ -559,7 +553,7 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
     );
     for (let r = 0; r < radNum; r++) {
         const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        plan.forward(circle).forEach((amp, i) => {
+        fft.r2c1d(circle).forEach((amp, i) => {
             const mode_num = Math.floor(i / 2);
             if (mode_num < extra_spectrum_data.length) {
                 const extra_trace = extra_spectrum_data[mode_num];
