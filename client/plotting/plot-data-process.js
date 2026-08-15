@@ -6,8 +6,10 @@
 // getRationalSurface) have moved to snapshot.js
 
 import state from '../control/state.js';
+import { createPlotConfig } from '../components/figure-data-download.js';
 import { getFFT } from '../shared/fft.js';
 import { interleave } from '../shared/util.js';
+
 export async function historyMode(figures, interval1 = null, interval2 = null) {
     // `interval1`/`interval2` are user-selected zoom ranges (as fractions of
     // the total data length) coming from the rangesliders. When they are
@@ -120,7 +122,12 @@ export async function trackingPlot(figures) {
     const zeta = figures.pop().extraData;
 
     const figureDiv1 = document.getElementById('figure-1');
-    await Plotly.newPlot(figureDiv1, figures[0]);
+    await Plotly.newPlot(
+        figureDiv1,
+        figures[0].data,
+        figures[0].layout,
+        createPlotConfig({ editable: true })
+    );
 
     // Plotly will do the spline for me
     const [carpet, scatter] = figureDiv1.calcdata;
@@ -131,7 +138,12 @@ export async function trackingPlot(figures) {
         z: scatter.map(({ y }) => y),
     });
 
-    Plotly.newPlot('figure-2', figures[1]);
+    Plotly.newPlot(
+        'figure-2',
+        figures[1].data,
+        figures[1].layout,
+        createPlotConfig({ editable: true })
+    );
 }
 
 export function addSimulationRegion(fig) {

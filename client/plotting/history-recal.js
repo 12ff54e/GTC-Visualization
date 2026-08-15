@@ -15,6 +15,14 @@ import { wrap } from '../components/status-bar.js';
 import { historyMode } from './plot-data-process.js';
 import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
 
+/** Keep the recalculation control visible after its normal position scrolls away. */
+export function updateHistoryRecalPosition(anchor, control) {
+    control.classList.toggle(
+        'history-recalculate-pinned',
+        anchor.getBoundingClientRect().top <= 20
+    );
+}
+
 /**
  * Append the "Recalculate growth rate and frequency" button to `panel`.
  *
@@ -22,6 +30,7 @@ import { refreshPlotRangeControls } from '../components/figure-range-controls.js
  */
 export function addHistoryRecal(panel) {
     const div = document.createElement('div');
+    div.id = 'history-recalculate';
     const btn = document.createElement('button');
     btn.innerText =
         'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
@@ -51,5 +60,14 @@ export function addHistoryRecal(panel) {
     div.classList.add('dropdown');
     div.style['overflow'] = 'hidden';
     div.append(btn);
-    panel.prepend(div);
+
+    const anchor = document.createElement('div');
+    anchor.classList.add('history-recalculate-anchor');
+    const updatePosition = () => updateHistoryRecalPosition(anchor, div);
+
+    panel.append(anchor);
+    panel.append(div);
+    window.addEventListener('scroll', updatePosition, { passive: true });
+    window.addEventListener('resize', updatePosition);
+    updatePosition();
 }

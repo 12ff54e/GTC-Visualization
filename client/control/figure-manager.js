@@ -50,6 +50,13 @@ import {
     addSimulationRegion,
 } from '../plotting/plot-data-process.js';
 import { buildSummaryPage } from '../plotting/summary-generate.js';
+import { createPlotConfig } from '../components/figure-data-download.js';
+import {
+    applyRationalSurfaceTraces,
+    selectedRationalSurfaceN,
+    setupRationalSurfaceControl,
+    showRationalSurfaceControl,
+} from '../components/rational-surfaces.js';
 
 // ------------------------------------------------------------------
 //  Helpers
@@ -94,7 +101,7 @@ export function cleanPanel() {
         p.style.zIndex = 1;
     }
 
-    const recalculate = panel.querySelector('#History-panel').firstElementChild;
+    const recalculate = panel.querySelector('#history-recalculate');
     if (recalculate) {
         recalculate.classList.remove('active');
     }
@@ -252,8 +259,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
     applyTimeUnitToFigures(this.id, figures);
 
     // some figures need some local calculation
-    const recalculate =
-        document.getElementById('History-panel').firstElementChild;
+    const recalculate = document.getElementById('history-recalculate');
     if (this.id.startsWith('History')) {
         recalculate.classList.remove('active');
     }
@@ -277,6 +283,17 @@ export async function getDataThenPlot(clean_beforehand = true) {
         });
     }
 
+    if (this.id.startsWith('Equilibrium')) {
+        const isSafetyFactor = /^Equilibrium-1D-.+-q$/.test(this.id);
+        showRationalSurfaceControl(isSafetyFactor);
+        if (isSafetyFactor && figures[0]) {
+            applyRationalSurfaceTraces(
+                figures[0],
+                selectedRationalSurfaceN()
+            );
+        }
+    }
+
     await Promise.all(
         figures.map(({ data, layout, force_redraw }, idx) => {
             const fig_div = document.querySelector(`#figure-${idx + 1}`);
@@ -290,9 +307,9 @@ export async function getDataThenPlot(clean_beforehand = true) {
                       fig_div,
                       data,
                       layout,
-                      {
+                      createPlotConfig({
                           editable: true,
-                      }
+                      })
                   )
                 : Promise.resolve();
         })
@@ -371,5 +388,10 @@ function createEqPanel1D(xDataTypes, yDataTypes) {
                 })
             )();
         })
+    );
+
+    setupRationalSurfaceControl(
+        document.getElementById('Equilibrium-panel'),
+        state.basicParameters?.nmodes
     );
 }

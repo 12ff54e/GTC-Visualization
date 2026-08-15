@@ -5,8 +5,8 @@ This file provides repository guidance for any AI coding agent working with this
 ## Commands
 
 ```bash
-# Development (builds Plotly and a source-mapped client first, then
-# auto-restarts via nodemon; ignores changes in public/ and custom-plotly/)
+# Development (builds Plotly once; nodemon rebuilds the source-mapped client
+# before starting and before each restart triggered by client/server/view changes)
 npm test
 
 # Production start (runs the webpack-bundled server)
