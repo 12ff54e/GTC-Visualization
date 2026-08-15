@@ -1,0 +1,3 @@
+[submodule "ffte"]
+	path = ffte
+	url = ./ffte
