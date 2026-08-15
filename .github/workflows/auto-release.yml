@@ -14,16 +14,36 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Use Node.js
-        uses: actions/setup-node@v4
+      - name: Check out repository and submodules
+        uses: actions/checkout@v6
         with:
-          node-version: 18
-            
-      - name: Build
+          submodules: recursive
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Set up Emscripten SDK
+        uses: emscripten-core/setup-emsdk@v15
+        with:
+          version: latest
+          actions-cache-folder: emsdk-cache
+
+      - name: Build and test FFTE WebAssembly
         run: |
-          npm run pack
+          emcmake cmake -S ffte -B ffte/build-wasm -DFFTE_BUILD_TESTS=OFF
+          cmake --build ffte/build-wasm --target ffte_wasm
+          mkdir -p ffte/dist public/libs/ffte
+          cp ffte/build-wasm/ffte.wasm ffte/dist/ffte.wasm
+          cp ffte/js/ffte.mjs ffte/dist/ffte.js
+          cp ffte/dist/ffte.wasm public/libs/ffte/ffte.wasm
+          cp ffte/dist/ffte.js public/libs/ffte/ffte.js
+          node ffte/tests/test_wasm.mjs
+
+      - name: Build release package
+        run: npm run pack
 
       - uses: marvinpinto/action-automatic-releases@latest
         with:
