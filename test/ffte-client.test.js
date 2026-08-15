@@ -50,6 +50,30 @@ test('client FFTE adapter computes arbitrary-length real FFTs', async () => {
     assertClose(actual, expected);
 });
 
+test('client FFTE adapter batches contiguous real transforms', async () => {
+    global.document = { baseURI: publicDirectoryUrl };
+    const { getFFT } = await import('../client/shared/fft.js');
+    const fft = await getFFT();
+    const length = 7;
+    const batchCount = 4;
+    const input = Float64Array.from(
+        { length: length * batchCount },
+        (_, index) => Math.sin(index * 0.31) + index * 0.003
+    );
+    const actual = fft.r2c1dBatch(input, length);
+    const outputStride = 2 * (Math.floor(length / 2) + 1);
+
+    for (let batch = 0; batch < batchCount; batch++) {
+        const expected = fft.r2c1d(
+            input.slice(batch * length, (batch + 1) * length)
+        );
+        assertClose(
+            actual.slice(batch * outputStride, (batch + 1) * outputStride),
+            expected
+        );
+    }
+});
+
 test('client FFTE adapter C2C transform matches a direct DFT', async () => {
     global.document = { baseURI: publicDirectoryUrl };
     const { getFFT } = await import('../client/shared/fft.js');

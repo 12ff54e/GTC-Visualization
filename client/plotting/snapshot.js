@@ -440,9 +440,28 @@ export async function snapshotSpectrum(figures) {
     const modulo = (re, im) => Math.sqrt(re * re + im * im);
     const fft = await getFFT();
 
+    // Store both transform orientations contiguously so each family can cross
+    // the JS/WASM boundary in a single batched call.
+    const poloidalInput = new Float64Array(torNum * polNum);
+    const toroidalInput = new Float64Array(torNum * polNum);
+    for (let toroidalIndex = 0; toroidalIndex < torNum; toroidalIndex++) {
+        const section = field[toroidalIndex];
+        poloidalInput.set(section, toroidalIndex * polNum);
+        for (let poloidalIndex = 0; poloidalIndex < polNum; poloidalIndex++) {
+            toroidalInput[poloidalIndex * torNum + toroidalIndex] =
+                section[poloidalIndex];
+        }
+    }
+
     const poloidalSpectrum = Array(mmodes).fill(0);
-    for (let section of field) {
-        const powerSpectrum = fft.r2c1d(section);
+    const poloidalOutputStride = 2 * (Math.floor(polNum / 2) + 1);
+    const poloidalBatch = fft.r2c1dBatch(poloidalInput, polNum);
+    for (let sectionIndex = 0; sectionIndex < torNum; sectionIndex++) {
+        const offset = sectionIndex * poloidalOutputStride;
+        const powerSpectrum = poloidalBatch.subarray(
+            offset,
+            offset + poloidalOutputStride
+        );
         poloidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < mmodes; i++) {
             poloidalSpectrum[i] +=
@@ -450,17 +469,15 @@ export async function snapshotSpectrum(figures) {
         }
     }
 
-    function transpose(matrix) {
-        let result = new Array(matrix[0].length);
-        for (let i = 0; i < result.length; i++) {
-            result[i] = matrix.map(line => line[i]);
-        }
-        return result;
-    }
-
     const toroidalSpectrum = Array(nmodes).fill(0);
-    for (let section of transpose(field)) {
-        const powerSpectrum = fft.r2c1d(section);
+    const toroidalOutputStride = 2 * (Math.floor(torNum / 2) + 1);
+    const toroidalBatch = fft.r2c1dBatch(toroidalInput, torNum);
+    for (let sectionIndex = 0; sectionIndex < polNum; sectionIndex++) {
+        const offset = sectionIndex * toroidalOutputStride;
+        const powerSpectrum = toroidalBatch.subarray(
+            offset,
+            offset + toroidalOutputStride
+        );
         toroidalSpectrum[0] += powerSpectrum[0];
         for (let i = 1; i < nmodes; i++) {
             toroidalSpectrum[i] +=
@@ -537,6 +554,11 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
     }
 
     const fft = await getFFT();
+    const spectrumStride = 2 * (Math.floor(polNum / 2) + 1);
+    const batchedSpectrum = fft.r2c1dBatch(
+        flattenedField.slice(0, radNum * polNum),
+        polNum
+    );
 
     const extra_spectrum_data = Array.from(
         { length: polNum / MIN_PTS },
@@ -552,8 +574,11 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
         }
     );
     for (let r = 0; r < radNum; r++) {
-        const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        fft.r2c1d(circle).forEach((amp, i) => {
+        const spectrum = batchedSpectrum.subarray(
+            r * spectrumStride,
+            (r + 1) * spectrumStride
+        );
+        spectrum.forEach((amp, i) => {
             const mode_num = Math.floor(i / 2);
             if (mode_num < extra_spectrum_data.length) {
                 const extra_trace = extra_spectrum_data[mode_num];

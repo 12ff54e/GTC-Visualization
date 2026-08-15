@@ -49,6 +49,31 @@ class FFTEClient {
         );
     }
 
+    r2c1dBatch(values, length) {
+        const input =
+            values instanceof Float64Array ? values : Float64Array.from(values);
+        if (!Number.isSafeInteger(length) || length <= 0) {
+            throw new RangeError('FFT length must be a positive integer');
+        }
+        if (input.length === 0 || input.length % length !== 0) {
+            throw new RangeError(
+                'FFT batch input must be a positive multiple of its length'
+            );
+        }
+
+        const batchCount = input.length / length;
+        const outputLength =
+            batchCount * 2 * (Math.floor(length / 2) + 1);
+        return this._transform(input, outputLength, (inputPointer, outputPointer) =>
+            this.module._ffte_r2c_1d_batch(
+                inputPointer,
+                length,
+                batchCount,
+                outputPointer
+            )
+        );
+    }
+
     c2c1d(values, inverse = false) {
         const input = Float64Array.from(values);
         if (input.length === 0 || input.length % 2 !== 0) {
