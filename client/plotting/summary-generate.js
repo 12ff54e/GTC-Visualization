@@ -6,6 +6,7 @@ import {
 } from '../components/status-bar.js';
 import { getBasicParameters } from '../components/units.js';
 import { requestBatchPlotData } from '../shared/api.js';
+import { createPlotConfig } from '../components/figure-data-download.js';
 
 export async function generateSummary(data) {
     const container = document.querySelector('#container');
@@ -420,7 +421,8 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
                     title: title,
                     paper_bgcolor: 'rgb(227,248,241)',
                     plot_bgcolor: 'rgb(227,248,241)',
-                }
+                },
+                createPlotConfig()
             );
         }
 
