@@ -2,11 +2,30 @@
 
 This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) output data. Once deployed on the server, you can examine various plot generated from raw output data, without downloading any files.
 
-## Requirement
-Node.js 22 or newer.
+## Requirements
+
+- Node.js 22 or newer.
+- The [Emscripten SDK (emsdk)](https://github.com/emscripten-core/emsdk)
+  is required when rebuilding the FFTE WebAssembly binary. Install and
+  activate a current SDK before using `emcmake`:
+
+  ```bash
+  git clone https://github.com/emscripten-core/emsdk.git
+  cd emsdk
+  ./emsdk install latest
+  ./emsdk activate latest
+  source ./emsdk_env.sh
+  ```
+
+  On Windows PowerShell, load the environment with `.\emsdk_env.ps1` instead.
+  See [`ffte/README.md`](ffte/README.md#webassembly-build) for the complete WASM
+  build commands. The checked-in WASM assets are sufficient if FFTE itself is
+  not being changed.
 
 ## Quick start
-1. `git clone https://github.com/12ff54e/GTC-Visualization`
+1. Clone the repository and its FFTE submodule:
+   `git clone --recurse-submodules https://github.com/12ff54e/GTC-Visualization`.
+   For an existing clone, run `git submodule update --init --recursive`.
 2. `cp .env_example .env` and modifies it as you wish.
    - **PORT** is the port to which this app listening. Set a larger number to avoid conflicts.
    - **HOST_DIR** is the folder where this app will search gtc output files in.
