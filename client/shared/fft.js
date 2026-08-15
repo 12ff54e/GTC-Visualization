@@ -89,6 +89,31 @@ class FFTEClient {
             )
         );
     }
+
+    c2c1dBatch(values, length, inverse = false) {
+        const input =
+            values instanceof Float64Array ? values : Float64Array.from(values);
+        if (!Number.isSafeInteger(length) || length <= 0) {
+            throw new RangeError('FFT length must be a positive integer');
+        }
+        const transformWidth = length * 2;
+        if (input.length === 0 || input.length % transformWidth !== 0) {
+            throw new RangeError(
+                'Complex FFT batch must contain complete transforms'
+            );
+        }
+
+        const batchCount = input.length / transformWidth;
+        return this._transform(input, input.length, (inputPointer, outputPointer) =>
+            this.module._ffte_c2c_1d_batch(
+                inputPointer,
+                length,
+                batchCount,
+                inverse ? 1 : -1,
+                outputPointer
+            )
+        );
+    }
 }
 
 /**

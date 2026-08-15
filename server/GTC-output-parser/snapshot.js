@@ -135,20 +135,24 @@ class Snapshot extends PlotType {
                     fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on flux surface}$`;
                     figureContainer.push(fig);
                     break;
-                case 1: // poloidal and parallel spectrum
-                    // This figure involves some interaction, so data will be generate on client side
-                    let figs = Array.from({ length: 2 }, _ => new PlotlyData());
-                    figs.forEach((fig, i) => {
-                        fig.data.push({
-                            type: 'scatter',
-                            mode: 'lines',
-                        });
-                        fig.plotLabel = `$\\text{${
-                            i == 0 ? 'poloidal' : 'parallel'
-                        } spectrum}$`;
+                case 1: // physical theta-zeta spectrum
+                    // The client converts theta_f to theta and computes the
+                    // physical two-dimensional (m, n) spectrum.
+                    fig.data.push({
+                        type: 'heatmap',
+                        colorbar: {
+                            tickformat: '.4g',
+                            title: { text: '$|f_{m,n}|$' },
+                        },
+                        hovertemplate:
+                            'n: %{x}<br>m: %{y}<br>|f|: %{z:.4g}<extra></extra>',
                     });
-                    figs.push({ extraData: this.fieldData['fluxData'][cat] });
-                    figureContainer = figs;
+                    fig.axesLabel = { x: '$n$', y: '$m$' };
+                    fig.plotLabel = '$\\theta\\text{-}\\zeta\\text{ spectrum}$';
+                    figureContainer = [
+                        fig,
+                        { extraData: this.fieldData['fluxData'][cat] },
+                    ];
                     break;
                 case 2: // field strength on poloidal plane
                 case 3:
