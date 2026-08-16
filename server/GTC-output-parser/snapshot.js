@@ -140,7 +140,7 @@ class Snapshot extends PlotType {
                     spectrum2d.data.push({
                         type: 'heatmap',
                         colorscale: 'Picnic',
-                        zmid: 0,
+                        zmin: 0,
                         colorbar: {
                             tickformat: '.4g',
                             title: { text: '$|f_{m,n}|$' },

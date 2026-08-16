@@ -44,7 +44,7 @@ test('flux-surface plot includes the physical 2D spectrum second', () => {
     assert.equal(figures[0].data[0].zmid, 0);
     assert.equal(figures[1].data[0].type, 'heatmap');
     assert.equal(figures[1].data[0].colorscale, 'Picnic');
-    assert.equal(figures[1].data[0].zmid, 0);
+    assert.equal(figures[1].data[0].zmin, 0);
     assert.match(figures[1].layout.title.text, /theta.*zeta/);
     assert.deepEqual(figures[2].extraData, [
         [1, 2, 3],
