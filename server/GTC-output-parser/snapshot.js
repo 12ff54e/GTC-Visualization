@@ -129,6 +129,9 @@ class Snapshot extends PlotType {
                         colorbar: {
                             tickformat: '.4g',
                         },
+                        colorscale: 'RdBu',
+                        reversescale: true,
+                        zmid: 0,
                         transpose: true,
                     });
                     fig.axesLabel = { x: 'nzeta', y: 'mtheta' };
@@ -136,6 +139,8 @@ class Snapshot extends PlotType {
                     const spectrum2d = new PlotlyData();
                     spectrum2d.data.push({
                         type: 'heatmap',
+                        colorscale: 'Viridis',
+                        zmin: 0,
                         colorbar: {
                             tickformat: '.4g',
                             title: { text: '$|f_{m,n}|$' },
