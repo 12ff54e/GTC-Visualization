@@ -139,8 +139,8 @@ class Snapshot extends PlotType {
                     const spectrum2d = new PlotlyData();
                     spectrum2d.data.push({
                         type: 'heatmap',
-                        colorscale: 'Viridis',
-                        zmin: 0,
+                        colorscale: 'Picnic',
+                        zmid: 0,
                         colorbar: {
                             tickformat: '.4g',
                             title: { text: '$|f_{m,n}|$' },
