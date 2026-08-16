@@ -440,8 +440,18 @@ async function drawPoloidalDataWebGL(container, data) {
 //  Exported: data processing
 // ==================================================================
 
-export async function snapshotSpectrum(figures, safetyFactorProfile) {
+export async function snapshotFluxSurfaceSpectrum(
+    figures,
+    safetyFactorProfile
+) {
     const field = figures.pop().extraData;
+    if (!safetyFactorProfile) {
+        figures.pop();
+        getStatusBar().warn =
+            'The theta-zeta spectrum requires an equilibrium safety-factor profile.';
+        return;
+    }
+
     const fft = await getFFT();
     const safetyFactor = diagnosticSafetyFactor(
         safetyFactorProfile,
@@ -454,12 +464,71 @@ export async function snapshotSpectrum(figures, safetyFactorProfile) {
         fft
     );
 
-    Object.assign(figures[0].data[0], {
+    Object.assign(figures[1].data[0], {
         x: spectrum.toroidalModes,
         y: spectrum.thetaModes,
         z: spectrum.amplitude,
     });
-    figures[0].layout.title.text += `, q=${safetyFactor.toPrecision(5)}`;
+    figures[1].layout.title.text += `, q=${safetyFactor.toPrecision(5)}`;
+}
+
+export async function snapshotSpectrum(figures) {
+    const field = figures.pop().extraData;
+    const torNum = field.length;
+    const polNum = field[0].length;
+    const mmodes = Math.floor(polNum / 5);
+    const nmodes = Math.floor(torNum / 5);
+    const fft = await getFFT();
+
+    const poloidalInput = new Float64Array(torNum * polNum);
+    const toroidalInput = new Float64Array(torNum * polNum);
+    for (let toroidalIndex = 0; toroidalIndex < torNum; toroidalIndex++) {
+        const section = field[toroidalIndex];
+        poloidalInput.set(section, toroidalIndex * polNum);
+        for (let poloidalIndex = 0; poloidalIndex < polNum; poloidalIndex++) {
+            toroidalInput[poloidalIndex * torNum + toroidalIndex] =
+                section[poloidalIndex];
+        }
+    }
+
+    const modulus = (spectrum, index) =>
+        Math.hypot(spectrum[index * 2], spectrum[index * 2 + 1]);
+    const poloidalSpectrum = Array(mmodes).fill(0);
+    const poloidalStride = 2 * (Math.floor(polNum / 2) + 1);
+    const poloidalBatch = fft.r2c1dBatch(poloidalInput, polNum);
+    for (let section = 0; section < torNum; section++) {
+        const spectrum = poloidalBatch.subarray(
+            section * poloidalStride,
+            (section + 1) * poloidalStride
+        );
+        poloidalSpectrum[0] += spectrum[0];
+        for (let mode = 1; mode < mmodes; mode++) {
+            poloidalSpectrum[mode] += 2 * modulus(spectrum, mode);
+        }
+    }
+
+    const toroidalSpectrum = Array(nmodes).fill(0);
+    const toroidalStride = 2 * (Math.floor(torNum / 2) + 1);
+    const toroidalBatch = fft.r2c1dBatch(toroidalInput, torNum);
+    for (let section = 0; section < polNum; section++) {
+        const spectrum = toroidalBatch.subarray(
+            section * toroidalStride,
+            (section + 1) * toroidalStride
+        );
+        toroidalSpectrum[0] += spectrum[0];
+        for (let mode = 1; mode < nmodes; mode++) {
+            toroidalSpectrum[mode] += 2 * modulus(spectrum, mode);
+        }
+    }
+
+    figures[0].data[0].x = [...Array(mmodes).keys()];
+    figures[0].data[0].y = poloidalSpectrum.map(
+        value => Math.sqrt(value / torNum) / polNum
+    );
+    figures[1].data[0].x = [...Array(nmodes).keys()];
+    figures[1].data[0].y = toroidalSpectrum.map(
+        value => Math.sqrt(value / polNum) / torNum
+    );
 }
 
 export async function snapshotPoloidalPreview(figures) {
@@ -756,14 +825,11 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
  * @param {Array<Object>} figures - Array of Plotly figure descriptors.
  */
 export async function snapshotPreprocess(btn, figures) {
-    if (btn.id.endsWith('spectrum')) {
+    if (btn.id.endsWith('flux')) {
         const safetyFactor = await requestSafetyFactorProfile();
-        if (!safetyFactor) {
-            throw new Error(
-                'The equilibrium safety-factor profile is required for the theta-zeta spectrum.'
-            );
-        }
-        await snapshotSpectrum(figures, safetyFactor);
+        await snapshotFluxSurfaceSpectrum(figures, safetyFactor);
+    } else if (btn.id.endsWith('spectrum')) {
+        await snapshotSpectrum(figures);
     } else if (btn.id.endsWith('poloidal')) {
         const quick = btn.id.endsWith('quick_poloidal');
         const playing = state.snapshot_playing;

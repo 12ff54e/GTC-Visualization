@@ -6,7 +6,7 @@
     "scripts": {
         "pretest": "npm run pack-custom-plotly",
         "test": "nodemon",
-        "test:batch": "node --test test/batch-api.test.js test/batch-api-client.test.js test/batch-api-http.test.js test/batch-api-real-data.test.js test/ffte-client.test.js test/field-aligned-spectrum.test.js test/figure-data-download.test.js test/history-recal.test.js test/rational-surfaces.test.js",
+        "test:batch": "node --test test/batch-api.test.js test/batch-api-client.test.js test/batch-api-http.test.js test/batch-api-real-data.test.js test/ffte-client.test.js test/field-aligned-spectrum.test.js test/figure-data-download.test.js test/history-recal.test.js test/rational-surfaces.test.js test/snapshot-plots.test.js",
         "test:batch:real": "node --test test/batch-api-real-data.test.js",
         "start": "node ./server-prod.js",
         "validate-input-parameters": "node ./util/validate-input-parameters.js",
