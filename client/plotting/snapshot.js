@@ -464,10 +464,14 @@ export async function snapshotFluxSurfaceSpectrum(
         fft
     );
 
+    const poloidal_mode_num = Math.max(
+        1,
+        Math.floor(spectrum.thetaModes.length / 10)
+    );
     Object.assign(figures[1].data[0], {
         x: spectrum.toroidalModes,
-        y: spectrum.thetaModes,
-        z: spectrum.amplitude,
+        y: spectrum.thetaModes.slice(0, poloidal_mode_num),
+        z: spectrum.amplitude.slice(0, poloidal_mode_num),
     });
     figures[1].layout.title.text += `, q=${safetyFactor.toPrecision(5)}`;
 }

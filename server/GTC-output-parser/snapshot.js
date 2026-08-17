@@ -133,6 +133,8 @@ class Snapshot extends PlotType {
                         reversescale: true,
                         zmid: 0,
                         transpose: true,
+                        hovertemplate:
+                            'zeta: %{x}<br>theta: %{y}<br>f: %{z:.4g}<extra></extra>',
                     });
                     fig.axesLabel = { x: 'nzeta', y: 'mtheta' };
                     fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on flux surface}$`;
@@ -140,10 +142,9 @@ class Snapshot extends PlotType {
                     spectrum2d.data.push({
                         type: 'heatmap',
                         colorscale: 'Picnic',
-                        zmin: 0,
+                        zmid: 0,
                         colorbar: {
                             tickformat: '.4g',
-                            title: { text: '$|f_{m,n}|$' },
                         },
                         hovertemplate:
                             'n: %{x}<br>m: %{y}<br>|f|: %{z:.4g}<extra></extra>',
