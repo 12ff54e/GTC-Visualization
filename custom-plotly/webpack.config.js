@@ -4,7 +4,7 @@ module.exports = {
     mode: 'production',
     entry: './custom-plotly/custom-plotly.js',
     output: {
-        path: path.join(__dirname, '../public/javascripts'),
+        path: path.join(__dirname, '../public/libs/plotly'),
         filename: 'plotly-custom.min.js',
         library: 'Plotly',
         libraryTarget: 'window',

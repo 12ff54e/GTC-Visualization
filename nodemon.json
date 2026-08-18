@@ -1,3 +1,6 @@
 {
-    "ignore": ["public/*", "custom-plotly/*"]
+    "watch": ["client", "server", "views"],
+    "ext": "js,json,pug",
+    "ignore": ["public/**", "custom-plotly/**"],
+    "exec": "npm run pack-client:dev && node ./server/server.js"
 }

@@ -18,6 +18,17 @@
     direction: ltr;
 }
 
+.js-plotly-plot .modebar-btn .modebar-material-symbol {
+    position: relative;
+    top: 1px;
+    color: rgba(68, 68, 68, 0.3);
+    font-size: 18px;
+}
+
+.js-plotly-plot .modebar-btn:hover .modebar-material-symbol {
+    color: rgba(68, 68, 68, 0.7);
+}
+
 :root {
     --preview-bg: azure;
 }
@@ -38,8 +49,8 @@
     content: ' \2BC8';
 }
 #breadcrumb-container > span.breadcrumb-item:last-child::after {
-    /* No path separator after last segment */
-    content: '';
+    /* Not showing path separator after last segment, but keep it due to align issue */
+    color: transparent;
 }
 .breadcrumb-item {
     cursor: pointer;
@@ -346,6 +357,32 @@ div header {
     display: block;
 }
 
+.tabs-l1 > .history-recalculate-anchor {
+    display: block;
+    height: 0;
+    margin: 0;
+}
+
+#history-recalculate {
+    margin-bottom: 0;
+    padding: 0.4rem 0;
+}
+
+#history-recalculate.history-recalculate-pinned {
+    position: fixed;
+    top: 20px;
+    left: 16.45%;
+    width: 17.1%;
+    z-index: 3;
+    box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+}
+
+#history-recalculate > .tab-l1-btn {
+    width: 60%;
+}
+
 .plot-range-controls {
     margin: 0.5rem 0 1rem;
     padding: 0.75rem 0.6rem;
@@ -433,6 +470,29 @@ form.plot-range-form {
 form {
     text-align: center;
     margin: 0.5rem 0 2rem;
+}
+
+.rational-surface-controls {
+    display: grid;
+    gap: 0.35rem;
+    margin: 1rem 0.2rem 0;
+    padding: 0.6rem;
+    border: 1px solid rgb(172, 210, 197);
+    border-radius: 8px;
+    background-color: rgba(227, 248, 241, 0.55);
+}
+
+.rational-surface-controls[hidden] {
+    display: none;
+}
+
+.rational-surface-controls > input[type='range'] {
+    width: 100%;
+    margin: 0;
+}
+
+.rational-surface-controls output {
+    font-weight: bold;
 }
 
 #eq-x,

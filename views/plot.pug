@@ -4,8 +4,8 @@ html(lang="en")
         meta(charset="UTF-8")
         title GTC-Visualization
         link(rel="stylesheet" href="stylesheets/tabs.css")
-        script(src="javascripts/plotly-custom.min.js" defer)
-        script(type="module" src="javascripts/index.js" defer)
+        script(src="libs/plotly/plotly-custom.min.js" defer)
+        script(src="javascripts/plot-page.js" defer)
         script(id="MathJax-script" src="libs/mathjax/tex-svg.js" defer)
         script(src="libs/fftw-js/bundle.js" defer)
     body
@@ -43,8 +43,8 @@ html(lang="en")
                 div(id="unit-chooser" class="dropdown")
                     label(for="time-unit-select") Time unit
                     select(id="time-unit-select" name="time-unit")
-                        option(value="R0Cs" selected) R_0/Cs
-                        option(value="R0Va") R0/Va
+                        option(value="soundSpeed" selected) R_0/Cs
+                        option(value="alfvenSpeed") R0/Va
                         option(value="tstep") tstep
                         option(value="microsecond") μs
 

@@ -3,7 +3,7 @@
 This node app provides a simple way to inspect GTC(Gyrokinetic Toroidal Code) output data. Once deployed on the server, you can examine various plot generated from raw output data, without downloading any files.
 
 ## Requirement
-Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
+Node.js 22 or newer.
 
 ## Quick start
 1. `git clone https://github.com/12ff54e/GTC-Visualization`
@@ -12,14 +12,16 @@ Node.js, v16.13.1 and v18.17.1 are both guaranteed to work
    - **HOST_DIR** is the folder where this app will search gtc output files in.
    - **LIMIT** is the maximum number of concurrent opening GTC output folders.
    - **SHOW_PATH** is a boolean determining whether the front end can see the whole path
-3. Set NODE_ENV to production (for example, `EXPORT NODE_ENV=production` in Linux).
-4. run
+3. run
     ```bash
     npm install
-    npm run pack-custom-plotly
     npm test
     ```
-**Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run `npm pack` and all necessary files are packed into a compressed file, which you can upload to your server. Or download the latest version from [here](https://github.com/12ff54e/GTC-Visualization/releases/download/latest/GTC-Visualization.tar.gz). Then you can unpack files and start the server by
+   `npm test` builds custom Plotly and source-mapped development client bundles
+   before starting the development server.
+   The editable browser sources are in `client/`; `npm run pack-client`
+   generates the scripts served from `public/javascripts/`.
+**Note**: `npm install` needs access to a npm repository. If your server do not have Internet access, you can run `npm run pack` and all necessary files are packed into a compressed file, which you can upload to your server. Or download the latest version from [here](https://github.com/12ff54e/GTC-Visualization/releases/download/latest/GTC-Visualization.tar.gz). Then you can unpack files and start the server by
    ```bash
    tar -xf GTC-Visualization.tar.gz
    cd GTC-Visualization

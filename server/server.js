@@ -5,10 +5,9 @@ const path = require('path');
 const compression = require('compression');
 const FileTree = require('./fileTree.js');
 const fs = require('fs').promises;
-const Ajv = require('ajv');
+const { registerBatchPlotDataRoute } = require('./batch-data-handler.js');
 const pug = require('pug');
 
-const input_schema = require('./input-parameters-schema.json');
 const { spawn } = require('child_process');
 const { tmpdir } = require('os');
 const { unlink, readdir } = require('fs/promises');
@@ -19,10 +18,6 @@ const processLimit = Number(process.env.LIMIT || 50);
 const host_dir = process.env.HOST_DIR || require('os').homedir();
 const show_path = process.env.SHOW_PATH == 'true';
 const SCAN_PERIOD = 3600; // scan host_dir every hour
-
-validateInputSchema().catch(err => {
-    console.log(err);
-});
 
 let output = {};
 const folder_cache = {
@@ -35,6 +30,7 @@ const folder_cache = {
 app.use(compression());
 app.use(express.static('./public'));
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 app.disable('x-powered-by');
 
 app.listen(port);
@@ -202,10 +198,6 @@ app.get(
     })
 );
 
-app.get('/plot/Summary', (req, res) => {
-    prepareSummaryData(req.body.gtcOutput).then(res.json.bind(res));
-});
-
 app.get('/plot/data/basicParameters', (req, res) => {
     const gtcOutput = req.body.gtcOutput;
     gtcOutput.read_para().then(() => {
@@ -229,6 +221,9 @@ app.get('/plot/data/:typeid', (req, res) => {
         res.status(404).end();
     }
 });
+
+// Batch endpoint: accept multiple {type, id} pairs in one request.
+registerBatchPlotDataRoute(app, wrap);
 
 app.post('/plot/data/download', (req, res, next) => {
     const currentDir = req.body.gtcOutput.dir;
@@ -371,55 +366,4 @@ function generateInput(params) {
     }
 
     return result;
-}
-
-async function validateInputSchema() {
-    const ajv = new Ajv();
-
-    const input_specs = await Promise.all(
-        (await fs.readdir('./public/javascripts/'))
-            .filter(filename => filename.endsWith('.json'))
-            .map(filename =>
-                fs
-                    .readFile(
-                        path.join('./public/javascripts/', filename),
-                        'utf-8'
-                    )
-                    .then(str => JSON.parse(str))
-            )
-    );
-
-    const validate = ajv.compile(input_schema);
-    const valid = input_specs.every(input_spec => validate(input_spec));
-    if (valid) {
-        console.log('Input specs are valid.');
-    } else {
-        console.log(validate.errors);
-    }
-}
-
-async function prepareSummaryData(currentOutput) {
-    await currentOutput.readData('Equilibrium');
-    const data = {};
-    [
-        'minor',
-        'rg',
-        'q',
-        'dlnq_dpsi',
-        'Te',
-        'dlnTe_dpsi',
-        'ne',
-        'dlnne_dpsi',
-        'Ti',
-        'dlnTi_dpsi',
-        'ni',
-        'dlnni_dpsi',
-        'Tf',
-        'dlnTf_dpsi',
-        'nf',
-        'dlnnf_dpsi',
-    ].forEach(key => {
-        data[key] = currentOutput.data['Equilibrium'].radialData[key];
-    });
-    return data;
 }
