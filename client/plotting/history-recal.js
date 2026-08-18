@@ -4,16 +4,18 @@
  * History-mode "Recalculate" button.
  *
  * Adds a button to the History panel that re-fits the growth rate and
- * frequency using the user-selected zoom range (stored in
- * `state.hist_mode_range`) and re-renders the affected figures.
+ * frequency using the user-selected zoom range read from the currently
+ * displayed figures and re-renders the affected figures.
  *
  * @module history-recal
  */
 
-import state from '../control/state.js';
 import { wrap } from '../components/status-bar.js';
 import { historyMode } from './plot-data-process.js';
-import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
+import {
+    getDisplayedHistoryModeIntervals,
+    refreshPlotRangeControls,
+} from '../components/figure-range-controls.js';
 
 /** Keep the recalculation control visible after its normal position scrolls away. */
 export function updateHistoryRecalPosition(anchor, control) {
@@ -41,13 +43,11 @@ export function addHistoryRecal(panel) {
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
-            const len = figures[0].data[0].x[figures[0].data[0].x.length - 1];
+            const displayedIntervals = getDisplayedHistoryModeIntervals();
             await historyMode(
                 figures,
-                state.hist_mode_range.growthRate &&
-                    state.hist_mode_range.growthRate.map(i => i / len),
-                state.hist_mode_range.frequency &&
-                    state.hist_mode_range.frequency.map(i => i / len)
+                displayedIntervals.growthRate,
+                displayedIntervals.frequency
             );
 
             figures.forEach(figure => {

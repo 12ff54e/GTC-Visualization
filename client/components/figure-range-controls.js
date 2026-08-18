@@ -29,7 +29,7 @@ import state from '../control/state.js';
 // ------------------------------------------------------------------
 
 /** @returns {HTMLElement[]} Currently visible figure divs that have data. */
-function getVisibleFigureDivs() {
+export function getVisibleFigureDivs() {
     return [...document.getElementById('figure-wrapper').children].filter(
         figure => figure.classList.contains('active') && figure.data?.length
     );
@@ -48,7 +48,7 @@ function getVisibleFigureDivs() {
  * @param {'x'|'y'} axisName
  * @returns {Object|undefined}
  */
-function getFigureAxisLayout(figure, axisName) {
+export function getFigureAxisLayout(figure, axisName) {
     return figure?.layout?.[`${axisName}axis`];
 }
 
@@ -60,7 +60,7 @@ function getFigureAxisLayout(figure, axisName) {
  * @param {'x'|'y'} axisName
  * @returns {[number, number]|undefined}
  */
-function getFigureAxisRange(figure, axisName) {
+export function getFigureAxisRange(figure, axisName) {
     const range = getFigureAxisLayout(figure, axisName)?.range;
     if (
         Array.isArray(range) &&
@@ -203,9 +203,226 @@ function updateHistoryModeRangeFromRelayout(figure, eventData) {
 }
 
 /**
+ * Convert an absolute axis range back into a fractional `[start, end]`
+ * interval over the plotted x samples.  Used to capture the user's
+ * currently displayed history-mode window before a unit change so it can
+ * be restored afterwards.
+ *
+ * @param {[number, number]} range
+ * @param {number[]} xs
+ * @returns {[number, number]|undefined}
+ */
+function normalizeRangeToUnitInterval(range, xs) {
+    if (
+        !Array.isArray(range) ||
+        range.length !== 2 ||
+        !Array.isArray(xs) ||
+        !xs.length
+    ) {
+        return;
+    }
+
+    let startIndex = 0;
+    while (startIndex < xs.length - 1 && xs[startIndex] < range[0]) {
+        startIndex++;
+    }
+
+    let endIndex = xs.length - 1;
+    while (endIndex > 0 && xs[endIndex] > range[1]) {
+        endIndex--;
+    }
+
+    if (startIndex > endIndex) {
+        return;
+    }
+
+    return [startIndex / xs.length, (endIndex + 1) / xs.length];
+}
+
+/**
+ * Read the currently displayed growth-rate (figure-2) and frequency
+ * (figure-3) x-axes and express them as fractional intervals suitable for
+ * passing to `historyMode`.
+ *
+ * @returns {{growthRate: number[]|undefined, frequency: number[]|undefined}}
+ */
+export function getDisplayedHistoryModeIntervals() {
+    const getFigureInterval = figureId => {
+        const figure = document.getElementById(figureId);
+        const range = getFigureAxisRange(figure, 'x');
+        const xs = figure?.data?.[0]?.x;
+        return normalizeRangeToUnitInterval(range, xs);
+    };
+
+    return {
+        growthRate: getFigureInterval('figure-2'),
+        frequency: getFigureInterval('figure-3'),
+    };
+}
+
+// ------------------------------------------------------------------
+//  Colorbar range adjustment
+// ------------------------------------------------------------------
+
+function shouldAdjustColorRange() {
+    const currentPlotId = state.current_plot_btn?.id;
+    return (
+        currentPlotId?.startsWith('Snapshot') ||
+        currentPlotId?.startsWith('RadialTime')
+    );
+}
+
+function numericRange(range) {
+    if (!range) {
+        return;
+    }
+    return [Math.min(range[0], range[1]), Math.max(range[0], range[1])];
+}
+
+function defaultAxisValues(length) {
+    return Array.from({ length }, (_, i) => i);
+}
+
+function getTraceAxisValues(trace, axisName, length) {
+    const values = trace?.[axisName];
+    return Array.isArray(values) && values.length === length
+        ? values.map(Number)
+        : defaultAxisValues(length);
+}
+
+function getVisibleHeatmapZValues(trace, xRange, yRange) {
+    const z = trace?.z;
+    if (!Array.isArray(z) || !z.length) {
+        return [];
+    }
+
+    const rowCount = z.length;
+    const columnCount = Math.max(...z.map(row => row?.length ?? 0));
+    const xLength = trace.transpose ? rowCount : columnCount;
+    const yLength = trace.transpose ? columnCount : rowCount;
+    const xValues = getTraceAxisValues(trace, 'x', xLength);
+    const yValues = getTraceAxisValues(trace, 'y', yLength);
+    const values = [];
+
+    z.forEach((row, rowIndex) => {
+        if (!Array.isArray(row)) {
+            return;
+        }
+        row.forEach((value, columnIndex) => {
+            const xValue = trace.transpose
+                ? xValues[rowIndex]
+                : xValues[columnIndex];
+            const yValue = trace.transpose
+                ? yValues[columnIndex]
+                : yValues[rowIndex];
+            if (
+                xValue >= xRange[0] &&
+                xValue <= xRange[1] &&
+                yValue >= yRange[0] &&
+                yValue <= yRange[1] &&
+                Number.isFinite(Number(value))
+            ) {
+                values.push(Number(value));
+            }
+        });
+    });
+
+    return values;
+}
+
+function getVisibleContourCarpetZValues(figure, trace, xRange, yRange) {
+    const z = trace?.z;
+    const carpet = figure.data?.find(
+        candidate =>
+            candidate.type === 'carpet' && candidate.carpet === trace.carpet
+    );
+    const xs = carpet?.x;
+    const ys = carpet?.y;
+    if (!Array.isArray(z) || !Array.isArray(xs) || !Array.isArray(ys)) {
+        return [];
+    }
+
+    const values = [];
+    z.forEach((row, rowIndex) => {
+        if (!Array.isArray(row)) {
+            return;
+        }
+        row.forEach((value, columnIndex) => {
+            const xValue = Number(xs[rowIndex]?.[columnIndex]);
+            const yValue = Number(ys[rowIndex]?.[columnIndex]);
+            if (
+                xValue >= xRange[0] &&
+                xValue <= xRange[1] &&
+                yValue >= yRange[0] &&
+                yValue <= yRange[1] &&
+                Number.isFinite(Number(value))
+            ) {
+                values.push(Number(value));
+            }
+        });
+    });
+
+    return values;
+}
+
+function getVisibleTraceZValues(figure, trace, xRange, yRange) {
+    if (trace.type === 'heatmap' || trace.type === 'contour') {
+        return getVisibleHeatmapZValues(trace, xRange, yRange);
+    }
+    if (trace.type === 'contourcarpet') {
+        return getVisibleContourCarpetZValues(figure, trace, xRange, yRange);
+    }
+    return [];
+}
+
+/**
+ * Recompute heatmap/contour colorbar limits from the z-values currently
+ * visible within the figure's x/y range.  Only applies to Snapshot and
+ * RadialTime plots, whose colorbars would otherwise retain the full-data
+ * extent after zooming.
+ *
+ * @param {HTMLElement} figure
+ */
+function adjustFigureColorRange(figure) {
+    if (!shouldAdjustColorRange()) {
+        return;
+    }
+
+    const xRange = numericRange(getFigureAxisRange(figure, 'x'));
+    const yRange = numericRange(getFigureAxisRange(figure, 'y'));
+    if (!xRange || !yRange) {
+        return;
+    }
+
+    figure.data?.forEach((trace, traceIndex) => {
+        if (!trace.colorbar || !trace.z) {
+            return;
+        }
+
+        const values = getVisibleTraceZValues(figure, trace, xRange, yRange);
+        if (!values.length) {
+            return;
+        }
+
+        const zMin = Math.min(...values);
+        const zMax = Math.max(...values);
+        if (!Number.isFinite(zMin) || !Number.isFinite(zMax) || zMin === zMax) {
+            return;
+        }
+
+        Plotly.restyle(
+            figure,
+            { zmin: [zMin], zmax: [zMax], zauto: [false] },
+            [traceIndex]
+        );
+    });
+}
+
+/**
  * Bind the `plotly_relayout` event on a figure so that the range-control
- * inputs and (for history-mode figures) `state.hist_mode_range` stay in
- * sync with the visible plot.  Each figure is bound at most once.
+ * inputs, (for history-mode figures) `state.hist_mode_range`, and (for
+ * heatmap/contour figures) colorbar limits stay in sync with the visible
+ * plot.  Each figure is bound at most once.
  *
  * @param {HTMLElement} figure
  */
@@ -218,6 +435,7 @@ function bindFigureRangeSync(figure) {
     figure.on('plotly_relayout', eventData => {
         syncFigureRangeControlInputs(figure);
         updateHistoryModeRangeFromRelayout(figure, eventData);
+        adjustFigureColorRange(figure);
     });
 }
 

@@ -28,6 +28,13 @@ import {
 } from './components/status-bar.js';
 import { setupBreadcrumbs } from './components/navigation.js';
 import { setupDownloadForm } from './components/download.js';
+import {
+    getVisibleFigureDivs,
+    getFigureAxisLayout,
+    getFigureAxisRange,
+    getDisplayedHistoryModeIntervals,
+    refreshPlotRangeControls,
+} from './components/figure-range-controls.js';
 
 // ------------------------------------------------------------------
 //  Bootstrap
@@ -48,6 +55,31 @@ window.addEventListener('load', () => {
     timeUnitSelect.addEventListener(
         'change',
         wrap(async e => {
+            // Capture the current time-axis range on each visible figure so
+            // we can restore the user's chosen window after the figures are
+            // replotted in the new unit. We identify time-axis figures by
+            // their x-axis title text matching a known time-unit label.
+            const oldUnit = state.units.time;
+            const oldFactor = state.timeUnitFactor?.[oldUnit] ?? 1;
+            const timeUnitLabels = new Set(Object.values(TIME_UNIT_LABEL));
+            const previousRanges = getVisibleFigureDivs()
+                .filter(fig => {
+                    const titleText =
+                        getFigureAxisLayout(fig, 'x')?.title?.text;
+                    return timeUnitLabels.has(titleText);
+                })
+                .map(fig => ({
+                    id: fig.id,
+                    range: getFigureAxisRange(fig, 'x'),
+                }))
+                .filter(entry => entry.range);
+            const currentPlotId = state.current_plot_btn?.id;
+            state.pendingHistoryModeIntervals =
+                currentPlotId?.startsWith('History') &&
+                currentPlotId.includes('-mode')
+                    ? getDisplayedHistoryModeIntervals()
+                    : undefined;
+
             state.units.time = e.target.value;
             await refreshTimeUnitFactor();
 
@@ -55,6 +87,30 @@ window.addEventListener('load', () => {
                 await addLoadingIndicator(
                     getDataThenPlot.bind(state.current_plot_btn)
                 )();
+
+                const newFactor =
+                    state.timeUnitFactor?.[e.target.value] ?? 1;
+                const ratio = newFactor / oldFactor;
+                if (
+                    Number.isFinite(ratio) &&
+                    ratio !== 0 &&
+                    ratio !== 1
+                ) {
+                    await Promise.all(
+                        previousRanges.map(({ id, range }) => {
+                            const fig = document.getElementById(id);
+                            if (!fig) return Promise.resolve();
+                            return Plotly.relayout(fig, {
+                                'xaxis.range': [
+                                    range[0] * ratio,
+                                    range[1] * ratio,
+                                ],
+                                'xaxis.autorange': false,
+                            });
+                        })
+                    );
+                    refreshPlotRangeControls();
+                }
             }
         })
     );

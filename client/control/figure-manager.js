@@ -32,6 +32,7 @@ import {
     ensurePlotRangeControls,
     renderPlotRangeControls,
     refreshPlotRangeControls,
+    getFigureAxisRange,
 } from '../components/figure-range-controls.js';
 import {
     getStatusBar,
@@ -264,9 +265,12 @@ export async function getDataThenPlot(clean_beforehand = true) {
         recalculate.classList.remove('active');
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
-        await historyMode(figures);
-        state.hist_mode_range.frequency = undefined;
-        state.hist_mode_range.growthRate = undefined;
+        const pendingIntervals = state.pendingHistoryModeIntervals;
+        await historyMode(
+            figures,
+            pendingIntervals?.growthRate,
+            pendingIntervals?.frequency
+        );
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);
@@ -314,6 +318,18 @@ export async function getDataThenPlot(clean_beforehand = true) {
                 : Promise.resolve();
         })
     );
+
+    if (this.id.startsWith('History') && this.id.includes('-mode')) {
+        state.hist_mode_range.growthRate = getFigureAxisRange(
+            document.getElementById('figure-2'),
+            'x'
+        );
+        state.hist_mode_range.frequency = getFigureAxisRange(
+            document.getElementById('figure-3'),
+            'x'
+        );
+        state.pendingHistoryModeIntervals = undefined;
+    }
 
     refreshPlotRangeControls();
 }
