@@ -64,7 +64,7 @@ This is an Express.js app that visualizes GTC (Gyrokinetic Toroidal Code) simula
 
 ### Client-side source (`client/`)
 
-Editable browser code lives under `client/`, outside the static `public/` tree. `npm run pack-client` builds the plot page, folder picker, and input generator into `public/javascripts/`. That output directory is generated and ignored by Git. `Plotly` and `fftw` are loaded as separate `<script>` tags.
+Editable browser code lives under `client/`, outside the static `public/` tree. `npm run pack-client` builds the plot page, folder picker, and input generator into `public/javascripts/`. That output directory is generated and ignored by Git. `Plotly` is loaded as a separate `<script>` tag; FFTE is loaded lazily by `client/shared/fft.js`.
 
 `npm test` uses `pack-client:dev`, which emits readable development bundles and external `.map` files. Production commands use `pack-client`/`pack-all`, which disable source maps.
 
@@ -122,7 +122,7 @@ Bootstrap (~115 lines): imports all modules and wires the `load` event handler. 
 ### Generated client assets (`public/javascripts/`)
 
 Webpack emits `plot-page.js`, `folder-picker.js`, and `input-generator.js` here. Do not edit these files directly; rebuild them with `npm run pack-client`.
-- **`../libs/fftw-js/`** — FFTW compiled to WASM for client-side FFT
+- **`../libs/ffte/`** — FFTE compiled to WASM for client-side FFT; source lives in the `ffte` submodule
 
 ### Views (`views/`)
 

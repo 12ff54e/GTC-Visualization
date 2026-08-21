@@ -21,7 +21,12 @@
 import state from '../control/state.js';
 import { requestPlotData } from '../shared/api.js';
 import { getStatusBar } from '../components/status-bar.js';
-import { interleave, unInterleave, min_max } from '../shared/util.js';
+import { getFFT } from '../shared/fft.js';
+import { min_max } from '../shared/util.js';
+import {
+    diagnosticSafetyFactor,
+    fieldAlignedSpectrum,
+} from './field-aligned-spectrum.js';
 import {
     findRationalSurfaceCrossings,
     RATIONAL_SURFACE_LINE_STYLE,
@@ -96,6 +101,19 @@ function getRationalSurface(safetyFactor, n_modes, m_modes) {
             r: (radialPosition - r0) / (r1 - r0),
             ...mode,
         }));
+}
+
+async function requestSafetyFactorProfile() {
+    const equilibrium = await requestPlotData('plotType/Equilibrium', {
+        optional: true,
+    });
+    if (!equilibrium.ok) return null;
+
+    const response = await requestPlotData('data/Equilibrium-1D-rg_n-q', {
+        optional: true,
+    });
+    if (!response?.ok) return null;
+    return (await response.json())?.at(0)?.data?.at(0) ?? null;
 }
 
 // ==================================================================
@@ -422,56 +440,98 @@ async function drawPoloidalDataWebGL(container, data) {
 //  Exported: data processing
 // ==================================================================
 
+export async function snapshotFluxSurfaceSpectrum(
+    figures,
+    safetyFactorProfile
+) {
+    const field = figures.pop().extraData;
+    if (!safetyFactorProfile) {
+        figures.pop();
+        getStatusBar().warn =
+            'The theta-zeta spectrum requires an equilibrium safety-factor profile.';
+        return;
+    }
+
+    const fft = await getFFT();
+    const safetyFactor = diagnosticSafetyFactor(
+        safetyFactorProfile,
+        state.basicParameters
+    );
+    const spectrum = fieldAlignedSpectrum(
+        field,
+        safetyFactor,
+        state.basicParameters.toroidaln ?? 1,
+        fft
+    );
+
+    const poloidal_mode_num = Math.max(
+        1,
+        Math.floor(spectrum.thetaModes.length / 10)
+    );
+    Object.assign(figures[1].data[0], {
+        x: spectrum.toroidalModes,
+        y: spectrum.thetaModes.slice(0, poloidal_mode_num),
+        z: spectrum.amplitude.slice(0, poloidal_mode_num),
+    });
+    figures[1].layout.title.text += `, q=${safetyFactor.toPrecision(5)}`;
+}
+
 export async function snapshotSpectrum(figures) {
     const field = figures.pop().extraData;
     const torNum = field.length;
     const polNum = field[0].length;
-
     const mmodes = Math.floor(polNum / 5);
     const nmodes = Math.floor(torNum / 5);
+    const fft = await getFFT();
 
-    const modulo = (re, im) => Math.sqrt(re * re + im * im);
-
-    const poloidalSpectrum = Array(mmodes).fill(0);
-    const planPol = new fftw['r2c']['fft1d'](polNum);
-    for (let section of field) {
-        const powerSpectrum = planPol.forward(section);
-        poloidalSpectrum[0] += powerSpectrum[0];
-        for (let i = 1; i < mmodes; i++) {
-            poloidalSpectrum[i] +=
-                2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
+    const poloidalInput = new Float64Array(torNum * polNum);
+    const toroidalInput = new Float64Array(torNum * polNum);
+    for (let toroidalIndex = 0; toroidalIndex < torNum; toroidalIndex++) {
+        const section = field[toroidalIndex];
+        poloidalInput.set(section, toroidalIndex * polNum);
+        for (let poloidalIndex = 0; poloidalIndex < polNum; poloidalIndex++) {
+            toroidalInput[poloidalIndex * torNum + toroidalIndex] =
+                section[poloidalIndex];
         }
     }
-    planPol.dispose();
 
-    function transpose(matrix) {
-        let result = new Array(matrix[0].length);
-        for (let i = 0; i < result.length; i++) {
-            result[i] = matrix.map(line => line[i]);
+    const modulus = (spectrum, index) =>
+        Math.hypot(spectrum[index * 2], spectrum[index * 2 + 1]);
+    const poloidalSpectrum = Array(mmodes).fill(0);
+    const poloidalStride = 2 * (Math.floor(polNum / 2) + 1);
+    const poloidalBatch = fft.r2c1dBatch(poloidalInput, polNum);
+    for (let section = 0; section < torNum; section++) {
+        const spectrum = poloidalBatch.subarray(
+            section * poloidalStride,
+            (section + 1) * poloidalStride
+        );
+        poloidalSpectrum[0] += spectrum[0];
+        for (let mode = 1; mode < mmodes; mode++) {
+            poloidalSpectrum[mode] += 2 * modulus(spectrum, mode);
         }
-        return result;
     }
 
     const toroidalSpectrum = Array(nmodes).fill(0);
-    const planTor = new fftw['r2c']['fft1d'](torNum);
-    for (let section of transpose(field)) {
-        const powerSpectrum = planTor.forward(section);
-        toroidalSpectrum[0] += powerSpectrum[0];
-        for (let i = 1; i < nmodes; i++) {
-            toroidalSpectrum[i] +=
-                2 * modulo(powerSpectrum[2 * i], powerSpectrum[2 * i + 1]);
+    const toroidalStride = 2 * (Math.floor(torNum / 2) + 1);
+    const toroidalBatch = fft.r2c1dBatch(toroidalInput, torNum);
+    for (let section = 0; section < polNum; section++) {
+        const spectrum = toroidalBatch.subarray(
+            section * toroidalStride,
+            (section + 1) * toroidalStride
+        );
+        toroidalSpectrum[0] += spectrum[0];
+        for (let mode = 1; mode < nmodes; mode++) {
+            toroidalSpectrum[mode] += 2 * modulus(spectrum, mode);
         }
     }
-    planTor.dispose();
 
     figures[0].data[0].x = [...Array(mmodes).keys()];
     figures[0].data[0].y = poloidalSpectrum.map(
-        v => Math.sqrt(v / torNum) / polNum
+        value => Math.sqrt(value / torNum) / polNum
     );
-
     figures[1].data[0].x = [...Array(nmodes).keys()];
     figures[1].data[0].y = toroidalSpectrum.map(
-        v => Math.sqrt(v / polNum) / torNum
+        value => Math.sqrt(value / polNum) / torNum
     );
 }
 
@@ -532,11 +592,12 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
         });
     }
 
-    if (!state.fftPlan) {
-        const planConstructor = fftw['r2c']['fft1d'];
-        state.fftPlan = new planConstructor(polNum);
-    }
-    const plan = state.fftPlan;
+    const fft = await getFFT();
+    const spectrumStride = 2 * (Math.floor(polNum / 2) + 1);
+    const batchedSpectrum = fft.r2c1dBatch(
+        flattenedField.slice(0, radNum * polNum),
+        polNum
+    );
 
     const extra_spectrum_data = Array.from(
         { length: polNum / MIN_PTS },
@@ -552,8 +613,11 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
         }
     );
     for (let r = 0; r < radNum; r++) {
-        const circle = flattenedField.slice(r * polNum, (r + 1) * polNum);
-        plan.forward(circle).forEach((amp, i) => {
+        const spectrum = batchedSpectrum.subarray(
+            r * spectrumStride,
+            (r + 1) * spectrumStride
+        );
+        spectrum.forEach((amp, i) => {
             const mode_num = Math.floor(i / 2);
             if (mode_num < extra_spectrum_data.length) {
                 const extra_trace = extra_spectrum_data[mode_num];
@@ -765,7 +829,10 @@ export async function snapshotPoloidal(figures, safetyFactor, quick, playing) {
  * @param {Array<Object>} figures - Array of Plotly figure descriptors.
  */
 export async function snapshotPreprocess(btn, figures) {
-    if (btn.id.endsWith('spectrum')) {
+    if (btn.id.endsWith('flux')) {
+        const safetyFactor = await requestSafetyFactorProfile();
+        await snapshotFluxSurfaceSpectrum(figures, safetyFactor);
+    } else if (btn.id.endsWith('spectrum')) {
         await snapshotSpectrum(figures);
     } else if (btn.id.endsWith('poloidal')) {
         const quick = btn.id.endsWith('quick_poloidal');
@@ -789,21 +856,7 @@ export async function snapshotPreprocess(btn, figures) {
             );
             figures[0].data[1].z = z;
         } else {
-            const res = await requestPlotData('plotType/Equilibrium', {
-                optional: true,
-            });
-            safety_factor = res.ok
-                ? (
-                      await (
-                          await requestPlotData('data/Equilibrium-1D-rg_n-q', {
-                              optional: true,
-                          })
-                      )?.json()
-                  )
-
-                      ?.at(0)
-                      ?.data?.at(0)
-                : null;
+            safety_factor = await requestSafetyFactorProfile();
         }
         await snapshotPoloidal(figures, safety_factor, quick, playing);
     }

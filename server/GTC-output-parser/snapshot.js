@@ -129,25 +129,53 @@ class Snapshot extends PlotType {
                         colorbar: {
                             tickformat: '.4g',
                         },
+                        colorscale: 'RdBu',
+                        reversescale: true,
+                        zmid: 0,
                         transpose: true,
+                        hovertemplate:
+                            'zeta: %{x}<br>theta: %{y}<br>f: %{z:.4g}<extra></extra>',
                     });
                     fig.axesLabel = { x: 'nzeta', y: 'mtheta' };
                     fig.plotLabel = `$${PlotType.fieldDisplayName[cat]}\\text{ on flux surface}$`;
-                    figureContainer.push(fig);
+                    const spectrum2d = new PlotlyData();
+                    spectrum2d.data.push({
+                        type: 'heatmap',
+                        colorscale: 'Picnic',
+                        zmid: 0,
+                        colorbar: {
+                            tickformat: '.4g',
+                        },
+                        hovertemplate:
+                            'n: %{x}<br>m: %{y}<br>|f|: %{z:.4g}<extra></extra>',
+                    });
+                    spectrum2d.axesLabel = { x: '$n$', y: '$m$' };
+                    spectrum2d.plotLabel =
+                        '$\\theta\\text{-}\\zeta\\text{ spectrum}$';
+                    figureContainer = [
+                        fig,
+                        spectrum2d,
+                        { extraData: this.fieldData['fluxData'][cat] },
+                    ];
                     break;
                 case 1: // poloidal and parallel spectrum
-                    // This figure involves some interaction, so data will be generate on client side
-                    let figs = Array.from({ length: 2 }, _ => new PlotlyData());
-                    figs.forEach((fig, i) => {
-                        fig.data.push({
+                    // These spectra are generated on the client side.
+                    let figs = Array.from(
+                        { length: 2 },
+                        _ => new PlotlyData()
+                    );
+                    figs.forEach((spectrum, i) => {
+                        spectrum.data.push({
                             type: 'scatter',
                             mode: 'lines',
                         });
-                        fig.plotLabel = `$\\text{${
+                        spectrum.plotLabel = `$\\text{${
                             i == 0 ? 'poloidal' : 'parallel'
                         } spectrum}$`;
                     });
-                    figs.push({ extraData: this.fieldData['fluxData'][cat] });
+                    figs.push({
+                        extraData: this.fieldData['fluxData'][cat],
+                    });
                     figureContainer = figs;
                     break;
                 case 2: // field strength on poloidal plane
