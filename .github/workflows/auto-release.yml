@@ -33,13 +33,13 @@ jobs:
 
       - name: Build and test FFTE WebAssembly
         run: |
-          emcmake cmake -S ffte -B ffte/build-wasm -DFFTE_BUILD_TESTS=OFF
-          cmake --build ffte/build-wasm --target ffte_wasm
+          emcmake cmake -S ffte -B ffte/build-wasm \
+            -DFFTE_BUILD_TESTS=OFF \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build ffte/build-wasm --target ffte_wasm --config Release
           mkdir -p ffte/dist public/libs/ffte
           cp ffte/build-wasm/ffte.wasm ffte/dist/ffte.wasm
-          cp ffte/js/ffte.mjs ffte/dist/ffte.js
           cp ffte/dist/ffte.wasm public/libs/ffte/ffte.wasm
-          cp ffte/dist/ffte.js public/libs/ffte/ffte.js
           node ffte/tests/test_wasm.mjs
 
       - name: Build release package
