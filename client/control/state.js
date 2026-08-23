@@ -87,6 +87,15 @@ const state = {
      */
     hist_mode_range: { growthRate: undefined, frequency: undefined },
 
+    /**
+     * History-mode fractional intervals captured just before a unit change,
+     * so they can be restored after the figures are replotted in the new
+     * unit.  Set by the unit-selector handler in `index.js`, consumed by
+     * `getDataThenPlot`.
+     * @type {{growthRate: number[]|undefined, frequency: number[]|undefined}|undefined}
+     */
+    pendingHistoryModeIntervals: undefined,
+
     // ------------------------------------------------------------------
     //  Simulation parameters (fetched once from the server via read_para)
     // ------------------------------------------------------------------
