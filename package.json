@@ -1,6 +1,6 @@
 {
     "name": "gtc-visualization",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Online plotting tools for GTC.",
     "main": "server.js",
     "scripts": {
