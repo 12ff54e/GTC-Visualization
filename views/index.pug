@@ -14,20 +14,27 @@ html(lang="en")
             span#last_scan_duration
             |  ago
         form(method="POST" id="folder_form" action="plot")
+            section#folder-search-panel(aria-labelledby="folder-search-label")
+                label#folder-search-label(for="folder-search") Find a GTC output folder
+                input#folder-search(type="search", autocomplete="off", placeholder="Search by folder name or path")
+                p#folder-search-status(aria-live="polite") Loading available folders…
+                ul#folder-search-results(aria-label="Matching GTC output folders" hidden)
+            p#folder-selection-status(aria-live="polite") No folder selected. Submitting will open the most recently updated folder.
             div(id="folder_list")
                 ul(id="recent_ul" class="content")
                 div(class="ctrl")
-                    button Expand All
-                    button Collapse All
+                    button(type="button") Expand All
+                    button(type="button") Collapse All
                 ul(id="outer_ul" class="content")
+            p#folder-list-status(role="status" aria-live="polite")
             div(id="submit_area")
                 div.tooltip_container.long_column
                     button(type="submit").tooltip
-                        | Choose this folder
+                        | Open selected folder
                     span.tooltip_text.tooltip_bottom
                         | If you don't choose any folder, the most recent one will be selected.
                 div.tooltip_container.normal_grid
-                    button#sync_cache.server_comm.tooltip
+                    button#sync_cache.server_comm.tooltip(type="button")
                         | Sync Server Cache
                         br
                         | (last sync 
@@ -37,7 +44,7 @@ html(lang="en")
                         | Sync the folder structure in server cache,
                         |  not necessarily represents actual content on disk (FAST)
                 div.tooltip_container.normal_grid
-                    button#scan_folder.server_comm.tooltip
+                    button#scan_folder.server_comm.tooltip(type="button")
                         | Scan folder now!
                     span.tooltip_text.tooltip_right
                         | Send a request to the server to read disk and update cache immediately (SLOW)
