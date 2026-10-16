@@ -1,5 +1,7 @@
 const { spawn } = require('child_process');
 const { once } = require('events');
+const { cp, mkdtemp, mkdir, rm } = require('fs/promises');
+const { tmpdir } = require('os');
 const path = require('path');
 
 const packName = 'GTC-Visualization.tar.gz';
@@ -22,23 +24,39 @@ const fileList = [
 ];
 
 async function pack() {
-    const tar = spawn(
-        'tar',
-        [
-            '-caf',
-            packName,
-            '-C',
-            path.dirname(process.cwd()),
-            ...fileList.map(filename =>
-                path.join('GTC-Visualization', filename)
-            ),
-        ],
-        { stdio: 'inherit' }
-    ).on('error', () => {
-        console.error('Failed to execute tar!');
-    });
+    const stagingRoot = await mkdtemp(
+        path.join(tmpdir(), 'gtc-visualization-pack-')
+    );
+    const packageRoot = path.join(stagingRoot, 'GTC-Visualization');
 
-    await once(tar, 'close');
+    try {
+        await mkdir(packageRoot);
+        for (const filename of fileList) {
+            await cp(
+                path.join(process.cwd(), filename),
+                path.join(packageRoot, filename),
+                { recursive: true }
+            );
+        }
+
+        const tar = spawn(
+            'tar',
+            [
+                '-caf',
+                path.join(process.cwd(), packName),
+                '-C',
+                stagingRoot,
+                'GTC-Visualization',
+            ],
+            { stdio: 'inherit' }
+        );
+        const [code] = await once(tar, 'close');
+        if (code !== 0) {
+            throw new Error(`tar exited with code ${code}`);
+        }
+    } finally {
+        await rm(stagingRoot, { recursive: true, force: true });
+    }
 }
 
 pack()
@@ -47,4 +65,5 @@ pack()
     })
     .catch(err => {
         console.error(err);
+        process.exitCode = 1;
     });
