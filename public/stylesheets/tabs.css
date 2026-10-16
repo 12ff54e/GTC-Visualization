@@ -91,11 +91,18 @@
 
 .breadcrumb-dropdown-item {
     position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     padding-left: 1em;
 }
 .breadcrumb-dropdown-item > a {
-    display: inline-block;
-    width: 98%;
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 .breadcrumb-dropdown-item.current-item > a {
     border: outset 2px black;
@@ -105,9 +112,13 @@
 }
 
 .breadcrumb-dropdown-item > .output {
-    position: absolute;
-    top: 0;
-    right: 2%;
+    flex: 0 0 auto;
+    margin-left: 0.5em;
+    white-space: nowrap;
+}
+.breadcrumb-dropdown-item.folder > ul {
+    flex: 0 0 100%;
+    min-width: 0;
 }
 .breadcrumb-dropdown-item.folder::before {
     position: absolute;
