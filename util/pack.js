@@ -1,6 +1,6 @@
 const { spawn } = require('child_process');
 const { once } = require('events');
-const { cp, mkdtemp, mkdir, rm } = require('fs/promises');
+const { chmod, cp, lstat, mkdtemp, mkdir, readdir, rm } = require('fs/promises');
 const { tmpdir } = require('os');
 const path = require('path');
 
@@ -23,7 +23,22 @@ const fileList = [
     'server-prod.js.LICENSE.txt',
 ];
 
-async function pack() {
+async function normalizePermissions(target) {
+    const stat = await lstat(target);
+    // Do not chmod a symlink's target outside the staging directory.
+    if (stat.isSymbolicLink()) return;
+    await chmod(target, stat.isDirectory() ? 0o755 : 0o644);
+    if (stat.isDirectory()) {
+        for (const entry of await readdir(target)) {
+            await normalizePermissions(path.join(target, entry));
+        }
+    }
+}
+
+async function pack(
+    sourceRoot = process.cwd(),
+    archivePath = path.join(sourceRoot, packName)
+) {
     const stagingRoot = await mkdtemp(
         path.join(tmpdir(), 'gtc-visualization-pack-')
     );
@@ -33,17 +48,21 @@ async function pack() {
         await mkdir(packageRoot);
         for (const filename of fileList) {
             await cp(
-                path.join(process.cwd(), filename),
+                path.join(sourceRoot, filename),
                 path.join(packageRoot, filename),
                 { recursive: true }
             );
         }
+        // Copies can inherit Windows read-only attributes. Clear them only on
+        // the staged tree, leaving source permissions untouched.
+        await normalizePermissions(packageRoot);
 
         const tar = spawn(
             'tar',
             [
-                '-caf',
-                path.join(process.cwd(), packName),
+                '--format=ustar',
+                '-czf',
+                archivePath,
                 '-C',
                 stagingRoot,
                 'GTC-Visualization',
@@ -59,11 +78,15 @@ async function pack() {
     }
 }
 
-pack()
-    .then(() => {
-        console.log(`Files are packed into ${packName}`);
-    })
-    .catch(err => {
-        console.error(err);
-        process.exitCode = 1;
-    });
+if (require.main === module) {
+    pack()
+        .then(() => {
+            console.log(`Files are packed into ${packName}`);
+        })
+        .catch(err => {
+            console.error(err);
+            process.exitCode = 1;
+        });
+}
+
+module.exports = { pack, fileList };
