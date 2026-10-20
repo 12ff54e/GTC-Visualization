@@ -235,6 +235,14 @@ class History extends PlotType {
             // particle
             // Each plot type has two sub-figure
             let plotType = particlePlotTypes.indexOf(type);
+            const flowSymbol = {
+                ion: 'D_i',
+                electron: 'D_e',
+                EP: 'D_{EP}',
+            }[cat];
+            const particleFlowTitle = flowSymbol
+                ? `$\\text{Particle flow}\\;(${flowSymbol})$`
+                : '$\\text{Particle flow}$';
             for (let i = 0; i < 2; i++) {
                 let figure = new PlotlyData();
                 figure.data.push({
@@ -263,7 +271,7 @@ class History extends PlotType {
                     case 3:
                         figure.plotLabel =
                             i == 0
-                                ? '$\\text{Particle flow}$'
+                                ? particleFlowTitle
                                 : '$\\text{Momentum flow}$';
                         break;
                     case 4:
