@@ -243,6 +243,14 @@ class History extends PlotType {
             const particleFlowTitle = flowSymbol
                 ? `$\\text{Particle flow}\\;(${flowSymbol})$`
                 : '$\\text{Particle flow}$';
+            const energyFlowSymbol = {
+                ion: '\\chi_i',
+                electron: '\\chi_e',
+                EP: '\\chi_{EP}',
+            }[cat];
+            const energyFlowTitle = energyFlowSymbol
+                ? `$\\text{Energy flow}\\;(${energyFlowSymbol})$`
+                : '$\\text{Energy flow}$';
             for (let i = 0; i < 2; i++) {
                 let figure = new PlotlyData();
                 figure.data.push({
@@ -277,7 +285,7 @@ class History extends PlotType {
                     case 4:
                         figure.plotLabel =
                             i == 0
-                                ? '$\\text{Energy flow}$'
+                                ? energyFlowTitle
                                 : `$\\text{${
                                       this.particleDiagnosticNumber == 10
                                           ? 'Total density'
