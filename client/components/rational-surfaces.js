@@ -10,6 +10,7 @@
  */
 
 import state from '../control/state.js';
+import { reactThemedPlot } from '../shared/plot-theme.js';
 import {
     findRationalSurfaceCrossings,
     RATIONAL_SURFACE_LINE_STYLE,
@@ -163,7 +164,7 @@ export function setupRationalSurfaceControl(panel, nModes) {
         }
 
         applyRationalSurfaceTraces(graphDiv, Number(slider.value));
-        await Plotly.react(graphDiv, graphDiv.data, graphDiv.layout);
+        await reactThemedPlot(graphDiv, graphDiv.data, graphDiv.layout);
         refreshPlotRangeControls();
     });
 

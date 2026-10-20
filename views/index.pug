@@ -3,8 +3,10 @@ html(lang="en")
     head
         meta(charset="UTF-8")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        script(src="javascripts/theme.js")
         script(src="javascripts/folder-picker.js" defer)
         link(rel="stylesheet", href="stylesheets/drop-down.css")
+        link(rel="stylesheet", href="stylesheets/theme.css")
         title GTC-Visualization
     body
         div(id="banner")
@@ -14,6 +16,7 @@ html(lang="en")
             span#last_scan_duration
             |  ago
         form(method="POST" id="folder_form" action="plot")
+            .theme-settings(data-theme-control)
             section#folder-search-panel(aria-labelledby="folder-search-label")
                 label#folder-search-label(for="folder-search") Find a GTC output folder
                 input#folder-search(type="search", autocomplete="off", placeholder="Search by folder name or path")

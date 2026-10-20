@@ -20,7 +20,7 @@ div.category > h2 {
     margin-top: 0;
     padding: 0 5px 0;
     z-index: 10;
-    background: white;
+    background: var(--page-bg);
     width: max-content;
 }
 

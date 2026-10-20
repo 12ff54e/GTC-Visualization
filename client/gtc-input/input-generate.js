@@ -1,5 +1,6 @@
 import inputParametersV11 from './input-parameters-v11.json';
 import inputParametersV16 from './input-parameters-v16.json';
+import { newThemedPlot, setupPlotTheme } from '../shared/plot-theme.js';
 
 const inputParametersByVersion = {
     11: inputParametersV11,
@@ -7,6 +8,7 @@ const inputParametersByVersion = {
 };
 
 window.addEventListener('load', ev => {
+    setupPlotTheme();
     // read query string
     const ver = new URLSearchParams(window.location.search).get('v');
     if (!ver) {
@@ -347,7 +349,7 @@ window.addEventListener('load', ev => {
                         layout.xaxis.title = '$\\psi/\\psi_w$';
                     }
 
-                    Plotly.newPlot(div, data, layout);
+                    newThemedPlot(div, data, layout);
                 }
 
                 // show figure above its input

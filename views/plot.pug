@@ -2,8 +2,11 @@ doctype html
 html(lang="en")
     head
         meta(charset="UTF-8")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        script(src="javascripts/theme.js")
         title GTC-Visualization
         link(rel="stylesheet" href="stylesheets/tabs.css")
+        link(rel="stylesheet" href="stylesheets/theme.css")
         script(src="libs/plotly/plotly-custom.min.js" defer)
         script(src="javascripts/plot-page.js" defer)
         script(id="MathJax-script" src="libs/mathjax/tex-svg.js" defer)
@@ -46,6 +49,7 @@ html(lang="en")
                         option(value="alfvenSpeed") R0/Va
                         option(value="tstep") tstep
                         option(value="microsecond") μs
+            .theme-settings(data-theme-control)
 
         div(id="panel")
             each panel in types

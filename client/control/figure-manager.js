@@ -21,6 +21,7 @@
  */
 
 import state from './state.js';
+import { newThemedPlot, reactThemedPlot } from '../shared/plot-theme.js';
 import { callEventTarget } from '../shared/util.js';
 import { requestPlotData } from '../shared/api.js';
 import {
@@ -303,7 +304,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
                 layout.height = 450;
             }
             return data
-                ? (force_redraw ? Plotly.newPlot : Plotly.react)(
+                ? (force_redraw ? newThemedPlot : reactThemedPlot)(
                       fig_div,
                       data,
                       layout,

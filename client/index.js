@@ -12,6 +12,7 @@
  */
 
 import state from './control/state.js';
+import { setupPlotTheme } from './shared/plot-theme.js';
 import { callEventTarget } from './shared/util.js';
 import { refreshTimeUnitFactor, TIME_UNIT_LABEL } from './components/units.js';
 import {
@@ -34,6 +35,7 @@ import { setupDownloadForm } from './components/download.js';
 // ------------------------------------------------------------------
 
 window.addEventListener('load', () => {
+    setupPlotTheme();
     new StatusBar(document.getElementById('status'));
 
     // ---- unit chooser ------------------------------------------------

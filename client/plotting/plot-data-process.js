@@ -6,6 +6,7 @@
 // getRationalSurface) have moved to snapshot.js
 
 import state from '../control/state.js';
+import { newThemedPlot } from '../shared/plot-theme.js';
 import { createPlotConfig } from '../components/figure-data-download.js';
 import { getFFT } from '../shared/fft.js';
 import { interleave } from '../shared/util.js';
@@ -122,7 +123,7 @@ export async function trackingPlot(figures) {
     const zeta = figures.pop().extraData;
 
     const figureDiv1 = document.getElementById('figure-1');
-    await Plotly.newPlot(
+    await newThemedPlot(
         figureDiv1,
         figures[0].data,
         figures[0].layout,
@@ -138,7 +139,7 @@ export async function trackingPlot(figures) {
         z: scatter.map(({ y }) => y),
     });
 
-    Plotly.newPlot(
+    newThemedPlot(
         'figure-2',
         figures[1].data,
         figures[1].layout,

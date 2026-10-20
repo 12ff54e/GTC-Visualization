@@ -11,6 +11,7 @@ module.exports = (_env, argv) => {
         mode: clientMode,
         devtool: clientMode === 'development' ? 'source-map' : false,
         entry: {
+            theme: './client/theme.js',
             'plot-page': './client/index.js',
             'folder-picker': './client/components/gtc-output-picker.js',
             'input-generator': './client/gtc-input/input-generate.js',

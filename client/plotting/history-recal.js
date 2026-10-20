@@ -11,6 +11,7 @@
  */
 
 import state from '../control/state.js';
+import { reactThemedPlot } from '../shared/plot-theme.js';
 import { wrap } from '../components/status-bar.js';
 import { historyMode } from './plot-data-process.js';
 import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
@@ -51,7 +52,7 @@ export function addHistoryRecal(panel) {
             );
 
             figures.forEach(figure => {
-                Plotly.react(figure, figure.data, figure.layout);
+                reactThemedPlot(figure, figure.data, figure.layout);
             });
             refreshPlotRangeControls();
         })

@@ -21,22 +21,18 @@
 .js-plotly-plot .modebar-btn .modebar-material-symbol {
     position: relative;
     top: 1px;
-    color: rgba(68, 68, 68, 0.3);
+    color: var(--muted-color);
     font-size: 18px;
 }
 
 .js-plotly-plot .modebar-btn:hover .modebar-material-symbol {
-    color: rgba(68, 68, 68, 0.7);
-}
-
-:root {
-    --preview-bg: azure;
+    color: var(--text-color);
 }
 
 #breadcrumb-container {
     font-size: large;
     height: 1rem;
-    color: gray;
+    color: var(--muted-color);
 
     display: flex;
     align-items: center;
@@ -57,7 +53,7 @@
     position: relative;
 }
 .breadcrumb-item:hover {
-    color: black;
+    color: var(--text-color);
 }
 .breadcrumb-anchor {
     /* clickable segment is bolder */
@@ -76,7 +72,7 @@
     overflow-y: auto;
     display: none;
     visibility: hidden;
-    background-color: aliceblue;
+    background-color: var(--surface-soft);
     z-index: 35;
 }
 .breadcrumb-dropdown.active {
@@ -104,10 +100,11 @@
     white-space: normal;
 }
 .breadcrumb-dropdown-item.current-item > a {
-    border: outset 2px black;
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
 }
 .breadcrumb-dropdown-item > a:hover {
-    background-color: lightgray;
+    background-color: var(--hover-bg);
 }
 
 .breadcrumb-dropdown-item > .output {
@@ -139,11 +136,11 @@
 
 .copy-content {
     border: none;
-    color: black;
+    color: var(--text-color);
     background-color: transparent;
 }
 .copy-content:hover {
-    background-color: rgba(73, 73, 228, 0.267);
+    background-color: var(--hover-bg);
 }
 #entry-path {
     padding: 10px;
@@ -203,8 +200,8 @@ p {
     gap: 0.4rem;
     padding: 0;
     border-radius: 6px;
-    background-color: rgb(227, 248, 241);
-    border: 0 solid rgb(172, 210, 197);
+    background-color: var(--surface-soft);
+    border: 0 solid var(--border-color);
 }
 
 #unit-chooser label {
@@ -212,7 +209,7 @@ p {
 }
 
 #unit-chooser select {
-    background-color: white;
+    background-color: var(--surface);
 }
 
 #unit-chooser.active {
@@ -270,7 +267,7 @@ p {
     width: 95%;
     display: block;
     text-align: center;
-    background-color: rgb(227, 248, 241);
+    background-color: var(--surface-soft);
     cursor: pointer;
     transition: all 0.35s;
     /* for horizontal center alignment*/
@@ -283,13 +280,12 @@ p {
 }
 
 input:disabled + .tab-l0-label {
-    /* background-color: gray; */
     background-image: repeating-linear-gradient(
         45deg,
-        gray,
-        gray 15px,
-        lightgray 15px,
-        lightgray 30px
+        var(--surface-soft),
+        var(--surface-soft) 15px,
+        var(--border-color) 15px,
+        var(--border-color) 30px
     );
 }
 
@@ -315,16 +311,17 @@ input:disabled + .tab-l0-label {
 }
 
 .tab-l0-label:hover {
-    background-color: rgb(197, 247, 230);
+    background-color: var(--hover-bg);
 }
 
 .tab-l0-switch:checked + .tab-l0-label {
-    background-color: rgb(127, 255, 212);
+    background-color: var(--selected-bg);
+    color: var(--selected-text);
     border: inset;
 }
 
 div#files {
-    background-color: rgb(199, 245, 235);
+    background-color: var(--surface-soft);
     margin: 0 auto;
     width: 90%;
 }
@@ -342,11 +339,12 @@ div#files {
 }
 
 #files > button:hover {
-    background-color: rgba(73, 73, 228, 0.267);
+    background-color: var(--hover-bg);
 }
 
 #files > button.snapshot-selected {
-    background-color: rgba(73, 73, 228, 0.42);
+    background-color: var(--selected-bg);
+    color: var(--selected-text);
 }
 
 div header {
@@ -385,8 +383,8 @@ div header {
     width: 17.1%;
     z-index: 3;
     box-sizing: border-box;
-    background-color: rgba(255, 255, 255, 0.95);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+    background-color: var(--surface);
+    box-shadow: 0 4px 6px var(--shadow-color);
 }
 
 #history-recalculate > .tab-l1-btn {
@@ -396,9 +394,9 @@ div header {
 .plot-range-controls {
     margin: 0.5rem 0 1rem;
     padding: 0.75rem 0.6rem;
-    border: 1px solid rgb(172, 210, 197);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
-    background-color: rgba(227, 248, 241, 0.55);
+    background-color: var(--surface-soft);
 }
 
 .plot-range-toggle {
@@ -440,7 +438,7 @@ form.plot-range-form {
     margin: 0;
     padding: 0.6rem;
     border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: var(--surface);
 }
 
 .plot-range-title {
@@ -474,7 +472,7 @@ form.plot-range-form {
 .tab-l1-btn {
     margin: 2px 1px;
     border-radius: 5px;
-    background-color: rgb(227, 248, 241);
+    background-color: var(--surface-soft);
 }
 
 form {
@@ -487,9 +485,9 @@ form {
     gap: 0.35rem;
     margin: 1rem 0.2rem 0;
     padding: 0.6rem;
-    border: 1px solid rgb(172, 210, 197);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
-    background-color: rgba(227, 248, 241, 0.55);
+    background-color: var(--surface-soft);
 }
 
 .rational-surface-controls[hidden] {
@@ -521,14 +519,15 @@ input.eq-1d-x + label,
 input.eq-1d-y + label {
     display: inline-block;
     margin: 0.2rem 0.5rem 0.2rem 0;
-    box-shadow: 3px 1px 2px 2px rgb(172, 210, 197);
+    box-shadow: 3px 1px 2px 2px var(--border-color);
     transition: all 0.35s;
 }
 
 input.eq-1d-x:checked + label,
 input.eq-1d-y:checked + label {
-    text-shadow: 0 0 7px rgb(228, 71, 71);
-    box-shadow: inset 3px 1px 2px 2px rgb(172, 210, 197);
+    color: var(--selected-text);
+    background: var(--selected-bg);
+    box-shadow: inset 3px 1px 2px 2px var(--border-color);
 }
 
 #loading {
@@ -545,8 +544,6 @@ input.eq-1d-y:checked + label {
 }
 
 #container {
-    --bg-color: rgba(45, 45, 45, 0.8);
-
     left: 16%;
     width: 83%;
     height: fit-content;
@@ -556,15 +553,15 @@ input.eq-1d-y:checked + label {
     display: none;
     overflow-x: hidden;
     z-index: 20;
-    background-color: var(--bg-color);
+    background-color: var(--overlay-bg);
 }
 #container > #summary-page {
     position: relative;
     margin: 1rem 2rem;
     padding: 1rem 2rem;
     font-size: large;
-    background-color: lightblue;
-    box-shadow: 0px 0px 5px 5px color-mix(in srgb, lightblue, var(--bg-color));
+    background-color: var(--surface);
+    box-shadow: 0 0 5px 5px var(--shadow-color);
 }
 #summary-page > p {
     height: auto;
@@ -619,20 +616,20 @@ input.eq-1d-y:checked + label {
 }
 
 #summary-page span.good {
-    color: #468507;
+    color: var(--success-color);
 }
 #summary-page span.warn {
-    color: #b66400;
+    color: var(--warning-color);
 }
 #summary-page span.error {
-    color: crimson;
+    color: var(--error-color);
 }
 
 #summary-page .hover_text {
     transition: all 0.35s;
 }
 #summary-page .hover_text:hover {
-    color: gray;
+    color: var(--muted-color);
 }
 
 #poloidal-preview {
@@ -649,7 +646,7 @@ input.eq-1d-y:checked + label {
 
 .can-preview::after {
     content: '(peek)';
-    color: red;
+    color: var(--error-color);
     font-weight: bold;
 }
 

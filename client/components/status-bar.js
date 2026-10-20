@@ -23,12 +23,12 @@ export class StatusBar {
     toString() {
         return (
             (this.information
-                ? `<font color="green">${this.information}</font><br>`
+                ? `<span class="status-info">${this.information}</span><br>`
                 : '') +
             (this.warning
-                ? `<font color="darkYellow">${this.warning}</font><br>`
+                ? `<span class="status-warning">${this.warning}</span><br>`
                 : '') +
-            (this.error ? `<font color="red">${this.error}</font><br>` : '')
+            (this.error ? `<span class="status-error">${this.error}</span><br>` : '')
         );
     }
     show() {

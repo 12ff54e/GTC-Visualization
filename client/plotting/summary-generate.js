@@ -1,4 +1,5 @@
 import state from '../control/state.js';
+import { newThemedPlot } from '../shared/plot-theme.js';
 import {
     getStatusBar,
     wrap,
@@ -411,7 +412,7 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
         //create figure if not exist
         if (plotlyRoot.childElementCount == 0) {
             const { title, tag, data } = ordinates[0];
-            Plotly.newPlot(
+            newThemedPlot(
                 plotlyRoot,
                 [{ x: abscissa.data, y: data, line: { simplify: false } }],
                 {
@@ -419,8 +420,6 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
                     yaxis: { title: { text: tag } },
                     height: 400,
                     title: title,
-                    paper_bgcolor: 'rgb(227,248,241)',
-                    plot_bgcolor: 'rgb(227,248,241)',
                 },
                 createPlotConfig()
             );
