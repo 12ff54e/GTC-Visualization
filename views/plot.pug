@@ -32,6 +32,7 @@ html(lang="en")
                     option(value=file)= file
             input(type="submit" id="download-part" value="Download selected file(s)")
         div(id="tabs")
+            .sidebar-section-label Plot categories
             each panel in types
                 div
                     input(id=panel, type="radio" name="plot-type" class="tab-l0-switch" disabled)
@@ -40,16 +41,25 @@ html(lang="en")
                         div(id="files" class='dropdown')
                             each file in snapFiles
                                 button(id=file)= file
-            div
-                button(id="units-toggle-button" class="tab-l0-label tab-l0-button") Units
-                div(id="unit-chooser" class="dropdown")
-                    label(for="time-unit-select") Time unit
-                    select(id="time-unit-select" name="time-unit")
-                        option(value="soundSpeed" selected) R_0/Cs
-                        option(value="alfvenSpeed") R0/Va
-                        option(value="tstep") tstep
-                        option(value="microsecond") μs
-            .theme-settings(data-theme-control)
+            section#display-settings(aria-labelledby="display-settings-title")
+                h2#display-settings-title
+                    span.material-symbols-outlined(aria-hidden="true") tune
+                    | Display settings
+                details.settings-disclosure
+                    summary#units-toggle-button
+                        span.material-symbols-outlined.settings-icon(aria-hidden="true") straighten
+                        span Units
+                        span.material-symbols-outlined.settings-chevron(aria-hidden="true") expand_more
+                    #unit-chooser
+                        label(for="time-unit-select") Time unit
+                        select(id="time-unit-select" name="time-unit")
+                            option(value="soundSpeed" selected) R_0/Cs
+                            option(value="alfvenSpeed") R0/Va
+                            option(value="tstep") tstep
+                            option(value="microsecond") μs
+                .settings-theme
+                    span.material-symbols-outlined.settings-icon(aria-hidden="true") palette
+                    .theme-settings(data-theme-control)
 
         div(id="panel")
             each panel in types

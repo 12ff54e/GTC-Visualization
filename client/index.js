@@ -39,13 +39,6 @@ window.addEventListener('load', () => {
     new StatusBar(document.getElementById('status'));
 
     // ---- unit chooser ------------------------------------------------
-    const unitToggleButton = document.getElementById('units-toggle-button');
-    const unitChooser = document.getElementById('unit-chooser');
-    unitToggleButton.addEventListener('click', e => {
-        e.preventDefault();
-        unitChooser.classList.toggle('active');
-    });
-
     const timeUnitSelect = document.getElementById('time-unit-select');
     timeUnitSelect.addEventListener(
         'change',
