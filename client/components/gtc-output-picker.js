@@ -244,6 +244,12 @@ function addLoadingIndicator(func) {
  */
 function getOutputFolders(file_tree) {
     const output_folders = [];
+    // The root itself can be a GTC output folder; the DFS below visits only
+    // child entries, so add it before traversing those children.
+    if (file_tree.mTimeMs) {
+        file_tree.path = `/${file_tree.dirname}`;
+        output_folders.push(file_tree);
+    }
     // DFS
     const folder_stack = [[file_tree, 0]];
     while (folder_stack.length > 0) {
