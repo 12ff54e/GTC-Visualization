@@ -70,6 +70,26 @@ button:disabled, input:disabled, select:disabled {
 }
 
 a[href] { color: var(--accent-color); }
+
+/* Plotly 3 hard-codes light active/hover fills inline, independently of bgcolor.
+   Override only its update-menu SVGs in dark mode, including the active item. */
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-item-rect {
+    fill: var(--surface) !important;
+    stroke: var(--border-color) !important;
+}
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-header .updatemenu-item-rect {
+    fill: var(--surface-soft) !important;
+}
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-header:hover .updatemenu-item-rect,
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-dropdown-button:hover .updatemenu-item-rect,
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-button:hover .updatemenu-item-rect {
+    fill: var(--hover-bg) !important;
+}
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-item-text,
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-header-arrow {
+    fill: var(--text-color) !important;
+}
+
 button:focus-visible, input:focus-visible, select:focus-visible {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;

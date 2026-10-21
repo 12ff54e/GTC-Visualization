@@ -23,6 +23,7 @@ import { requestPlotData } from '../shared/api.js';
 import { getStatusBar } from '../components/status-bar.js';
 import { getFFT } from '../shared/fft.js';
 import { min_max } from '../shared/util.js';
+import { bindPoloidalColorbarTicks } from './poloidal-colorbar.js';
 import {
     diagnosticSafetyFactor,
     fieldAlignedSpectrum,
@@ -52,30 +53,6 @@ function packTextureArgs(gl, data) {
         gl.UNSIGNED_BYTE,
         data,
     ];
-}
-
-function getTicks([min, max], num) {
-    const get_exp = x => Math.floor(Math.log10(Math.abs(x)));
-    const get_mantissa = (x, n) => x * Math.pow(10, -(n ?? get_exp(x)));
-
-    const tweak_mantissa = (x, f, n) =>
-        f(get_mantissa(x, n)) * Math.pow(10, n ?? get_exp(x));
-
-    const truncated_mid_pt = tweak_mantissa(
-        0.5 * (max + min),
-        Math.floor,
-        Math.max(get_exp(max), get_exp(min))
-    );
-
-    const step = tweak_mantissa(
-        (2 * Math.max(truncated_mid_pt - min, max - truncated_mid_pt)) / num,
-        x => 0.04 * Math.floor(25 * x)
-    );
-
-    return Array.from(
-        { length: num - 1 },
-        (_, idx) => (idx - 0.5 * (num - 2)) * step
-    );
 }
 
 function getRationalSurface(safetyFactor, n_modes, m_modes) {
@@ -185,6 +162,9 @@ function createColorMap(gl, ctx, data, corner, dim, bounding_box, z_range) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
 
     const color_num = data.length / 3;
+    const drawTicks = bindPoloidalColorbarTicks(ctx, {
+        corner, dim, boundingBox: bounding_box, range: z_range, count: color_num,
+    });
 
     const [x0, y0] = corner;
     const x1 = x0 + dim[0];
@@ -229,30 +209,7 @@ function createColorMap(gl, ctx, data, corner, dim, bounding_box, z_range) {
             gl.bindVertexArray(VAO);
             gl.drawElements(gl.TRIANGLES, color_num * 6, gl.UNSIGNED_INT, 0);
 
-            ctx.textBaseline = 'middle';
-            const ticks = getTicks(z_range, color_num);
-            const canvas_width = ctx.canvas.width;
-            const canvas_height = ctx.canvas.height;
-            ctx.clearRect(0, 0, canvas_width, canvas_height);
-
-            const {
-                center: [cx, cy],
-                dim: [w, h],
-            } = bounding_box;
-            const tick_x =
-                5 +
-                (x1 - cx) * Math.min(canvas_width / w, canvas_height / h) +
-                0.5 * canvas_width;
-
-            ticks.forEach((tick, idx) => {
-                const tick_y =
-                    canvas_height -
-                    ((y0 + (idx + 1) * dy - cy) *
-                        Math.min(canvas_width / w, canvas_height / h) +
-                        0.5 * canvas_height);
-                const label = tick.toExponential(2);
-                ctx.fillText(label, tick_x, tick_y);
-            });
+            drawTicks();
         },
     };
 }

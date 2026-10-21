@@ -116,7 +116,10 @@ test('plot colors change without mutating axis ranges, scene camera or color sca
 });
 
 test('new and existing figures use the selected palette without replacing their data', async t => {
-    const graph = { layout: { xaxis: { range: [2, 5] } }, data: [{ x: [2, 5], y: [3, 6] }] };
+    const graph = {
+        layout: { xaxis: { range: [2, 5] }, updatemenus: [{ active: 1, buttons: [] }] },
+        data: [{ x: [2, 5], y: [3, 6] }],
+    };
     const calls = [];
     const window = new EventTarget();
     temporaryGlobals(t, {
@@ -148,5 +151,84 @@ test('new and existing figures use the selected palette without replacing their 
     assert.equal(calls[0][0], graph);
     assert.equal(calls[0][1].paper_bgcolor, '#18242f');
     assert.equal(calls[0][1]['xaxis.range'], undefined);
+    assert.equal(calls[0][1]['updatemenus[0].font.color'], '#e0eaf2');
+    assert.equal(calls[0][1]['updatemenus[0].bgcolor'], '#18242f');
+    assert.equal(graph.layout.updatemenus[0].active, 1);
     assert.deepEqual(graph.layout.xaxis.range, [2, 5]);
+});
+
+test('dropdown palettes preserve menu arrays, selected mode and button actions', async () => {
+    const { themedLayout } = await import('../client/shared/plot-theme.js');
+    const layout = {
+        updatemenus: [
+            { active: 2, x: 0.05, font: { size: 14 }, buttons: [
+                { label: 'Modulus', method: 'update', args: [{ visible: [true, false] }] },
+            ] },
+            { type: 'buttons', buttons: [{ label: 'Full', method: 'restyle', args: ['visible', true] }] },
+        ],
+    };
+    const before = structuredClone(layout);
+    for (const colors of [
+        { paper: '#18242f', plot: '#18242f', text: '#e0eaf2', grid: '#354a5a' },
+        { paper: '#ffffff', plot: '#ffffff', text: '#18313b', grid: '#dbe4ea' },
+    ]) {
+        const result = themedLayout(layout, colors);
+        assert.ok(Array.isArray(result.updatemenus));
+        assert.equal(result.updatemenus.length, 2);
+        assert.equal(result['updatemenus[0]'], undefined);
+        for (const [index, menu] of result.updatemenus.entries()) {
+            assert.equal(menu.font.color, colors.text);
+            assert.equal(menu.bgcolor, colors.paper);
+            assert.equal(menu.bordercolor, colors.grid);
+            assert.deepEqual(menu.buttons, before.updatemenus[index].buttons);
+        }
+        assert.equal(result.updatemenus[0].active, 2);
+        assert.equal(result.updatemenus[0].font.size, 14);
+        assert.equal(result.updatemenus[0].x, 0.05);
+        assert.deepEqual(layout, before);
+    }
+});
+
+test('canvas colorbar ticks redraw in the theme text color with unchanged values and positions', async t => {
+    const window = new EventTarget();
+    let color = 'rgb(224, 234, 242)';
+    const labels = [];
+    let clears = 0;
+    const ctx = {
+        canvas: { width: 700, height: 700 },
+        clearRect() { clears++; },
+        fillText(text, x, y) { labels.push({ text, x, y, color: this.fillStyle }); },
+    };
+    temporaryGlobals(t, {
+        window,
+        getComputedStyle(canvas) {
+            assert.equal(canvas, ctx.canvas);
+            return { color };
+        },
+    });
+    const { bindPoloidalColorbarTicks } = await import('../client/plotting/poloidal-colorbar.js');
+    const geometry = {
+        corner: [1, -1], dim: [0.1, 2],
+        boundingBox: { center: [0, 0], dim: [4, 4] },
+        range: [-1, 1], count: 9,
+    };
+    const redraw = bindPoloidalColorbarTicks(ctx, geometry);
+    redraw();
+    const initial = labels.splice(0);
+    assert.equal(initial.length, 8);
+    assert.ok(initial.every(label => label.color === color));
+    color = 'rgb(24, 49, 59)';
+    window.dispatchEvent(new Event('gtc-theme-change'));
+    assert.deepEqual(labels.splice(0), initial.map(label => ({ ...label, color })));
+    color = 'rgb(224, 234, 242)';
+    window.dispatchEvent(new Event('gtc-theme-change'));
+    assert.deepEqual(labels.splice(0), initial);
+    assert.equal(clears, 3);
+
+    // Reopening a preview must replace the old range, without stacking listeners.
+    bindPoloidalColorbarTicks(ctx, { ...geometry, range: [-100, 100] });
+    window.dispatchEvent(new Event('gtc-theme-change'));
+    assert.equal(labels.length, 8);
+    assert.notEqual(labels[0].text, initial[0].text);
+    assert.equal(clears, 4);
 });

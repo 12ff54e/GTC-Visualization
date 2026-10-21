@@ -14,6 +14,8 @@
 
 绘图页将绘图分类与显示设置分组：上方为 Plot categories，下方独立的 Display settings 卡片包含 Units 和 Theme。Units 使用尺子图标和紧凑的折叠行，点击展开 Time unit；支持键盘操作。窄屏下整个设置卡片显示在右下角，单位与主题仍可操作。
 
+暗色主题补充修复：径向模式剖面的 Plotly 模式菜单显式设置字体、背景与边框颜色，并覆盖 Plotly 固定的浅色悬停/选中背景。极向截面预览的 canvas 色标刻度使用当前 CSS 文字颜色，在切换主题时即时重绘；重开预览后使用最新色标范围，不叠加重绘监听器。
+
 ## 文件与流程
 
 1. `client/theme.js` 在页面首次绘制前读取浏览器偏好，结合系统设置决定主题，并在页面加载后创建 Theme 控件。
@@ -21,6 +23,7 @@
 3. `public/stylesheets/theme.css` 定义统一的浅色、暗色变量；各页面样式引用这些变量。
 4. `client/shared/plot-theme.js` 为新图表应用主题，并在切换时仅更新现有图表的外观颜色。
 5. `webpack.config.js` 生成独立的 `public/javascripts/theme.js`，两个 Pug 模板和输入页共用该入口。
+6. `client/plotting/poloidal-colorbar.js` 绘制预览色标刻度，并管理复用 canvas 的主题重绘。
 
 新增页面需要加载 `javascripts/theme.js`（普通同步脚本，放在 head 中）和 `stylesheets/theme.css`，并提供一个带 `data-theme-control` 属性的 `.theme-settings` 容器。新增绘图入口使用 `newThemedPlot` / `reactThemedPlot`，避免绕过主题设置。
 
