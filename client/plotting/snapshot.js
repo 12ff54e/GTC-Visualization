@@ -23,7 +23,7 @@ import { requestPlotData } from '../shared/api.js';
 import { getStatusBar } from '../components/status-bar.js';
 import { getFFT } from '../shared/fft.js';
 import { min_max } from '../shared/util.js';
-import { bindPoloidalColorbarTicks } from './poloidal-colorbar.js';
+import { bindPoloidalColorbarTicks, poloidalPreviewBounds } from './poloidal-colorbar.js';
 import {
     diagnosticSafetyFactor,
     fieldAlignedSpectrum,
@@ -306,8 +306,12 @@ async function drawPoloidalDataWebGL(container, data) {
 
     const x_max_total = x_max + legend_left_padding + legend_width;
     const bounding_box = {
-        center: [0.5 * (x_min + x_max_total), 0.5 * (y_min + y_max)],
-        dim: [1.05 * (x_max_total - x_min), 1.05 * (y_max - y_min)],
+        ...poloidalPreviewBounds(ctx, {
+            xRange: [x_min, x_max_total],
+            yRange: [y_min, y_max],
+            range: z_range,
+            count: color_map_data.length / 3,
+        }),
         z_range,
     };
 

@@ -327,8 +327,15 @@ p {
     background-color: transparent;
 }
 
+#poloidal-preview canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
 #pol-canvas-overlay {
     position: absolute;
+    top: 0;
     left: 0;
     background-color: transparent;
 }
@@ -709,15 +716,18 @@ input.eq-1d-y:checked + label {
 }
 
 #poloidal-preview {
-    position: absolute;
+    position: fixed;
     top: 1rem;
     right: 1rem;
-    width: 700px;
-    height: 700px;
+    width: min(700px, calc(100vw - 2rem - 20px), calc(100dvh - 2rem - 20px));
+    height: auto;
+    aspect-ratio: 1;
+    box-sizing: content-box;
     border: outset 10px var(--preview-bg);
     background-color: var(--preview-bg);
     z-index: 30;
     display: none;
+    pointer-events: none;
 }
 
 .can-preview::after {

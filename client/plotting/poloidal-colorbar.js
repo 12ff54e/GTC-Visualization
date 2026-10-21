@@ -21,6 +21,27 @@ function getTicks([min, max], num) {
     );
 }
 
+// Reserve canvas pixels for the complete labels, including signs and exponents.
+// Both WebGL and the overlay use this box so the field keeps its aspect ratio.
+export function poloidalPreviewBounds(ctx, { xRange, yRange, range, count }) {
+    const padding = 12;
+    const labelSpace = 5 + Math.max(
+        ...getTicks(range, count).map(tick => ctx.measureText(tick.toExponential(2)).width)
+    );
+    const { width, height } = ctx.canvas;
+    const scale = Math.min(
+        (width - 2 * padding - labelSpace) / (xRange[1] - xRange[0]),
+        (height - 2 * padding) / (yRange[1] - yRange[0])
+    );
+    return {
+        center: [
+            0.5 * (xRange[0] + xRange[1]) + labelSpace / (2 * scale),
+            0.5 * (yRange[0] + yRange[1]),
+        ],
+        dim: [width / scale, height / scale],
+    };
+}
+
 export function bindPoloidalColorbarTicks(ctx, { corner, dim, boundingBox, range, count }) {
     const redraw = () => {
         const { width, height } = ctx.canvas;
