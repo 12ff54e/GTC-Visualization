@@ -45,6 +45,9 @@ async function pack(
     const packageRoot = path.join(stagingRoot, 'GTC-Visualization');
 
     try {
+        // Keep a stable archive root name regardless of the checkout folder.
+        // Normalize permissions on this isolated copy so read-only source
+        // attributes never leak into the release or get changed in-place.
         await mkdir(packageRoot);
         for (const filename of fileList) {
             await cp(
