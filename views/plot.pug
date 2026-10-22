@@ -57,6 +57,10 @@ html(lang="en")
                             option(value="alfvenSpeed") R0/Va
                             option(value="tstep") tstep
                             option(value="microsecond") μs
+                        label(for="radial-unit-select") Radial coordinate
+                        select(id="radial-unit-select" name="radial-unit")
+                            option(value="mpsi" selected) mpsi
+                            option(value="rOverA") r/a
                 .settings-theme
                     span.material-symbols-outlined.settings-icon(aria-hidden="true") palette
                     .theme-settings(data-theme-control)

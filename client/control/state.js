@@ -20,11 +20,12 @@ const state = {
     // ------------------------------------------------------------------
 
     /**
-     * Currently selected time unit.
-     * One of: 'soundSpeed' | 'alfvenSpeed' | 'tstep' | 'microsecond'.
-     * @type {{time: string}}
+     * Currently selected time unit and radial coordinate.
+     * Time is one of 'soundSpeed' | 'alfvenSpeed' | 'tstep' | 'microsecond';
+     * radial is one of 'mpsi' | 'rOverA'.
+     * @type {{time: string, radial: string}}
      */
-    units: { time: 'soundSpeed' },
+    units: { time: 'soundSpeed', radial: 'mpsi' },
 
     /**
      * Conversion factors FROM the base unit (sound speed: R₀/c_s) TO each

@@ -54,6 +54,19 @@ window.addEventListener('load', () => {
         })
     );
 
+    const radialUnitSelect = document.getElementById('radial-unit-select');
+    radialUnitSelect.addEventListener(
+        'change',
+        wrap(async e => {
+            state.units.radial = e.target.value;
+            if (state.current_plot_btn?.id?.startsWith('RadialTime')) {
+                await addLoadingIndicator(
+                    getDataThenPlot.bind(state.current_plot_btn)
+                )();
+            }
+        })
+    );
+
     // ---- plot-type tabs ----------------------------------------------
     for (let swc of document.getElementsByClassName('tab-l0-switch')) {
         swc.visited = false;

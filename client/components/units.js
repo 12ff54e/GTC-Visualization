@@ -34,6 +34,11 @@ export const TIME_UNIT_LABEL = {
     microsecond: '$\\mu s$',
 };
 
+export const RADIAL_UNIT_LABEL = {
+    mpsi: '$\\text{mpsi}$',
+    rOverA: '$r/a$',
+};
+
 // ------------------------------------------------------------------
 //  Parameter fetching
 // ------------------------------------------------------------------
@@ -147,6 +152,11 @@ export function applyTimeUnitToFigures(plotId, figures) {
             }
         }
     } else if (plotId.startsWith('RadialTime')) {
+        const radialUnit = state.units?.radial || 'mpsi';
+        const radialLabel =
+            RADIAL_UNIT_LABEL[radialUnit] || RADIAL_UNIT_LABEL.mpsi;
+        const radialRegion = state.basicParameters?.radial_region;
+        const mpsi = state.basicParameters?.mpsi;
         const baseTimeStep =
             state.basicParameters.ndiag * state.basicParameters.tstep;
         const dt = baseTimeStep * factor;
@@ -162,9 +172,34 @@ export function applyTimeUnitToFigures(plotId, figures) {
                         (_, i) => (i + 1) * dt
                     );
                 }
+
+                if (
+                    radialUnit === 'rOverA' &&
+                    Array.isArray(trace.z?.[0]) &&
+                    trace.z[0].length > 0 &&
+                    Array.isArray(radialRegion) &&
+                    radialRegion.length === 2 &&
+                    radialRegion.every(Number.isFinite)
+                ) {
+                    const radialPointCount = trace.z[0].length;
+                    const radialIntervals =
+                        Number.isFinite(mpsi) && mpsi > 0
+                            ? mpsi
+                            : Math.max(radialPointCount - 1, 1);
+                    trace.y = Array.from(
+                        { length: radialPointCount },
+                        (_, i) =>
+                            radialRegion[0] +
+                            (i / radialIntervals) *
+                                (radialRegion[1] - radialRegion[0])
+                    );
+                }
             }
             if (fig.layout?.xaxis?.title) {
                 fig.layout.xaxis.title.text = label;
+            }
+            if (fig.layout?.yaxis?.title) {
+                fig.layout.yaxis.title.text = radialLabel;
             }
         }
     }
