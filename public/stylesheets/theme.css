@@ -1,6 +1,7 @@
 :root {
     color-scheme: light;
     --page-bg: #ffffff;
+    --home-page-bg: azure;
     --surface: #ffffff;
     --surface-soft: #f8fbfc;
     --text-color: #18313b;
@@ -75,6 +76,7 @@
 :root[data-theme='dark'] {
     color-scheme: dark;
     --page-bg: #101820;
+    --home-page-bg: var(--page-bg);
     --surface: #18242f;
     --surface-soft: #213341;
     --text-color: #e0eaf2;
@@ -143,6 +145,10 @@
 body {
     background-color: var(--page-bg);
     color: var(--text-color);
+}
+
+body.home-page {
+    background-color: var(--home-page-bg);
 }
 
 :where(:root[data-theme='dark']) button,
