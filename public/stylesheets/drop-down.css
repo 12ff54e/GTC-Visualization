@@ -14,7 +14,7 @@ body {
     gap: 0.45rem;
     margin: 3.5rem 0 1rem;
     padding: 1rem 1.2rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--folder-panel-border);
     border-radius: 0.8rem;
     background: var(--surface);
     box-shadow: 0 3px 14px var(--shadow-color);
@@ -30,7 +30,7 @@ body {
     width: 100%;
     min-height: 2.7rem;
     padding: 0.55rem 0.75rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--folder-input-border);
     border-radius: 0.45rem;
     font: inherit;
 }
@@ -55,9 +55,9 @@ input[name='gtc_output']:focus-visible + label {
     overflow: auto;
     margin: 0;
     padding: 0.25rem 0.5rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--folder-results-border);
     border-radius: 0.5rem;
-    background: var(--surface-soft);
+    background: var(--folder-results-bg);
 }
 
 #folder-search-results li > div {
@@ -115,7 +115,7 @@ li > div {
 }
 
 li:hover {
-    background: linear-gradient(90deg, var(--hover-bg), transparent);
+    background: linear-gradient(90deg, var(--folder-hover-bg), transparent);
 }
 
 input[name='gtc_output'] {
@@ -142,14 +142,14 @@ input + label {
 }
 
 input:checked + label {
-    background: linear-gradient(90deg, var(--selected-bg), transparent 90%);
-    color: var(--selected-text);
+    background: linear-gradient(90deg, var(--folder-selected-bg), transparent 90%);
+    color: var(--folder-selected-text);
     font-size: 1.1em;
     font-weight: bold;
 }
 
 .mod {
-    color: var(--muted-color);
+    color: var(--folder-muted-text);
     transition: all 0.3s ease-out;
     height: 1.2em;
     overflow: hidden;
