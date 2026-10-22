@@ -94,6 +94,12 @@
     --plot-bg: #18242f;
     --plot-grid: #354a5a;
     --tooltip-bg: #234e64;
+    --banner-bg: var(--accent-soft);
+    --submit-area-bg: var(--surface-soft);
+    --button-disabled-bg: repeating-linear-gradient(
+        -45deg, var(--surface-soft), var(--surface-soft) 4px,
+        var(--border-color) 4px, var(--border-color) 8px
+    );
     --folder-panel-border: var(--border-color);
     --folder-input-border: var(--border-color);
     --folder-results-border: var(--border-color);
