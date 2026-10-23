@@ -95,6 +95,7 @@
     --plot-paper: #18242f;
     --plot-bg: #18242f;
     --plot-grid: #354a5a;
+    --preview-bg: var(--surface);
     --tooltip-bg: #234e64;
     --banner-bg: var(--accent-soft);
     --submit-area-bg: var(--surface-soft);

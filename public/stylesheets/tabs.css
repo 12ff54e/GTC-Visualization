@@ -721,6 +721,7 @@ input.eq-1d-y:checked + label {
     box-sizing: content-box;
     border: outset 10px var(--preview-bg);
     background-color: var(--preview-bg);
+    color: var(--text-color);
     z-index: 30;
     display: none;
     pointer-events: none;
