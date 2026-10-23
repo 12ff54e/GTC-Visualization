@@ -267,12 +267,19 @@ export function historyPhiRms(
             line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
             marker: { color: 'rgb(255, 0, 0)', size: 8 },
         };
-        figure.layout.title.text = `${baseTitle}<br>$\\gamma=${gamma.toPrecision(5)}$`;
     } else {
         figure.data.length = 1;
-        figure.layout.title.text =
-            `${baseTitle}<br>$\\gamma=\\text{unavailable}$`;
     }
+
+    // Plotly renders only the first MathJax expression in a title. Keep
+    // the original label and gamma inside one expression so both appear.
+    const gammaText = Number.isFinite(gamma)
+        ? gamma.toPrecision(5)
+        : '\\text{unavailable}';
+    const title = baseTitle.trim();
+    figure.layout.title.text = title.startsWith('$') && title.endsWith('$')
+        ? `${title.slice(0, -1)}\\qquad\\gamma=${gammaText}$`
+        : `${title} — γ = ${Number.isFinite(gamma) ? gammaText : 'unavailable'}`;
 
     const rangeStart = interval ? xs[startIndex] : xs[0];
     const rangeEnd = interval ? xs[endIndex] : xs[xs.length - 1];
