@@ -1,11 +1,11 @@
 'use strict';
 
 /**
- * History-mode "Recalculate" button.
+ * History growth-rate "Recalculate" button.
  *
  * Adds a button to the History panel that re-fits the growth rate and
- * frequency using the user-selected zoom range (stored in
- * `state.hist_mode_range`) and re-renders the affected figures.
+ * mode frequency or phi-RMS growth rate using the range selected on the
+ * corresponding x-axis range slider, then re-renders the affected figures.
  *
  * @module history-recal
  */
@@ -25,7 +25,7 @@ export function updateHistoryRecalPosition(anchor, control) {
 }
 
 /**
- * Append the "Recalculate growth rate and frequency" button to `panel`.
+ * Append the History recalculation button to `panel`.
  *
  * @param {HTMLElement} panel - The History sub-panel container.
  */
@@ -33,8 +33,7 @@ export function addHistoryRecal(panel) {
     const div = document.createElement('div');
     div.id = 'history-recalculate';
     const btn = document.createElement('button');
-    btn.innerText =
-        'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+    btn.innerText = 'Recalculate growth rate for selected range';
     btn.classList.add('tab-l1-btn');
     btn.addEventListener(
         'click',
@@ -50,6 +49,9 @@ export function addHistoryRecal(panel) {
                 refreshPlotRangeControls();
                 return;
             }
+
+            btn.innerText =
+                'Recalculate\ngrowth rate and frequency\nfor selected range';
 
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)

@@ -269,7 +269,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
         historyPhiRms(figures[3]);
         state.hist_phi_rms_range = undefined;
         recalculate.querySelector('button').innerText =
-            'Recalculate growth rate according to zoomed range';
+            'Recalculate growth rate for selected range';
         recalculate.classList.add('active');
     }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
@@ -277,7 +277,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
         state.hist_mode_range.frequency = undefined;
         state.hist_mode_range.growthRate = undefined;
         recalculate.querySelector('button').innerText =
-            'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+            'Recalculate\ngrowth rate and frequency\nfor selected range';
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);

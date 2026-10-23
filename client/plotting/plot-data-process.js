@@ -217,7 +217,8 @@ export function addSimulationRegion(fig) {
  * slope against time is the growth rate directly.
  *
  * @param {HTMLElement} figure - The logarithmic phi-RMS figure.
- * @param {[number, number]|null} interval - Fractional data interval.
+ * @param {[number, number]|null} interval - Fractional data interval selected
+ * from the x-axis range slider.
  */
 export function historyPhiRms(figure, interval = null) {
     const trace = figure?.data?.[0];
@@ -272,6 +273,9 @@ export function historyPhiRms(figure, interval = null) {
     const rangeEnd = interval ? xs[endIndex] : xs[xs.length - 1];
     figure.layout.xaxis.range = [rangeStart, rangeEnd];
     figure.layout.xaxis.autorange = false;
+    figure.layout.xaxis.rangeslider = {
+        bgcolor: 'rgb(200,200,210)',
+    };
 }
 
 /**
