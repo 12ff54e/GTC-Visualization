@@ -47,6 +47,7 @@ import {
 } from '../plotting/snapshot.js';
 import {
     historyMode,
+    historyPhiRms,
     trackingPlot,
     addSimulationRegion,
 } from '../plotting/plot-data-process.js';
@@ -264,10 +265,19 @@ export async function getDataThenPlot(clean_beforehand = true) {
     if (this.id.startsWith('History')) {
         recalculate.classList.remove('active');
     }
+    if (this.id === 'History-phi-RMS') {
+        historyPhiRms(figures[3]);
+        state.hist_phi_rms_range = undefined;
+        recalculate.querySelector('button').innerText =
+            'Recalculate growth rate according to zoomed range';
+        recalculate.classList.add('active');
+    }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
         state.hist_mode_range.frequency = undefined;
         state.hist_mode_range.growthRate = undefined;
+        recalculate.querySelector('button').innerText =
+            'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);

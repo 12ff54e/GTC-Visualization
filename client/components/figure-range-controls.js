@@ -181,6 +181,12 @@ function extractRelayoutRange(eventData, axisName) {
  */
 function updateHistoryModeRangeFromRelayout(figure, eventData) {
     const currentPlotId = state.current_plot_btn?.id;
+    if (currentPlotId === 'History-phi-RMS' && figure.id === 'figure-4') {
+        state.hist_phi_rms_range =
+            extractRelayoutRange(eventData, 'x') ??
+            getFigureAxisRange(figure, 'x');
+        return;
+    }
     if (
         !currentPlotId?.startsWith('History') ||
         !currentPlotId.includes('-mode')

@@ -212,6 +212,69 @@ export function addSimulationRegion(fig) {
 }
 
 /**
+ * Fit the logarithmic phi-RMS history over the selected time interval.
+ * The fourth History phi-RMS figure already contains ln(phi RMS), so its
+ * slope against time is the growth rate directly.
+ *
+ * @param {HTMLElement} figure - The logarithmic phi-RMS figure.
+ * @param {[number, number]|null} interval - Fractional data interval.
+ */
+export function historyPhiRms(figure, interval = null) {
+    const trace = figure?.data?.[0];
+    const xs = trace?.x;
+    const ys = trace?.y;
+    if (!xs?.length || !ys?.length || xs.length !== ys.length) {
+        return;
+    }
+
+    const measure = interval ?? [0.43, 0.98];
+    const lastDataIndex = ys.length - 1;
+    const startIndex = Math.max(
+        0,
+        Math.min(lastDataIndex, Math.floor(measure[0] * ys.length))
+    );
+    const endIndex = Math.max(
+        startIndex,
+        Math.min(lastDataIndex, Math.floor(measure[1] * ys.length))
+    );
+    const selected = [];
+    for (let i = startIndex; i <= endIndex; i++) {
+        if (Number.isFinite(Number(xs[i])) && Number.isFinite(Number(ys[i]))) {
+            selected.push(i);
+        }
+    }
+
+    const first = selected[0];
+    const last = selected[selected.length - 1];
+    const elapsed = Number(xs[last]) - Number(xs[first]);
+    const gamma =
+        selected.length >= 2 && elapsed !== 0
+            ? (Number(ys[last]) - Number(ys[first])) / elapsed
+            : Number.NaN;
+
+    if (Number.isFinite(gamma)) {
+        figure.data[1] = {
+            x: [xs[first], xs[last]],
+            y: [ys[first], ys[last]],
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Growth rate fit',
+            line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
+            marker: { color: 'rgb(255, 0, 0)', size: 8 },
+        };
+        figure.layout.title.text = `$\\gamma=${gamma.toPrecision(5)}$`;
+    } else {
+        figure.data.length = 1;
+        figure.layout.title.text = '$\\gamma=\\text{unavailable}$';
+    }
+
+    const rangeStart = interval ? xs[startIndex] : xs[0];
+    const rangeEnd = interval ? xs[endIndex] : xs[xs.length - 1];
+    figure.layout.xaxis.range = [rangeStart, rangeEnd];
+    figure.layout.xaxis.autorange = false;
+}
+
+/**
  * Calculate the growth rate of the time series array
  *
  * @param {Array<Number>} ys a series of data

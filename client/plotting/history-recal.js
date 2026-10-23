@@ -13,7 +13,7 @@
 import state from '../control/state.js';
 import { reactThemedPlot } from '../shared/plot-theme.js';
 import { wrap } from '../components/status-bar.js';
-import { historyMode } from './plot-data-process.js';
+import { historyMode, historyPhiRms } from './plot-data-process.js';
 import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
 
 /** Keep the recalculation control visible after its normal position scrolls away. */
@@ -39,6 +39,18 @@ export function addHistoryRecal(panel) {
     btn.addEventListener(
         'click',
         wrap(async function () {
+            if (state.current_plot_btn?.id === 'History-phi-RMS') {
+                const figure = document.getElementById('figure-4');
+                const len = figure.data[0].x.at(-1);
+                const interval = state.hist_phi_rms_range?.map(
+                    value => value / len
+                );
+                historyPhiRms(figure, interval);
+                reactThemedPlot(figure, figure.data, figure.layout);
+                refreshPlotRangeControls();
+                return;
+            }
+
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );

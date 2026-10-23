@@ -88,6 +88,9 @@ const state = {
      */
     hist_mode_range: { growthRate: undefined, frequency: undefined },
 
+    /** Zoomed time range for recalculating History phi-RMS growth rate. */
+    hist_phi_rms_range: undefined,
+
     // ------------------------------------------------------------------
     //  Simulation parameters (fetched once from the server via read_para)
     // ------------------------------------------------------------------
