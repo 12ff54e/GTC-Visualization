@@ -44,7 +44,11 @@ export function addHistoryRecal(panel) {
                 const interval = state.hist_phi_rms_range?.map(
                     value => value / len
                 );
-                historyPhiRms(figure, interval);
+                historyPhiRms(
+                    figure,
+                    interval,
+                    state.hist_phi_rms_base_title
+                );
                 reactThemedPlot(figure, figure.data, figure.layout);
                 refreshPlotRangeControls();
                 return;

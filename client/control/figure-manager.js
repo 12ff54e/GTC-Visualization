@@ -266,7 +266,12 @@ export async function getDataThenPlot(clean_beforehand = true) {
         recalculate.classList.remove('active');
     }
     if (this.id === 'History-phi-RMS') {
-        historyPhiRms(figures[3]);
+        state.hist_phi_rms_base_title = figures[3].layout.title.text;
+        historyPhiRms(
+            figures[3],
+            null,
+            state.hist_phi_rms_base_title
+        );
         state.hist_phi_rms_range = undefined;
         recalculate.querySelector('button').innerText =
             'Recalculate growth rate for selected range';

@@ -220,7 +220,11 @@ export function addSimulationRegion(fig) {
  * @param {[number, number]|null} interval - Fractional data interval selected
  * from the x-axis range slider.
  */
-export function historyPhiRms(figure, interval = null) {
+export function historyPhiRms(
+    figure,
+    interval = null,
+    baseTitle = figure?.layout?.title?.text ?? ''
+) {
     const trace = figure?.data?.[0];
     const xs = trace?.x;
     const ys = trace?.y;
@@ -263,10 +267,11 @@ export function historyPhiRms(figure, interval = null) {
             line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
             marker: { color: 'rgb(255, 0, 0)', size: 8 },
         };
-        figure.layout.title.text = `$\\gamma=${gamma.toPrecision(5)}$`;
+        figure.layout.title.text = `${baseTitle}<br>$\\gamma=${gamma.toPrecision(5)}$`;
     } else {
         figure.data.length = 1;
-        figure.layout.title.text = '$\\gamma=\\text{unavailable}$';
+        figure.layout.title.text =
+            `${baseTitle}<br>$\\gamma=\\text{unavailable}$`;
     }
 
     const rangeStart = interval ? xs[startIndex] : xs[0];

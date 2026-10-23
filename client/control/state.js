@@ -88,8 +88,10 @@ const state = {
      */
     hist_mode_range: { growthRate: undefined, frequency: undefined },
 
-    /** Zoomed time range for recalculating History phi-RMS growth rate. */
+    /** Selected x-axis range for recalculating History phi-RMS growth rate. */
     hist_phi_rms_range: undefined,
+    /** Original phi-RMS plot title, retained while adding the fitted gamma. */
+    hist_phi_rms_base_title: undefined,
 
     // ------------------------------------------------------------------
     //  Simulation parameters (fetched once from the server via read_para)
