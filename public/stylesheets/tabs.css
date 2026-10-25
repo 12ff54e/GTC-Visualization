@@ -67,16 +67,19 @@
     position: absolute;
     top: 1.5em;
     left: 0;
-    min-width: 20em;
+    box-sizing: border-box;
+    width: max-content;
+    min-width: min(20em, calc(100vw - 1rem));
+    max-width: calc(100vw - 1rem);
     max-height: 20em;
-    overflow-y: auto;
+    overflow: auto;
     display: none;
     visibility: hidden;
     background-color: var(--breadcrumb-menu-bg);
     z-index: 35;
 }
 .breadcrumb-dropdown.active {
-    display: initial;
+    display: block;
     visibility: initial;
 }
 .breadcrumb-dropdown ul {
@@ -84,20 +87,21 @@
     margin: 0;
     padding: 0;
 }
+.breadcrumb-dropdown > ul {
+    width: max-content;
+    min-width: 100%;
+}
 
 .breadcrumb-dropdown-item {
     position: relative;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) max-content;
+    align-items: start;
     padding-left: 1em;
 }
 .breadcrumb-dropdown-item > a {
     display: block;
-    flex: 1 1 0;
-    min-width: 0;
-    overflow-wrap: anywhere;
-    white-space: normal;
+    white-space: nowrap;
 }
 .breadcrumb-dropdown-item.current-item > a {
     border: outset 2px var(--breadcrumb-selected-border);
@@ -107,13 +111,12 @@
 }
 
 .breadcrumb-dropdown-item > .output {
-    flex: 0 0 auto;
     margin-left: 0.5em;
     white-space: nowrap;
 }
 .breadcrumb-dropdown-item.folder > ul {
-    flex: 0 0 100%;
-    min-width: 0;
+    /* Expanded children start below the folder name, spanning both columns. */
+    grid-column: 1 / -1;
 }
 .breadcrumb-dropdown-item.folder::before {
     position: absolute;

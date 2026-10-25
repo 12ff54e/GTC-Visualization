@@ -52,3 +52,13 @@ You can also, and I suggest to, use process manager or init system to keep app A
 
 ## What's behind the scene
 This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from [Huasheng Xie](http://hsxie.github.io/)'s Matlab program.
+
+## 目录导航更新（2026-10-25）
+
+本次更新基于未集成工具箱的 `improve-ui-and-flux-labels` 分支。
+
+- 修复展开子目录后，父目录名称被挤成一字一行的问题。父目录与子列表各占一行，子目录保留缩进。
+- 目录名保持横向、完整显示，不使用省略号。菜单随内容加宽；超过屏幕宽度时，可在菜单内横向滚动查看完整名称。
+- 目录名和 `gtc.out` 标记分列显示，避免相互重叠。菜单在打开、展开目录和窗口缩放时调整位置，保持在屏幕范围内。
+
+实现位于 `public/stylesheets/tabs.css` 和 `client/components/navigation.js`。更新源码后，运行 `npm run pack-all` 重新生成前后端资源，然后重启服务并刷新页面。
