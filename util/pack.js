@@ -56,10 +56,17 @@ async function pack(
                 { recursive: true }
             );
         }
-        // Copies can inherit Windows read-only attributes. Clear them only on
-        // the staged tree, leaving source permissions untouched.
+        // Windows bsdtar can archive read-only directories as mode 0555. Such
+        // directories can prevent Linux tar from extracting later members or
+        // overwriting an existing release. Clear read-only flags on the staged
+        // copy only; use 0755 for directories and 0644 for files. Windows chmod
+        // supports only the corresponding writable/read-only attributes, while
+        // POSIX systems also apply these mode bits (subject to extraction umask).
         await normalizePermissions(packageRoot);
 
+        // POSIX ustar avoids PAX headers such as SCHILY.fflags=rdonly and the
+        // platform-specific file flags, ACLs and extended attributes that cause
+        // warnings or read-only directories when moving a Windows build to Linux.
         const tar = spawn(
             'tar',
             [

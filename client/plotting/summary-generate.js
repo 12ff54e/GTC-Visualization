@@ -1,5 +1,5 @@
 import state from '../control/state.js';
-import { newThemedPlot } from '../shared/plot-theme.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import {
     getStatusBar,
     wrap,
@@ -412,7 +412,7 @@ function multipleTraceFigure(container, button, abscissa, ordinates) {
         //create figure if not exist
         if (plotlyRoot.childElementCount == 0) {
             const { title, tag, data } = ordinates[0];
-            newThemedPlot(
+            themedPlot.newPlot(
                 plotlyRoot,
                 [{ x: abscissa.data, y: data, line: { simplify: false } }],
                 {

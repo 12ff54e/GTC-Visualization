@@ -11,7 +11,7 @@
  */
 
 import state from '../control/state.js';
-import { reactThemedPlot } from '../shared/plot-theme.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import { wrap } from '../components/status-bar.js';
 import { historyMode, historyPhiRms } from './plot-data-process.js';
 import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
@@ -49,7 +49,7 @@ export function addHistoryRecal(panel) {
                     interval,
                     state.hist_phi_rms_base_title
                 );
-                reactThemedPlot(figure, figure.data, figure.layout);
+                themedPlot.react(figure, figure.data, figure.layout);
                 refreshPlotRangeControls();
                 return;
             }
@@ -70,7 +70,7 @@ export function addHistoryRecal(panel) {
             );
 
             figures.forEach(figure => {
-                reactThemedPlot(figure, figure.data, figure.layout);
+                themedPlot.react(figure, figure.data, figure.layout);
             });
             refreshPlotRangeControls();
         })

@@ -21,7 +21,7 @@
  */
 
 import state from './state.js';
-import { newThemedPlot, reactThemedPlot } from '../shared/plot-theme.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import { callEventTarget } from '../shared/util.js';
 import { requestPlotData } from '../shared/api.js';
 import {
@@ -319,7 +319,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
                 layout.height = 450;
             }
             return data
-                ? (force_redraw ? newThemedPlot : reactThemedPlot)(
+                ? (force_redraw ? themedPlot.newPlot : themedPlot.react)(
                       fig_div,
                       data,
                       layout,

@@ -6,7 +6,7 @@
 // getRationalSurface) have moved to snapshot.js
 
 import state from '../control/state.js';
-import { newThemedPlot } from '../shared/plot-theme.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import { createPlotConfig } from '../components/figure-data-download.js';
 import { getFFT } from '../shared/fft.js';
 import { interleave } from '../shared/util.js';
@@ -123,7 +123,7 @@ export async function trackingPlot(figures) {
     const zeta = figures.pop().extraData;
 
     const figureDiv1 = document.getElementById('figure-1');
-    await newThemedPlot(
+    await themedPlot.newPlot(
         figureDiv1,
         figures[0].data,
         figures[0].layout,
@@ -139,7 +139,7 @@ export async function trackingPlot(figures) {
         z: scatter.map(({ y }) => y),
     });
 
-    newThemedPlot(
+    themedPlot.newPlot(
         'figure-2',
         figures[1].data,
         figures[1].layout,
@@ -244,7 +244,14 @@ export function historyPhiRms(
     );
     const selected = [];
     for (let i = startIndex; i <= endIndex; i++) {
-        if (Number.isFinite(Number(xs[i])) && Number.isFinite(Number(ys[i]))) {
+        // JSON serializes non-finite values as null; Number(null) would turn
+        // missing coordinates into zero and corrupt the growth-rate fit.
+        if (
+            xs[i] != null &&
+            ys[i] != null &&
+            Number.isFinite(Number(xs[i])) &&
+            Number.isFinite(Number(ys[i]))
+        ) {
             selected.push(i);
         }
     }

@@ -1,6 +1,6 @@
 import inputParametersV11 from './input-parameters-v11.json';
 import inputParametersV16 from './input-parameters-v16.json';
-import { newThemedPlot, setupPlotTheme } from '../shared/plot-theme.js';
+import { themedPlot, setupPlotTheme } from '../shared/plot-theme.js';
 
 const inputParametersByVersion = {
     11: inputParametersV11,
@@ -349,7 +349,7 @@ window.addEventListener('load', ev => {
                         layout.xaxis.title = '$\\psi/\\psi_w$';
                     }
 
-                    newThemedPlot(div, data, layout);
+                    themedPlot.newPlot(div, data, layout);
                 }
 
                 // show figure above its input

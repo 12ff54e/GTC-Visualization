@@ -10,7 +10,7 @@
  */
 
 import state from '../control/state.js';
-import { reactThemedPlot } from '../shared/plot-theme.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import {
     findRationalSurfaceCrossings,
     RATIONAL_SURFACE_LINE_STYLE,
@@ -164,7 +164,7 @@ export function setupRationalSurfaceControl(panel, nModes) {
         }
 
         applyRationalSurfaceTraces(graphDiv, Number(slider.value));
-        await reactThemedPlot(graphDiv, graphDiv.data, graphDiv.layout);
+        await themedPlot.react(graphDiv, graphDiv.data, graphDiv.layout);
         refreshPlotRangeControls();
     });
 

@@ -135,10 +135,10 @@ test('new and existing figures use the selected palette without replacing their 
             relayout(...args) { calls.push(args); return Promise.resolve(graph); },
         },
     });
-    const { newThemedPlot, reactThemedPlot, setupPlotTheme } = await import('../client/shared/plot-theme.js');
+    const { themedPlot, setupPlotTheme } = await import('../client/shared/plot-theme.js');
     const config = { editable: true };
-    await newThemedPlot(graph, graph.data, graph.layout, config);
-    await reactThemedPlot(graph, graph.data, graph.layout, config);
+    await themedPlot.newPlot(graph, graph.data, graph.layout, config);
+    await themedPlot.react(graph, graph.data, graph.layout, config);
     for (const call of calls) {
         assert.equal(call[1], graph.data);
         assert.equal(call[2].paper_bgcolor, '#18242f');

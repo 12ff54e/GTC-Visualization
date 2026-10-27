@@ -89,17 +89,19 @@ function plotColors() {
     };
 }
 
-export function newThemedPlot(element, data, layout, config) {
+function newPlot(element, data, layout, config) {
     return Plotly.newPlot(
         element, data, themedLayout(layout, plotColors()), config
     );
 }
 
-export function reactThemedPlot(element, data, layout, config) {
+function react(element, data, layout, config) {
     return Plotly.react(
         element, data, themedLayout(layout, plotColors()), config
     );
 }
+
+export const themedPlot = { newPlot, react };
 
 export function setupPlotTheme() {
     window.addEventListener('gtc-theme-change', () => {
