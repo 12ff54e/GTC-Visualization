@@ -24,6 +24,27 @@ export function setupBreadcrumbs() {
         ...document.querySelector('#breadcrumb-container').children,
     ];
 
+    const fitDropdown = dropdown => {
+        // Measure from the anchor again after a resize or a different menu opens.
+        dropdown.style.left = '0';
+        const { left, right } = dropdown.getBoundingClientRect();
+        const viewportWidth = document.documentElement.clientWidth;
+        const offset = Math.max(
+            8 - left,
+            Math.min(0, viewportWidth - 8 - right)
+        );
+        dropdown.style.left = `${offset}px`;
+    };
+
+    window.addEventListener('resize', () => {
+        for (const segment of navi_segments) {
+            const dropdown = segment.lastElementChild;
+            if (dropdown.classList.contains('active')) {
+                fitDropdown(dropdown);
+            }
+        }
+    });
+
     const clearDropdown = exception => {
         navi_segments.forEach(s => {
             if (s === exception) {
@@ -96,6 +117,7 @@ export function setupBreadcrumbs() {
                     li.addEventListener('click', event => {
                         event.stopPropagation();
                         event.currentTarget.classList.toggle('folder-expand');
+                        fitDropdown(li.closest('.breadcrumb-dropdown'));
                     });
                 }
                 ul.appendChild(li);
@@ -125,6 +147,10 @@ export function setupBreadcrumbs() {
                 for (const child of event.currentTarget.children) {
                     child.classList.toggle('active');
                 }
+                const dropdown = event.currentTarget.lastElementChild;
+                if (dropdown.classList.contains('active')) {
+                    fitDropdown(dropdown);
+                }
             });
         });
 
@@ -149,6 +175,9 @@ export function setupBreadcrumbs() {
                 clearDropdown();
                 const div = ev.target.nextElementSibling;
                 div.classList.toggle('active');
+                if (div.classList.contains('active')) {
+                    fitDropdown(div);
+                }
                 if (window.getSelection) {
                     const selection = window.getSelection();
                     const range = document.createRange();

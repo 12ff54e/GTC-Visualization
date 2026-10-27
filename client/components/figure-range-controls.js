@@ -172,15 +172,20 @@ function extractRelayoutRange(eventData, axisName) {
 }
 
 /**
- * When the user zooms a history-mode growth-rate or frequency figure,
- * persist the new x-range in `state.hist_mode_range` so the "Recalculate"
- * button can convert it back to a fractional interval.
+ * Persist the selected x-range from History mode and phi-RMS figures so
+ * the "Recalculate" button can convert it back to a fractional interval.
  *
  * @param {HTMLElement} figure
  * @param {Object} eventData - The `plotly_relayout` event data.
  */
 function updateHistoryModeRangeFromRelayout(figure, eventData) {
     const currentPlotId = state.current_plot_btn?.id;
+    if (currentPlotId === 'History-phi-RMS' && figure.id === 'figure-4') {
+        state.hist_phi_rms_range =
+            extractRelayoutRange(eventData, 'x') ??
+            getFigureAxisRange(figure, 'x');
+        return;
+    }
     if (
         !currentPlotId?.startsWith('History') ||
         !currentPlotId.includes('-mode')

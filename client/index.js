@@ -12,6 +12,7 @@
  */
 
 import state from './control/state.js';
+import { setupPlotTheme } from './shared/plot-theme.js';
 import { callEventTarget } from './shared/util.js';
 import { refreshTimeUnitFactor, TIME_UNIT_LABEL } from './components/units.js';
 import {
@@ -34,16 +35,10 @@ import { setupDownloadForm } from './components/download.js';
 // ------------------------------------------------------------------
 
 window.addEventListener('load', () => {
+    setupPlotTheme();
     new StatusBar(document.getElementById('status'));
 
     // ---- unit chooser ------------------------------------------------
-    const unitToggleButton = document.getElementById('units-toggle-button');
-    const unitChooser = document.getElementById('unit-chooser');
-    unitToggleButton.addEventListener('click', e => {
-        e.preventDefault();
-        unitChooser.classList.toggle('active');
-    });
-
     const timeUnitSelect = document.getElementById('time-unit-select');
     timeUnitSelect.addEventListener(
         'change',
@@ -52,6 +47,19 @@ window.addEventListener('load', () => {
             await refreshTimeUnitFactor();
 
             if (state.current_plot_btn) {
+                await addLoadingIndicator(
+                    getDataThenPlot.bind(state.current_plot_btn)
+                )();
+            }
+        })
+    );
+
+    const radialUnitSelect = document.getElementById('radial-unit-select');
+    radialUnitSelect.addEventListener(
+        'change',
+        wrap(async e => {
+            state.units.radial = e.target.value;
+            if (state.current_plot_btn?.id?.startsWith('RadialTime')) {
                 await addLoadingIndicator(
                     getDataThenPlot.bind(state.current_plot_btn)
                 )();

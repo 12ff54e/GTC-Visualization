@@ -102,8 +102,16 @@ class RadialTime extends PlotType {
         })
 
         figure.axesLabel = { x: '$\\text{time step}$', y: '$\\text{mpsi}$' };
+        const speciesSubscript = { ion: 'i', electron: 'e', EP: 'EP' }[cat];
+        const transportSymbol = {
+            particle_flux: 'D',
+            energy_flux: '\\chi',
+        }[type];
+        const transportLabel = speciesSubscript && transportSymbol
+            ? `\\;(${transportSymbol}_{${speciesSubscript}})`
+            : '';
         figure.plotLabel = `$${PlotType.fieldID.includes(cat) ? PlotType.fieldDisplayName[cat] : `\\mathrm{${cat}}`}\\;`
-            + `\\text{${type.replace('_',' ')}}$`;
+            + `\\text{${type.replace('_',' ')}}${transportLabel}$`;
 
         return [figure];
     }

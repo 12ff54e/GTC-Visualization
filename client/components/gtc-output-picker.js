@@ -1,8 +1,14 @@
+let outputFolders = [];
+let selectedOutputPath;
+const SEARCH_RESULT_LIMIT = 100;
+
 window.addEventListener(
     'load',
     wrap(
         addLoadingIndicator(async () => {
-            fetch_and_populate_folder('/fileTree');
+            setup_folder_search();
+            setup_folder_selection();
+            setup_server_comm_btns();
 
             for (let btn of document.querySelector('.ctrl').children) {
                 btn.addEventListener('click', event => {
@@ -42,20 +48,21 @@ window.addEventListener(
                 });
             }
 
-            setup_server_comm_btns();
-
             document
                 .querySelector('#folder_form')
                 .addEventListener('formdata', ev => {
                     const data = ev.formData;
-                    const recent_entries =
-                        document.querySelector('#recent_ul').firstElementChild
-                            .firstElementChild.dirObj.content;
-
-                    if (!data.has('gtc_output') && recent_entries.length > 0) {
-                        data.set('gtc_output', recent_entries[0].path);
+                    if (selectedOutputPath) {
+                        data.set('gtc_output', selectedOutputPath);
+                    } else if (
+                        !data.has('gtc_output') &&
+                        outputFolders.length > 0
+                    ) {
+                        data.set('gtc_output', outputFolders[0].path);
                     }
                 });
+
+            await fetch_and_populate_folder('/fileTree');
         })
     )
 );
@@ -127,6 +134,7 @@ function generateListEntry(entry, tag_suffix = '', max_depth = -1) {
         input.setAttribute('value', path);
         input.setAttribute('type', 'radio');
         input.setAttribute('name', 'gtc_output');
+        input.checked = path === selectedOutputPath;
         const label = document.createElement('label');
         label.setAttribute('for', `${path}${tag_suffix}`);
         label.innerText = entry.dirname;
@@ -221,30 +229,27 @@ function addLoadingIndicator(func) {
     return async (...args) => {
         const loading = document.querySelector('#loading');
         loading.style.visibility = 'visible';
-
-        await func(...args);
-
-        loading.style.visibility = 'hidden';
+        try {
+            await func(...args);
+        } finally {
+            loading.style.visibility = 'hidden';
+        }
     };
 }
 
 /**
- * Get recent entries, also add path to each entry
+ * Get all GTC output folders and attach their paths.
  * @param file_tree
  * @returns
  */
-function getRecent(file_tree) {
-    const RECENT_ENTRIES_COUNT = 3;
-    const recent_entries = [];
-
-    const add_to_recent = entry => {
-        recent_entries.push(entry);
-        recent_entries.sort((a, b) => b.mTimeMs - a.mTimeMs);
-        if (recent_entries.length > RECENT_ENTRIES_COUNT) {
-            recent_entries.pop();
-        }
-    };
-
+function getOutputFolders(file_tree) {
+    const output_folders = [];
+    // The root itself can be a GTC output folder; the DFS below visits only
+    // child entries, so add it before traversing those children.
+    if (file_tree.mTimeMs) {
+        file_tree.path = `/${file_tree.dirname}`;
+        output_folders.push(file_tree);
+    }
     // DFS
     const folder_stack = [[file_tree, 0]];
     while (folder_stack.length > 0) {
@@ -262,7 +267,7 @@ function getRecent(file_tree) {
                         .map(p => p[0].dirname)
                         .join('/')
                         .concat(`/${entry.dirname}`);
-                add_to_recent(entry);
+                output_folders.push(entry);
             }
             if (entry.count.folders > 1) {
                 folder_stack.at(-1)[1] = i + 1;
@@ -275,11 +280,18 @@ function getRecent(file_tree) {
         }
     }
 
-    return recent_entries;
+    return output_folders.sort((a, b) => b.mTimeMs - a.mTimeMs);
 }
 
 function populate_recent(file_tree) {
-    const recent_entries = getRecent(file_tree);
+    outputFolders = getOutputFolders(file_tree);
+    if (
+        selectedOutputPath &&
+        !outputFolders.some(entry => entry.path === selectedOutputPath)
+    ) {
+        selectedOutputPath = undefined;
+    }
+    const recent_entries = outputFolders.slice(0, 3);
     const recent_entry_virtual_folder = {
         dirname: 'Recent Tasks',
         content: recent_entries,
@@ -291,6 +303,75 @@ function populate_recent(file_tree) {
     );
     recent_ul.classList.add('active_list');
     recent_ul.style.height = `${recent_ul.scrollHeight}px`;
+    render_folder_search_results();
+    update_folder_selection_status();
+}
+
+function setup_folder_search() {
+    const input = document.querySelector('#folder-search');
+    let timer;
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(render_folder_search_results, 120);
+    });
+}
+
+function render_folder_search_results() {
+    const input = document.querySelector('#folder-search');
+    const results = document.querySelector('#folder-search-results');
+    const status = document.querySelector('#folder-search-status');
+    const query = input.value.trim().toLocaleLowerCase();
+    results.replaceChildren();
+
+    if (!query) {
+        results.hidden = true;
+        status.textContent = `${outputFolders.length.toLocaleString()} GTC output folders available. Search by folder name or path.`;
+        return;
+    }
+
+    const matches = outputFolders.filter(entry =>
+        entry.path.toLocaleLowerCase().includes(query)
+    );
+    const visible_matches = matches.slice(0, SEARCH_RESULT_LIMIT);
+    for (const entry of visible_matches) {
+        results.append(generateListEntry(entry, '#search', 0));
+    }
+    if (selectedOutputPath) {
+        const selected = [
+            ...results.querySelectorAll('input[name="gtc_output"]'),
+        ].find(input => input.value === selectedOutputPath);
+        if (selected) selected.checked = true;
+    }
+    results.hidden = visible_matches.length === 0;
+
+    if (matches.length === 0) {
+        status.textContent = `No folders match “${input.value.trim()}”.`;
+    } else if (matches.length > SEARCH_RESULT_LIMIT) {
+        status.textContent = `${matches.length.toLocaleString()} matches. Showing the first ${SEARCH_RESULT_LIMIT}; refine the search to narrow the list.`;
+    } else {
+        status.textContent = `${matches.length.toLocaleString()} matching folder${matches.length === 1 ? '' : 's'}.`;
+    }
+}
+
+function setup_folder_selection() {
+    document
+        .querySelector('#folder_form')
+        .addEventListener('change', event => {
+            if (event.target.matches('input[name="gtc_output"]')) {
+                selectedOutputPath = event.target.value;
+                update_folder_selection_status(event.target.value);
+            }
+        });
+}
+
+function update_folder_selection_status(selected_path) {
+    const selected =
+        selected_path ||
+        selectedOutputPath ||
+        document.querySelector('input[name="gtc_output"]:checked')?.value;
+    document.querySelector('#folder-selection-status').textContent = selected
+        ? `Selected folder: ${selected}`
+        : 'No folder selected. Submitting will open the most recently updated folder.';
 }
 
 function setup_server_comm_btns() {
@@ -307,6 +388,7 @@ function setup_server_comm_btns() {
         .querySelector('#scan_folder')
         .addEventListener('click', get_file_tree('/scan'));
 
+    sync_btn.sync_time = Date.now();
     const duration_span = sync_btn.querySelector('#duration');
     function update_timer() {
         const duration = (Date.now() - sync_btn.sync_time) / 1000;
@@ -323,10 +405,28 @@ function setup_server_comm_btns() {
 }
 
 async function fetch_and_populate_folder(api) {
-    toggle_server_comm_btn();
-    const { file_tree, server_uptime, last_scan_time } = await (
-        await fetch(api)
-    ).json();
+    const status = document.querySelector('#folder-list-status');
+    set_server_comm_disabled(true);
+    status.textContent =
+        api === '/scan'
+            ? 'Scanning the server folders. This may take a while…'
+            : 'Loading the cached folder list…';
+    try {
+        await update_folder_list(api);
+    } catch (error) {
+        status.textContent = `Could not load the folder list: ${error.message}`;
+        throw error;
+    } finally {
+        set_server_comm_disabled(false);
+    }
+}
+
+async function update_folder_list(api) {
+    const response = await fetch(api);
+    if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+    }
+    const { file_tree, server_uptime, last_scan_time } = await response.json();
     document.querySelector('#duration').innerText = '0s';
 
     // this method might be over complicated
@@ -336,7 +436,7 @@ async function fetch_and_populate_folder(api) {
         let no_transition = true;
         for (const li of ul.children) {
             const btn = li.querySelector('.collapsible');
-            if (btn.innerText == '-') {
+            if (btn?.innerText === '-') {
                 const after = () => {
                     handler(file_tree);
                     ul.removeEventListener('transitionend', after);
@@ -355,12 +455,14 @@ async function fetch_and_populate_folder(api) {
 
     show_banner(server_uptime, last_scan_time);
     document.querySelector('#sync_cache').sync_time = Date.now();
-    toggle_server_comm_btn();
+    document.querySelector('#folder-list-status').textContent =
+        `${file_tree.count.files.toLocaleString()} GTC output folders found. ` +
+        `Last disk scan ${duration_text(server_uptime - last_scan_time)} ago.`;
 }
 
-function toggle_server_comm_btn() {
+function set_server_comm_disabled(disabled) {
     document.querySelectorAll('.server_comm').forEach(btn => {
-        btn.disabled = !btn.disabled;
+        btn.disabled = disabled;
     });
 }
 

@@ -1,0 +1,241 @@
+:root {
+    color-scheme: light;
+    --page-bg: #ffffff;
+    --home-page-bg: azure;
+    --surface: #ffffff;
+    --surface-soft: #f8fbfc;
+    --text-color: #18313b;
+    --muted-color: #49616a;
+    --border-color: #c7d8dc;
+    --accent-color: #1683a1;
+    --accent-soft: rgb(206 200 255);
+    --hover-bg: rgba(214, 214, 214, 0.836);
+    --selected-bg: rgb(127, 255, 212);
+    --selected-text: #18313b;
+    --success-color: #468507;
+    --warning-color: #b66400;
+    --error-color: crimson;
+    --shadow-color: rgb(21 63 73 / 8%);
+    --overlay-bg: rgb(45 45 45 / 80%);
+    --plot-paper: #ffffff;
+    --plot-bg: #ffffff;
+    --plot-grid: #d3d3d3;
+    --preview-bg: azure;
+    --banner-bg: rgb(206 200 255);
+    --tooltip-bg: rgb(13 120 162);
+    --submit-area-bg: linear-gradient(
+        90deg,
+        rgba(240, 255, 255, 0.7),
+        rgb(200, 255, 255),
+        rgba(240, 255, 255, 0.5)
+    );
+    --button-disabled-bg: repeating-linear-gradient(
+        -45deg, rgb(255 200 200), rgb(255 200 200) 4px,
+        white 4px, white 8px
+    );
+    --folder-panel-border: #c7d8dc;
+    --folder-input-border: #8aa9b1;
+    --folder-results-border: #d6e2e5;
+    --folder-results-bg: #f8fbfc;
+    --folder-hover-bg: rgba(214, 214, 214, 0.836);
+    --folder-selected-bg: rgba(182, 182, 182, 0.836);
+    --folder-selected-text: rgb(8, 138, 48);
+    --folder-muted-text: rgb(179, 179, 179);
+    --modebar-idle: rgba(68, 68, 68, 0.3);
+    --modebar-hover: rgba(68, 68, 68, 0.7);
+    --breadcrumb-menu-bg: aliceblue;
+    --breadcrumb-hover-bg: lightgray;
+    --breadcrumb-selected-border: black;
+    --copy-hover-bg: rgba(73, 73, 228, 0.267);
+    --tab-bg: rgb(227, 248, 241);
+    --tab-hover-bg: rgb(197, 247, 230);
+    --tab-selected-bg: rgb(127, 255, 212);
+    --file-list-bg: rgb(199, 245, 235);
+    --file-hover-bg: rgba(73, 73, 228, 0.267);
+    --file-selected-bg: rgba(73, 73, 228, 0.42);
+    --file-selected-text: var(--text-color);
+    --range-panel-bg: rgba(255, 255, 255, 0.95);
+    --range-border: rgb(172, 210, 197);
+    --range-bg: rgba(227, 248, 241, 0.55);
+    --range-form-bg: rgba(255, 255, 255, 0.7);
+    --eq-choice-shadow: rgb(172, 210, 197);
+    --summary-bg: lightblue;
+    --summary-shadow: color-mix(in srgb, lightblue, rgb(45 45 45 / 80%));
+    --input-heading-bg: white;
+    --breadcrumb-text: gray;
+    --breadcrumb-hover-text: black;
+    --copy-text: black;
+    --disabled-tab-bg: gray;
+    --disabled-tab-border: lightgray;
+    --tab-height: 80px;
+    --tab-border: outset;
+    --tab-selected-border: inset;
+    --tab-selected-shadow: none;
+}
+
+:root[data-theme='dark'] {
+    color-scheme: dark;
+    --page-bg: #101820;
+    --home-page-bg: var(--page-bg);
+    --surface: #18242f;
+    --surface-soft: #213341;
+    --text-color: #e0eaf2;
+    --muted-color: #a1b3c2;
+    --border-color: #405564;
+    --accent-color: #73cce3;
+    --accent-soft: #224d60;
+    --hover-bg: #2a4050;
+    --selected-bg: #254d46;
+    --selected-text: #98e2b9;
+    --success-color: #94dfab;
+    --warning-color: #f0c479;
+    --error-color: #ff9aaa;
+    --shadow-color: rgb(0 0 0 / 30%);
+    --overlay-bg: rgb(0 0 0 / 65%);
+    --plot-paper: #18242f;
+    --plot-bg: #18242f;
+    --plot-grid: #354a5a;
+    --preview-bg: var(--surface);
+    --tooltip-bg: #234e64;
+    --banner-bg: var(--accent-soft);
+    --submit-area-bg: var(--surface-soft);
+    --button-disabled-bg: repeating-linear-gradient(
+        -45deg, var(--surface-soft), var(--surface-soft) 4px,
+        var(--border-color) 4px, var(--border-color) 8px
+    );
+    --folder-panel-border: var(--border-color);
+    --folder-input-border: var(--border-color);
+    --folder-results-border: var(--border-color);
+    --folder-results-bg: var(--surface-soft);
+    --folder-hover-bg: var(--hover-bg);
+    --folder-selected-bg: var(--selected-bg);
+    --folder-selected-text: var(--selected-text);
+    --folder-muted-text: var(--muted-color);
+    --modebar-idle: var(--muted-color);
+    --modebar-hover: var(--text-color);
+    --breadcrumb-menu-bg: var(--surface-soft);
+    --breadcrumb-hover-bg: var(--hover-bg);
+    --breadcrumb-selected-border: var(--accent-color);
+    --copy-hover-bg: var(--hover-bg);
+    --tab-bg: var(--surface-soft);
+    --tab-hover-bg: var(--hover-bg);
+    --tab-selected-bg: var(--selected-bg);
+    --file-list-bg: var(--surface-soft);
+    --file-hover-bg: var(--hover-bg);
+    --file-selected-bg: var(--selected-bg);
+    --file-selected-text: var(--selected-text);
+    --range-panel-bg: var(--surface);
+    --range-border: var(--border-color);
+    --range-bg: var(--surface-soft);
+    --range-form-bg: var(--surface);
+    --eq-choice-shadow: var(--border-color);
+    --summary-bg: var(--surface);
+    --summary-shadow: var(--shadow-color);
+    --input-heading-bg: var(--page-bg);
+    --breadcrumb-text: var(--muted-color);
+    --breadcrumb-hover-text: var(--text-color);
+    --copy-text: var(--text-color);
+    --disabled-tab-bg: var(--surface-soft);
+    --disabled-tab-border: var(--border-color);
+    --tab-height: 60px;
+    --tab-border: 1px solid var(--border-color);
+    --tab-selected-border: 1px solid var(--accent-color);
+    --tab-selected-shadow: inset 3px 0 var(--accent-color);
+}
+
+body {
+    background-color: var(--page-bg);
+    color: var(--text-color);
+}
+
+body.home-page {
+    background-color: var(--home-page-bg);
+}
+
+:where(:root[data-theme='dark']) button,
+:where(:root[data-theme='dark']) input,
+:where(:root[data-theme='dark']) select,
+:where(:root[data-theme='dark']) textarea {
+    color: var(--text-color);
+    background-color: var(--surface);
+    border-color: var(--border-color);
+    accent-color: var(--accent-color);
+}
+
+:where(:root[data-theme='dark']) button:disabled,
+:where(:root[data-theme='dark']) input:disabled,
+:where(:root[data-theme='dark']) select:disabled {
+    color: var(--muted-color);
+}
+
+:where(:root[data-theme='dark']) a[href] { color: var(--accent-color); }
+
+/* Plotly 3 hard-codes light active/hover fills inline, independently of bgcolor.
+   Override only its update-menu SVGs in dark mode, including the active item. */
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-item-rect {
+    fill: var(--surface) !important;
+    stroke: var(--border-color) !important;
+}
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-header .updatemenu-item-rect {
+    fill: var(--surface-soft) !important;
+}
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-header:hover .updatemenu-item-rect,
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-dropdown-button:hover .updatemenu-item-rect,
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-button:hover .updatemenu-item-rect {
+    fill: var(--hover-bg) !important;
+}
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-item-text,
+:root[data-theme='dark'] .js-plotly-plot .updatemenu-header-arrow {
+    fill: var(--text-color) !important;
+}
+
+button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.theme-settings {
+    box-sizing: border-box;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.6rem;
+    background: var(--surface);
+    font: 0.9rem system-ui, sans-serif;
+}
+
+.theme-settings label { font-weight: 600; }
+.theme-settings select {
+    flex: 1;
+    min-width: 0;
+    padding: 0.35rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    font: inherit;
+}
+
+#display-settings .theme-settings {
+    flex: 1;
+    min-width: 0;
+    gap: 0.4rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font: inherit;
+}
+
+#folder_form > .theme-settings, body > .theme-settings {
+    width: fit-content;
+    min-width: 13rem;
+    margin: 0.75rem 0 0.75rem auto;
+}
+
+#folder_form > .theme-settings + #folder-search-panel { margin-top: 1rem; }
+
+.status-info, #summary-page span.good { color: var(--success-color); }
+.status-warning, #summary-page span.warn { color: var(--warning-color); }
+.status-error, #summary-page span.error { color: var(--error-color); }

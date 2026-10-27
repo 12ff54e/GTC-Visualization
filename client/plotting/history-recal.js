@@ -1,18 +1,19 @@
 'use strict';
 
 /**
- * History-mode "Recalculate" button.
+ * History growth-rate "Recalculate" button.
  *
  * Adds a button to the History panel that re-fits the growth rate and
- * frequency using the user-selected zoom range (stored in
- * `state.hist_mode_range`) and re-renders the affected figures.
+ * mode frequency or phi-RMS growth rate using the range selected on the
+ * corresponding x-axis range slider, then re-renders the affected figures.
  *
  * @module history-recal
  */
 
 import state from '../control/state.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import { wrap } from '../components/status-bar.js';
-import { historyMode } from './plot-data-process.js';
+import { historyMode, historyPhiRms } from './plot-data-process.js';
 import { refreshPlotRangeControls } from '../components/figure-range-controls.js';
 
 /** Keep the recalculation control visible after its normal position scrolls away. */
@@ -24,7 +25,7 @@ export function updateHistoryRecalPosition(anchor, control) {
 }
 
 /**
- * Append the "Recalculate growth rate and frequency" button to `panel`.
+ * Append the History recalculation button to `panel`.
  *
  * @param {HTMLElement} panel - The History sub-panel container.
  */
@@ -32,12 +33,30 @@ export function addHistoryRecal(panel) {
     const div = document.createElement('div');
     div.id = 'history-recalculate';
     const btn = document.createElement('button');
-    btn.innerText =
-        'Recalculate\ngrowth rate and frequency\naccording to zoomed range';
+    btn.innerText = 'Recalculate growth rate for selected range';
     btn.classList.add('tab-l1-btn');
     btn.addEventListener(
         'click',
         wrap(async function () {
+            if (state.current_plot_btn?.id === 'History-phi-RMS') {
+                const figure = document.getElementById('figure-4');
+                const len = figure.data[0].x.at(-1);
+                const interval = state.hist_phi_rms_range?.map(
+                    value => value / len
+                );
+                historyPhiRms(
+                    figure,
+                    interval,
+                    state.hist_phi_rms_base_title
+                );
+                themedPlot.react(figure, figure.data, figure.layout);
+                refreshPlotRangeControls();
+                return;
+            }
+
+            btn.innerText =
+                'Recalculate\ngrowth rate and frequency\nfor selected range';
+
             const figures = [1, 2, 3, 4].map(i =>
                 document.getElementById(`figure-${i}`)
             );
@@ -51,7 +70,7 @@ export function addHistoryRecal(panel) {
             );
 
             figures.forEach(figure => {
-                Plotly.react(figure, figure.data, figure.layout);
+                themedPlot.react(figure, figure.data, figure.layout);
             });
             refreshPlotRangeControls();
         })

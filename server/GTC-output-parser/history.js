@@ -235,6 +235,22 @@ class History extends PlotType {
             // particle
             // Each plot type has two sub-figure
             let plotType = particlePlotTypes.indexOf(type);
+            const flowSymbol = {
+                ion: 'D_i',
+                electron: 'D_e',
+                EP: 'D_{EP}',
+            }[cat];
+            const particleFlowTitle = flowSymbol
+                ? `$\\text{Particle flow}\\;(${flowSymbol})$`
+                : '$\\text{Particle flow}$';
+            const energyFlowSymbol = {
+                ion: '\\chi_i',
+                electron: '\\chi_e',
+                EP: '\\chi_{EP}',
+            }[cat];
+            const energyFlowTitle = energyFlowSymbol
+                ? `$\\text{Energy flow}\\;(${energyFlowSymbol})$`
+                : '$\\text{Energy flow}$';
             for (let i = 0; i < 2; i++) {
                 let figure = new PlotlyData();
                 figure.data.push({
@@ -263,13 +279,13 @@ class History extends PlotType {
                     case 3:
                         figure.plotLabel =
                             i == 0
-                                ? '$\\text{Particle flow}$'
+                                ? particleFlowTitle
                                 : '$\\text{Momentum flow}$';
                         break;
                     case 4:
                         figure.plotLabel =
                             i == 0
-                                ? '$\\text{Energy flow}$'
+                                ? energyFlowTitle
                                 : `$\\text{${
                                       this.particleDiagnosticNumber == 10
                                           ? 'Total density'

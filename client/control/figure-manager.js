@@ -21,6 +21,7 @@
  */
 
 import state from './state.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import { callEventTarget } from '../shared/util.js';
 import { requestPlotData } from '../shared/api.js';
 import {
@@ -46,6 +47,7 @@ import {
 } from '../plotting/snapshot.js';
 import {
     historyMode,
+    historyPhiRms,
     trackingPlot,
     addSimulationRegion,
 } from '../plotting/plot-data-process.js';
@@ -263,10 +265,24 @@ export async function getDataThenPlot(clean_beforehand = true) {
     if (this.id.startsWith('History')) {
         recalculate.classList.remove('active');
     }
+    if (this.id === 'History-phi-RMS') {
+        state.hist_phi_rms_base_title = figures[3].layout.title.text;
+        historyPhiRms(
+            figures[3],
+            null,
+            state.hist_phi_rms_base_title
+        );
+        state.hist_phi_rms_range = undefined;
+        recalculate.querySelector('button').innerText =
+            'Recalculate growth rate for selected range';
+        recalculate.classList.add('active');
+    }
     if (this.id.startsWith('History') && this.id.includes('-mode')) {
         await historyMode(figures);
         state.hist_mode_range.frequency = undefined;
         state.hist_mode_range.growthRate = undefined;
+        recalculate.querySelector('button').innerText =
+            'Recalculate\ngrowth rate and frequency\nfor selected range';
         recalculate.classList.add('active');
     } else if (this.id.startsWith('Snapshot')) {
         await snapshotPreprocess(this, figures);
@@ -303,7 +319,7 @@ export async function getDataThenPlot(clean_beforehand = true) {
                 layout.height = 450;
             }
             return data
-                ? (force_redraw ? Plotly.newPlot : Plotly.react)(
+                ? (force_redraw ? themedPlot.newPlot : themedPlot.react)(
                       fig_div,
                       data,
                       layout,

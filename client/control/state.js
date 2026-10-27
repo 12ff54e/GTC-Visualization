@@ -20,11 +20,12 @@ const state = {
     // ------------------------------------------------------------------
 
     /**
-     * Currently selected time unit.
-     * One of: 'soundSpeed' | 'alfvenSpeed' | 'tstep' | 'microsecond'.
-     * @type {{time: string}}
+     * Currently selected time unit and radial coordinate.
+     * Time is one of 'soundSpeed' | 'alfvenSpeed' | 'tstep' | 'microsecond';
+     * radial is one of 'mpsi' | 'rOverA'.
+     * @type {{time: string, radial: string}}
      */
-    units: { time: 'soundSpeed' },
+    units: { time: 'soundSpeed', radial: 'mpsi' },
 
     /**
      * Conversion factors FROM the base unit (sound speed: R₀/c_s) TO each
@@ -86,6 +87,11 @@ const state = {
      * @type {{growthRate: number[]|undefined, frequency: number[]|undefined}}
      */
     hist_mode_range: { growthRate: undefined, frequency: undefined },
+
+    /** Selected x-axis range for recalculating History phi-RMS growth rate. */
+    hist_phi_rms_range: undefined,
+    /** Original phi-RMS plot title, retained while adding the fitted gamma. */
+    hist_phi_rms_base_title: undefined,
 
     // ------------------------------------------------------------------
     //  Simulation parameters (fetched once from the server via read_para)

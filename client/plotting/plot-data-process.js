@@ -6,6 +6,7 @@
 // getRationalSurface) have moved to snapshot.js
 
 import state from '../control/state.js';
+import { themedPlot } from '../shared/plot-theme.js';
 import { createPlotConfig } from '../components/figure-data-download.js';
 import { getFFT } from '../shared/fft.js';
 import { interleave } from '../shared/util.js';
@@ -122,7 +123,7 @@ export async function trackingPlot(figures) {
     const zeta = figures.pop().extraData;
 
     const figureDiv1 = document.getElementById('figure-1');
-    await Plotly.newPlot(
+    await themedPlot.newPlot(
         figureDiv1,
         figures[0].data,
         figures[0].layout,
@@ -138,7 +139,7 @@ export async function trackingPlot(figures) {
         z: scatter.map(({ y }) => y),
     });
 
-    Plotly.newPlot(
+    themedPlot.newPlot(
         'figure-2',
         figures[1].data,
         figures[1].layout,
@@ -208,6 +209,92 @@ export function addSimulationRegion(fig) {
     );
 
     fig.layout.yaxis.range = extendRegion(y_min, y_max, 0.1);
+}
+
+/**
+ * Fit the logarithmic phi-RMS history over the selected time interval.
+ * The fourth History phi-RMS figure already contains ln(phi RMS), so its
+ * slope against time is the growth rate directly.
+ *
+ * @param {HTMLElement} figure - The logarithmic phi-RMS figure.
+ * @param {[number, number]|null} interval - Fractional data interval selected
+ * from the x-axis range slider.
+ */
+export function historyPhiRms(
+    figure,
+    interval = null,
+    baseTitle = figure?.layout?.title?.text ?? ''
+) {
+    const trace = figure?.data?.[0];
+    const xs = trace?.x;
+    const ys = trace?.y;
+    if (!xs?.length || !ys?.length || xs.length !== ys.length) {
+        return;
+    }
+
+    const measure = interval ?? [0.43, 0.98];
+    const lastDataIndex = ys.length - 1;
+    const startIndex = Math.max(
+        0,
+        Math.min(lastDataIndex, Math.floor(measure[0] * ys.length))
+    );
+    const endIndex = Math.max(
+        startIndex,
+        Math.min(lastDataIndex, Math.floor(measure[1] * ys.length))
+    );
+    const selected = [];
+    for (let i = startIndex; i <= endIndex; i++) {
+        // JSON serializes non-finite values as null; Number(null) would turn
+        // missing coordinates into zero and corrupt the growth-rate fit.
+        if (
+            xs[i] != null &&
+            ys[i] != null &&
+            Number.isFinite(Number(xs[i])) &&
+            Number.isFinite(Number(ys[i]))
+        ) {
+            selected.push(i);
+        }
+    }
+
+    const first = selected[0];
+    const last = selected[selected.length - 1];
+    const elapsed = Number(xs[last]) - Number(xs[first]);
+    const gamma =
+        selected.length >= 2 && elapsed !== 0
+            ? (Number(ys[last]) - Number(ys[first])) / elapsed
+            : Number.NaN;
+
+    if (Number.isFinite(gamma)) {
+        figure.data[1] = {
+            x: [xs[first], xs[last]],
+            y: [ys[first], ys[last]],
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'Growth rate fit',
+            line: { dash: 'dot', color: 'rgb(245, 10, 10)', width: 3 },
+            marker: { color: 'rgb(255, 0, 0)', size: 8 },
+        };
+    } else {
+        figure.data.length = 1;
+    }
+
+    // Plotly renders only the first MathJax expression in a title. Keep
+    // the original label and gamma inside one expression so both appear.
+    const gammaText = Number.isFinite(gamma)
+        ? gamma.toPrecision(5)
+        : '\\text{unavailable}';
+    const title = baseTitle.trim();
+    figure.layout.title.text = title.startsWith('$') && title.endsWith('$')
+        ? `${title.slice(0, -1)}\\qquad\\gamma=${gammaText}$`
+        : `${title} — γ = ${Number.isFinite(gamma) ? gammaText : 'unavailable'}`;
+
+    const rangeStart = interval ? xs[startIndex] : xs[0];
+    const rangeEnd = interval ? xs[endIndex] : xs[xs.length - 1];
+    figure.layout.xaxis.range = [rangeStart, rangeEnd];
+    figure.layout.xaxis.autorange = false;
+    figure.layout.xaxis.rangeslider = {
+        bgcolor: 'rgb(200,200,210)',
+    };
 }
 
 /**

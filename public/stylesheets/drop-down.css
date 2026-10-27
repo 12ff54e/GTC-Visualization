@@ -1,31 +1,81 @@
-:root {
-    --banner-bg: rgb(206 200 255);
-    --tooltip-bg: rgb(13 120 162);
-    --submit-area-bg: linear-gradient(
-        90deg,
-        rgba(240, 255, 255, 0.7),
-        rgb(200, 255, 255),
-        rgba(240, 255, 255, 0.5)
-    );
-    --button-disabled-bg: repeating-linear-gradient(
-        -45deg,
-        rgb(255, 200, 200),
-        rgb(255, 200, 200) 4px,
-        white 4px,
-        white 8px
-    );
-}
-
 body {
-    background-color: azure;
     font-size: 1.2em;
+    margin: 0;
 }
 
 #folder_form {
-    width: 50%;
-    min-width: 600px;
-    max-width: 1200px;
+    width: min(92vw, 1100px);
     margin: 2em auto;
+    padding-bottom: 6rem;
+}
+
+#folder-search-panel {
+    display: grid;
+    gap: 0.45rem;
+    margin: 3.5rem 0 1rem;
+    padding: 1rem 1.2rem;
+    border: 1px solid var(--folder-panel-border);
+    border-radius: 0.8rem;
+    background: var(--surface);
+    box-shadow: 0 3px 14px var(--shadow-color);
+}
+
+#folder-search-label {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+#folder-search {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2.7rem;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--folder-input-border);
+    border-radius: 0.45rem;
+    font: inherit;
+}
+
+#folder-search:focus-visible,
+button:focus-visible,
+input[name='gtc_output']:focus-visible + label {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+#folder-search-status,
+#folder-list-status,
+#folder-selection-status {
+    margin: 0.25rem 0;
+    color: var(--muted-color);
+    font-size: 0.9rem;
+}
+
+#folder-search-results {
+    max-height: 18rem;
+    overflow: auto;
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--folder-results-border);
+    border-radius: 0.5rem;
+    background: var(--folder-results-bg);
+}
+
+#folder-search-results li > div {
+    min-height: 2rem;
+    height: auto;
+    align-items: center;
+}
+
+#folder-search-results input + label {
+    max-width: none;
+    height: auto;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+#folder-search-results .mod {
+    flex: 0 0 auto;
+    margin-left: 0.75rem;
 }
 
 div.ctrl {
@@ -65,11 +115,17 @@ li > div {
 }
 
 li:hover {
-    background: linear-gradient(90deg, rgba(214, 214, 214, 0.836), transparent);
+    background: linear-gradient(90deg, var(--folder-hover-bg), transparent);
 }
 
 input[name='gtc_output'] {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 input + label {
@@ -86,29 +142,25 @@ input + label {
 }
 
 input:checked + label {
-    background: linear-gradient(
-        90deg,
-        rgba(182, 182, 182, 0.836),
-        transparent 90%
-    );
-    color: rgb(8, 138, 48);
+    background: linear-gradient(90deg, var(--folder-selected-bg), transparent 90%);
+    color: var(--folder-selected-text);
     font-size: 1.1em;
     font-weight: bold;
 }
 
 .mod {
-    color: rgb(179, 179, 179);
+    color: var(--folder-muted-text);
     transition: all 0.3s ease-out;
     height: 1.2em;
     overflow: hidden;
 }
 
 .mod:hover {
-    color: black;
+    color: var(--text-color);
 }
 
 input:checked ~ .mod {
-    color: black;
+    color: var(--text-color);
 }
 
 form > div#submit_area {
@@ -123,6 +175,12 @@ form > div#submit_area {
     align-items: center;
     justify-content: center;
     justify-items: center;
+}
+
+#submit_area {
+    padding: 0.5rem;
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -5px 18px var(--shadow-color);
 }
 
 form button[type='submit'] {
@@ -167,6 +225,7 @@ button.server_comm:disabled {
     top: 0;
     left: 0;
     width: 100%;
+    box-sizing: border-box;
     background-color: var(--banner-bg);
     text-align: center;
     padding: 5px;
@@ -175,6 +234,56 @@ button.server_comm:disabled {
     transition: all 0.3s ease-in-out;
 
     opacity: 0;
+}
+
+@media (max-width: 700px) {
+    body {
+        font-size: 1rem;
+    }
+
+    #folder_form {
+        width: 94vw;
+        margin-top: 1rem;
+    }
+
+    #folder-search-panel {
+        margin-top: 3rem;
+        padding: 0.85rem;
+    }
+
+    div.ctrl {
+        justify-content: space-between;
+    }
+
+    div.ctrl button {
+        flex: 1;
+        width: auto;
+    }
+
+    form > div#submit_area {
+        grid-template:
+            'a b' auto
+            'a c' auto / minmax(0, 1fr) minmax(0, 1fr);
+        gap: 0.35rem;
+        height: auto;
+        min-height: 5rem;
+    }
+
+    form button[type='submit'] {
+        font-size: 1rem;
+    }
+
+    button.server_comm {
+        font-size: 0.7rem;
+    }
+
+    .tooltip_container > .tooltip + .tooltip_text.tooltip_right {
+        left: auto;
+        right: 0;
+        top: auto;
+        bottom: 105%;
+        transform: none;
+    }
 }
 
 .tooltip_container {

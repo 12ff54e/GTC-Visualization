@@ -52,3 +52,13 @@ You can also, and I suggest to, use process manager or init system to keep app A
 
 ## What's behind the scene
 This app use [express.js](http://www.expressjs.com) as server framework, and plot figures with the help of [Plotly.js](https://plotly.com/javascript/), which relies on [MathJax](https://www.mathjax.org/) to render expressions. Most, if not all figure types are from [Huasheng Xie](http://hsxie.github.io/)'s Matlab program.
+
+## Folder navigation update (2026-10-25)
+
+This update is based on the `improve-ui-and-flux-labels` branch, which does not include the toolbox.
+
+- Expanding a folder keeps its name on a separate horizontal row above its indented children, instead of squeezing it into one character per line.
+- Folder names remain complete, without ellipses. The menu expands to fit its contents and provides horizontal scrolling when a name exceeds the viewport width.
+- Folder names and `gtc.out` labels occupy separate columns to prevent overlap. Opening a menu, expanding a folder, or resizing the window adjusts the menu position to keep it within the viewport.
+
+The implementation is in `public/stylesheets/tabs.css` and `client/components/navigation.js`. After updating the source, run `npm run pack-all` to rebuild the client and server assets, then restart the server and refresh the page.
